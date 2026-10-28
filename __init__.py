@@ -1109,7 +1109,6 @@ class HaDeSAnimaStandaloneLoraMerger:
 
     def _collect_prefixes(self, sd):
         prefix_map = {}
-        skipped_unsupported = 0
         diff_biases = {}
         unsupported_prefixes = set()
 
@@ -1117,7 +1116,6 @@ class HaDeSAnimaStandaloneLoraMerger:
             for m in self._UNSUPPORTED_MARKERS:
                 if m in k:
                     unsupported_prefixes.add(k.split(m)[0].rstrip("."))
-                    skipped_unsupported += 1
                     break
 
         for k in sd.keys():
@@ -1126,7 +1124,6 @@ class HaDeSAnimaStandaloneLoraMerger:
             if k.endswith(".diff_b") or k.endswith(".lora_B.bias"):
                 pfx = k[:-len(".diff_b")] if k.endswith(".diff_b") else k[:-len(".lora_B.bias")]
                 if pfx in unsupported_prefixes:
-                    skipped_unsupported += 1
                     continue
                 diff_biases[pfx] = k
                 continue
@@ -1134,16 +1131,18 @@ class HaDeSAnimaStandaloneLoraMerger:
                 if k.endswith(up_sfx):
                     pfx = k[:-len(up_sfx)]
                     if pfx in unsupported_prefixes:
-                        skipped_unsupported += 1
                         break
                     down_k = f"{pfx}{down_sfx}"
                     if down_k in sd:
                         prefix_map[pfx] = (k, down_k)
                     break
 
+        # Count unique non-standard layer prefixes (adapters), not raw keys:
+        # a single DoRA adapter exposes several keys (lora_down, lora_magnitude_vector, ...).
+        skipped_unsupported = len(unsupported_prefixes)
         if unsupported_prefixes:
             logger.warning(
-                f"HaDeS Standalone LoRA Merger: Excluded {len(unsupported_prefixes)} non-standard layer prefixes (DoRA/LoHa/LoKr)."
+                f"HaDeS Standalone LoRA Merger: Excluded {skipped_unsupported} non-standard adapter layer(s) (DoRA/LoHa/LoKr)."
             )
         return prefix_map, diff_biases, skipped_unsupported
 
@@ -1306,6 +1305,15 @@ class HaDeSAnimaStandaloneLoraMerger:
             n_dit, n_adapter = 52, 6
         else:
             n_dit, n_adapter = detect_anima_topology(all_prefixes)
+            # P2 guard: Auto mode can mis-detect partial LoRAs (e.g. blocks 0-20) as the 28L tier.
+            max_seen_dit = max((parse_anima_block_key(p)[1] for p in all_prefixes
+                               if parse_anima_block_key(p)[0] == "dit"), default=-1)
+            if n_dit == 28 and 0 <= max_seen_dit < 27:
+                logger.warning(
+                    f"HaDeS Standalone LoRA Merger: Auto topology detected 28 DiT layers, but the LoRAs only reach "
+                    f"block {max_seen_dit}. If these are partial Anima 2.9B (40L) or 3.8B (52L) LoRAs, set "
+                    f"topology_override or pass reference_model to avoid silent band misalignment."
+                )
         is_additive = str(merge_mode).startswith("Additive")
         dare_drop = min(0.45, 0.12 * aggressiveness) if preset == "Orthogonal Synthesis (DARE / SVD)" else 0.0
 
@@ -1465,7 +1473,7 @@ class HaDeSAnimaStandaloneLoraMerger:
             f"Layers QR-SVD Merged: {stats['qr_svd']} | Fast-Copied: {stats['fast_copy']} | Diffusers Keys Remapped: {stats['remapped']} | Adapter Stripped: {stats['stripped_adapter']}",
         ]
         if stats["skipped_keys"] > 0:
-            info_lines.append(f"Warning: Skipped {stats['skipped_keys']} non-standard adapter keys (LoHa/LoKr/DoRA).")
+            info_lines.append(f"Warning: Skipped {stats['skipped_keys']} non-standard adapter(s) (DoRA/LoHa/LoKr).")
         info_lines.extend([
             "\n--- DONOR A WEIGHTS (34 BLOCKS) ---",
             ",".join(str(r) for r in block_ratios_a),
@@ -1583,6 +1591,7 @@ from .anima_pipeline_nodes import (
     HaDeSAnimaLatentPipelineGuard,
     HaDeSAnimaUniversalLoraLoader,
     HaDeSAnimaCornerScribbleShield,
+    format_anima_prompt_text,
 )
 from .anima_ksampler_nodes import (
     HaDeSAnimaKSampler,
@@ -1665,4 +1674,5 @@ __all__ = [
     "inject_external_llm_adapter_sd",
     "validate_anima_te_state_dict",
     "_inspect_and_validate_anima_vae_sd",
+    "format_anima_prompt_text",
 ]

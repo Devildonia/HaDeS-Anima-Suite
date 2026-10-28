@@ -412,6 +412,12 @@ class HaDeSAnimaCLIPLoader:
         if model_options.get("custom_operations", None) is None and hasattr(comfy.utils, "convert_old_quants"):
             sd, metadata = comfy.utils.convert_old_quants(sd, model_prefix="", metadata=metadata)
 
+        if not hasattr(comfy.sd.CLIPType, "QWEN_IMAGE"):
+            print(
+                "[HaDeS Anima CLIP Loader] WARNING: CLIPType.QWEN_IMAGE not found in this ComfyUI build; "
+                "falling back to STABLE_DIFFUSION. Anima Text Encoder may misbehave — "
+                "please upgrade ComfyUI to a build with the qwen_image CLIP type."
+            )
         clip_type = getattr(comfy.sd.CLIPType, "QWEN_IMAGE", comfy.sd.CLIPType.STABLE_DIFFUSION)
         emb_dir = folder_paths.get_folder_paths("embeddings")
         clip = comfy.sd.load_text_encoder_state_dicts(

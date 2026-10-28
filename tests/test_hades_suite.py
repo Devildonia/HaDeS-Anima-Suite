@@ -162,8 +162,10 @@ class DummyModelSampling:
 
 
 class DummyModelPatcher:
-    def __init__(self, sd):
-        self.model = DummyInnerModel({k: v.clone() for k, v in sd.items()})
+    def __init__(self, sd, image_model="anima"):
+        inner = DummyInnerModel({k: v.clone() for k, v in sd.items()})
+        inner.model_config = types.SimpleNamespace(unet_config={"image_model": image_model})
+        self.model = inner
         self.patches = {}
         self.backup = {}
         self.object_patches = {}
@@ -172,6 +174,9 @@ class DummyModelPatcher:
 
     def clone(self):
         c = DummyModelPatcher(self.model.state_dict())
+        # Preserve the Anima topology gate (real ComfyUI ModelPatcher clones keep model_config)
+        if hasattr(self.model, "model_config"):
+            c.model.model_config = self.model.model_config
         c.patches = {k: list(v) for k, v in self.patches.items()}
         c.backup = dict(self.backup)
         c.object_patches = dict(self.object_patches)
@@ -579,7 +584,7 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
     )
     pos_cond, neg_cond, fmt_pos, fmt_neg, info = studio.process_prompt(
         "Anima Aesthetic (Strip score_* & Slop Guard)",
-        "Flat Vector / Graphic (ye-pop + deviantart Header)",
+        "Flat Vector / Graphic (Non-Anime Dataset Header)",
         True,
         1.5,
         "frieren, sousou no frieren",
@@ -594,14 +599,15 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
     assert "score_1" not in fmt_neg and "worst quality" in fmt_neg, f"Expected score_* stripped from Aesthetic negative prompt, got: {fmt_neg}"
     assert r"hatsune miku \(vocaloid\)" in fmt_pos, f"Expected unescaped Booru parens to be escaped, got: {fmt_pos}"
 
-    # Verify 3-line format for ye-pop / deviantart
+    # Verify canonical header: L1 = single dataset trigger (ye-pop); body is last line (no title -> 2 lines)
     lines = fmt_pos.split("\n")
-    assert lines[0] == "ye-pop" and lines[1] == "deviantart", f"Expected canonical 3-line ye-pop format, got: {lines[:2]}"
+    assert lines[0] == "ye-pop", f"Expected canonical header trigger 'ye-pop' on Line 1, got: {lines[:2]}"
+    assert "deviantart" not in lines[0], "Canonical header must carry a single trigger, not Dual Legacy"
+    body = lines[-1]
 
-    # Verify Canonical Order in line 3:
+    # Verify Canonical Order in the body line:
     # [Quality/Safety: safe_for_work] -> [Subject: 1girl] -> [Characters: fern, frieren, sousou no frieren, hatsune miku...]
     # -> [Artists: @yalmyu, @zocehuy, @zomzomzomsauce] -> [General Tags] -> [Natural Language]
-    body = lines[2]
     assert "@zocehuy" in body and "(@zomzomzomsauce:1.2)" in body and "(@yalmyu:1.0)" in body
     assert "@by" not in body, "Leading 'by ' must be stripped from artist entries"
     assert "fern, frieren, sousou no frieren" in body
@@ -1071,6 +1077,101 @@ def test_17_anima_smart_vae_decode_and_scribble_shield():
     print("[OK] Test 17: HaDeSAnimaVAEDecode (Proactive HiRes Auto-Tile, 3D WanVAE 4D/5D & batch=2 round-trip, Corner Scribble Shield) verified")
 
 
+def test_18_nag_only_anima_gate():
+    nag_node = hades.HaDeSAnimaAttentionGuidance()
+
+    # 1. Non-Anima model + only_anima=True (default) -> safe bypass, no override installed
+    m_sd = {"blocks.0.weight": torch.ones(8, 8)}
+    m_non_anima = DummyModelPatcher(m_sd, image_model="stable_diffusion_3")
+    m_out, info = nag_node.apply_nag(
+        m_non_anima, "Turbo / Lightning Negative Enabler", 3.5, 0.45, 2.5, 0.0, 0.70
+    )
+    assert "Bypassed" in info and "not an Anima model" in info, f"Expected only_anima bypass info, got: {info}"
+    assert "optimized_attention_override" not in m_out.model_options.get("transformer_options", {}), (
+        "Expected no attention override installed for a non-Anima model!"
+    )
+
+    # 2. Non-Anima model + only_anima=False -> override IS installed (experimental force-apply)
+    m_forced = DummyModelPatcher(m_sd, image_model="stable_diffusion_3")
+    m_out2, info2 = nag_node.apply_nag(
+        m_forced, "Turbo / Lightning Negative Enabler", 3.5, 0.45, 2.5, 0.0, 0.70, only_anima=False
+    )
+    assert "optimized_attention_override" in m_out2.model_options.get("transformer_options", {}), (
+        f"Expected override installed with only_anima=False, info: {info2}"
+    )
+
+    # 3. Anima model + only_anima=True -> override installed (regression guard)
+    m_anima = DummyModelPatcher(m_sd, image_model="anima")
+    m_out3, info3 = nag_node.apply_nag(
+        m_anima, "Turbo / Lightning Negative Enabler", 3.5, 0.45, 2.5, 0.0, 0.70
+    )
+    assert "optimized_attention_override" in m_out3.model_options.get("transformer_options", {}), (
+        f"Expected override installed for Anima model, info: {info3}"
+    )
+    print("[OK] Test 18: NAG only_anima gate (default True, non-Anima bypass, force-apply escape hatch) verified")
+
+
+def test_19_prompt_header_canonical_and_dual_legacy():
+    body_prompt = "1girl, soft sunset light, watercolor background"
+
+    # 1. Canonical 3-line header: L1 = single trigger, L2 = title, L3 = body
+    canon = hades.format_anima_prompt_text(
+        body_prompt, "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Flat Vector / Graphic (Non-Anime Dataset Header)",
+        header_mode="Canonical (1 Trigger + Title)",
+        header_trigger="ye-pop",
+        artwork_title="Sunset Study",
+    )
+    lines = canon[0].split("\n")
+    assert lines[0] == "ye-pop", f"Expected L1='ye-pop', got: {lines[:3]}"
+    assert lines[1] == "Sunset Study", f"Expected L2='Sunset Study', got: {lines[:3]}"
+    assert "1girl" in lines[2], f"Expected body on L3, got: {lines[:3]}"
+
+    # 2. Canonical header with empty title: L2 omitted, body promoted to L2
+    canon_notitle = hades.format_anima_prompt_text(
+        body_prompt, "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Flat Vector / Graphic (Non-Anime Dataset Header)",
+        header_trigger="deviantart",
+        artwork_title="",
+    )
+    lines_nt = canon_notitle[0].split("\n")
+    assert lines_nt[0] == "deviantart" and "1girl" in lines_nt[1], f"Expected [deviantart, body], got: {lines_nt[:3]}"
+    assert len(lines_nt) == 2, f"Expected 2-line header without title, got {len(lines_nt)} lines"
+
+    # 3. Dual Legacy mode: ye-pop + deviantart on lines 1-2, body on line 3
+    dual = hades.format_anima_prompt_text(
+        body_prompt, "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Flat Vector / Graphic (Non-Anime Dataset Header)",
+        header_mode="Dual Legacy (ye-pop + deviantart)",
+    )
+    lines_dl = dual[0].split("\n")
+    assert lines_dl[0] == "ye-pop" and lines_dl[1] == "deviantart" and "1girl" in lines_dl[2], (
+        f"Expected dual-legacy [ye-pop, deviantart, body], got: {lines_dl[:3]}"
+    )
+
+    # 4. Dedup: body already starting with a dataset trigger must NOT be double-injected
+    dedup = hades.format_anima_prompt_text(
+        "ye-pop, 1girl, soft sunset light",
+        "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Flat Vector / Graphic (Non-Anime Dataset Header)",
+        header_mode="Canonical (1 Trigger + Title)",
+        header_trigger="ye-pop",
+        artwork_title="Sunset Study",
+    )
+    dedup_lines = dedup[0].split("\n")
+    assert dedup_lines.count("ye-pop") == 1, f"Expected no double 'ye-pop' injection, got: {dedup_lines[:4]}"
+
+    # 5. Non-header style mode: body untouched (no header lines)
+    plain = hades.format_anima_prompt_text(
+        body_prompt, "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Cinematic / Detailed Shading",
+    )[0]
+    assert "\n" not in plain.split(", ")[0] and plain.splitlines()[0].startswith("1girl"), (
+        f"Expected header-less single line, got: {plain!r}"
+    )
+    print("[OK] Test 19: Prompt header (canonical 3-line, title omit, dual legacy, dedup, non-header passthrough) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1089,4 +1190,6 @@ if __name__ == "__main__":
     test_15_anima_clip_loader_qwen3_validation()
     test_16_anima_vae_loader_64ch_pre_load_block()
     test_17_anima_smart_vae_decode_and_scribble_shield()
-    print("\nALL 17 HADES ANIMA SUITE v0.1 TEST SUITES PASSED!")
+    test_18_nag_only_anima_gate()
+    test_19_prompt_header_canonical_and_dual_legacy()
+    print("\nALL 19 HADES ANIMA SUITE v0.1 TEST SUITES PASSED!")

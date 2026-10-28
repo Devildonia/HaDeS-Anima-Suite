@@ -117,9 +117,9 @@ HaDeS Anima Suite v0.1
 - **Class:** `HaDeSAnimaPromptStudio`
 - **Purpose:** Automates CircleStone Labs' Booru/NL prompt rules and gives direct control over Anima's internal `T5XXL` query-token weight multiplier.
 - **How it works:**
-  - **Aesthetic Slop Guard:** When `model_variant` is set to `Anima Aesthetic / 2.9B / 3.8B`, it automatically strips `score_9`, `score_8_up`, `masterpiece`, `best quality`, `highres`, `absurdres`, etc., which otherwise over-saturate Anima-Aesthetic and 2.9B latents. The `Anima Aesthetic v1.0b (Keep masterpiece, best quality)` profile preserves the optional `masterpiece, best quality` quality tags while still stripping all forbidden `score_*` tokens.
+  - **Aesthetic Slop Guard:** When `model_variant` is set to `Anima Aesthetic (Strip score_* & Slop Guard)`, it automatically strips `score_9`, `score_8_up`, `score_7_up`, `masterpiece`, `best quality`, `ultra-detailed`, `8k`, `4k`, `extremely detailed`, `insanely detailed`, etc., which otherwise over-saturate Anima-Aesthetic latents. The `Anima Aesthetic v1.0b (Keep masterpiece, best quality)` profile preserves the optional `masterpiece, best quality` quality tags while still stripping all forbidden `score_*` tokens.
   - **Smart Booru Sanitizer:** Converts tags to lowercase and replaces `_` with spaces while preserving whitelisted tokens (`score_*`, `*_up`, `safe_for_work`) and kaomojis (`^_^`, `o_o`, `>_<`, `;_;`, etc.).
-  - **Style Header Injection:** In `Flat Vector / Graphic` mode, injects the canonical `ye-pop, deviantart\n` multiline header.
+  - **Style Header Injection:** In `Flat Vector / Graphic` mode, injects the canonical non-anime dataset header: a single trigger (`ye-pop` or `deviantart`, selectable) on Line 1, an optional artwork title on Line 2 (`artwork_title`), and the prompt body on Line 3, `\n`-separated (CircleStone Labs 3-line format). The legacy dual-trigger header (`ye-pop\ndeviantart\n…`) is preserved via `header_mode = "Dual Legacy"`.
   - **`t5_weight_multiplier`:** In ComfyUI's Anima implementation (`comfy/text_encoders/anima.py`), `Qwen3-0.6B` token weights are forced to `1.0` while `(tag:weight)` multipliers are passed through `T5XXLTokenizer` to multiply the output of `llm_adapter`. This slider scales those `T5XXL` emphasis weights directly!
 
 #### 7. `HaDeS Anima Attention Guidance (NAG / CFG-1.0)`
@@ -128,6 +128,7 @@ HaDeS Anima Suite v0.1
 - **Why you need it:**
   - **Enables Negative Guidance at `CFG = 1.0`** on `Anima-Turbo` and `Anima-Lightning`.
   - **Prevents High-CFG Contrast Burn** on `Anima-Base` and `Anima-Aesthetic` by bounding the L1-norm ratio of extrapolated attention features to `nag_tau` ($\tau \le 2.5$).
+  - **Anima Family Gate:** `only_anima = True` (default) safely bypasses non-Anima models by checking `unet_config.image_model`, matching the canonical NAG reference pattern.
 
 #### 8. `HaDeS Anima Latent & Pipeline Guard`
 - **Class:** `HaDeSAnimaLatentPipelineGuard`

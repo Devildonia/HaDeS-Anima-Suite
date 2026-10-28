@@ -210,7 +210,10 @@ def _clean_single_anima_tag(raw_tag, booru_sanitizer=True, strip_aesthetic_slop=
 
 
 def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_sanitizer=True,
-                             artist_tag="", character_tag="", is_negative=False):
+                             artist_tag="", character_tag="", is_negative=False,
+                             header_mode="Canonical (1 Trigger + Title)",
+                             header_trigger="ye-pop",
+                             artwork_title=""):
     if style_mode == "Raw Pass-Through" and not artist_tag.strip() and not character_tag.strip():
         return raw_prompt, {"stripped_slop": 0, "tag_count": 0, "header_injected": False}
 
@@ -324,11 +327,28 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
         body = ", ".join(canonical_parts)
 
     header_injected = False
-    if style_mode == "Flat Vector / Graphic (ye-pop + deviantart Header)":
-        lower_body = body.lower()
-        if not lower_body.startswith("ye-pop"):
-            # Canonical 3-line format for ye-pop / deviantart
+    if style_mode == "Flat Vector / Graphic (Non-Anime Dataset Header)":
+        trigger = "deviantart" if "deviantart" in str(header_trigger) else "ye-pop"
+        title = str(artwork_title or "").strip().strip("\n")
+        first_line = body.splitlines()[0].strip().lower() if body else ""
+        already_has_trigger = first_line.startswith("ye-pop") or first_line.startswith("deviantart")
+        if already_has_trigger:
+            # The body already carries its own dataset trigger header; do not double-inject.
+            pass
+        elif "Dual Legacy" in str(header_mode):
+            # Legacy dual trigger header (both dataset triggers on lines 1-2).
             body = f"ye-pop\ndeviantart\n{body}".strip()
+            header_injected = True
+        else:
+            # CircleStone Labs canonical 3-line header format:
+            # Line 1: single dataset trigger (ye-pop OR deviantart) + \n
+            # Line 2: artwork title / alt-text (optional) + \n
+            # Line 3: natural language / booru body
+            header_lines = [trigger]
+            if title:
+                header_lines.append(title)
+            header_lines.append(body.strip())
+            body = "\n".join(header_lines)
             header_injected = True
     elif style_mode == "Cinematic / Detailed Shading":
         lower_body = body.lower()
@@ -381,7 +401,7 @@ class HaDeSAnimaPromptStudio:
                 ],),
                 "style_mode": ([
                     "Standard Anime / Illustration",
-                    "Flat Vector / Graphic (ye-pop + deviantart Header)",
+                    "Flat Vector / Graphic (Non-Anime Dataset Header)",
                     "Cinematic / Detailed Shading",
                     "Raw Pass-Through",
                 ],),
@@ -416,6 +436,19 @@ class HaDeSAnimaPromptStudio:
                     "forceInput": True,
                     "tooltip": "Optional external artist tag(s) input from future selector nodes or text nodes."
                 }),
+                "header_mode": ([
+                    "Canonical (1 Trigger + Title)",
+                    "Dual Legacy (ye-pop + deviantart)",
+                ], {
+                    "tooltip": "Flat Vector / Graphic header format. Canonical = CircleStone Labs 3-line format: trigger on Line 1, optional artwork title on Line 2, prompt on Line 3. Dual Legacy = legacy ye-pop\ndeviantart header."
+                }),
+                "header_trigger": (["ye-pop", "deviantart"], {
+                    "tooltip": "Dataset trigger for Line 1 of the canonical header."
+                }),
+                "artwork_title": ("STRING", {
+                    "default": "",
+                    "tooltip": "Optional artwork title / alt-text for Line 2 of the canonical header. Leave empty to omit Line 2."
+                }),
                 "character_in": ("STRING", {
                     "forceInput": True,
                     "tooltip": "Optional external character tag(s) input from future selector nodes or text nodes."
@@ -430,7 +463,10 @@ class HaDeSAnimaPromptStudio:
 
     def process_prompt(self, model_variant, style_mode, booru_sanitizer, t5_weight_multiplier,
                        character_tag, artist_tag, positive_prompt, negative_prompt,
-                       clip=None, artist_in=None, character_in=None):
+                       clip=None, artist_in=None, character_in=None,
+                       header_mode="Canonical (1 Trigger + Title)",
+                       header_trigger="ye-pop",
+                       artwork_title=""):
         # Merge external sockets with inline widgets without duplicates
         merged_chars = []
         for src in (character_in, character_tag):
@@ -452,6 +488,9 @@ class HaDeSAnimaPromptStudio:
             artist_tag=effective_artist,
             character_tag=effective_char,
             is_negative=False,
+            header_mode=header_mode,
+            header_trigger=header_trigger,
+            artwork_title=artwork_title,
         )
         fmt_neg, neg_stats = format_anima_prompt_text(
             negative_prompt,
@@ -471,7 +510,7 @@ class HaDeSAnimaPromptStudio:
             "=== HADES ANIMA PROMPT STUDIO ===",
             f"Variant Profile: {model_variant}",
             f"Style Mode: {style_mode} | Booru Sanitizer: {booru_sanitizer}",
-            f"Active Positive Tags: {pos_stats['tag_count']} | Stripped Slop Tags: {total_stripped} | Header Injected: {pos_stats['header_injected']}",
+            f"Active Positive Tags: {pos_stats['tag_count']} | Stripped Slop Tags: {total_stripped} | Header Injected: {pos_stats['header_injected']} (mode: {header_mode}, trigger: {header_trigger})",
             f"Character: {effective_char or 'None'} (Socket: {character_in is not None}) | Artist: {effective_artist or 'None'} (Socket: {artist_in is not None})",
             f"T5 Query Emphasis Scale: {t5_weight_multiplier:.2f}x | CLIP Connected: {clip is not None}",
             "\n--- FORMATTED POSITIVE PROMPT (CANONICAL ORDER) ---",
@@ -515,6 +554,10 @@ class HaDeSAnimaAttentionGuidance:
                 }),
                 "start_percent": ("FLOAT", {"default": 0.00, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "end_percent": ("FLOAT", {"default": 0.65, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "only_anima": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Only apply guidance to Anima models (unet_config.image_model == 'anima'). Non-Anima models are safely bypassed. Disable to force-apply to any model (experimental)."
+                }),
             }
         }
 
@@ -523,11 +566,20 @@ class HaDeSAnimaAttentionGuidance:
     FUNCTION = "apply_nag"
     CATEGORY = "HaDeS/Anima Pipeline"
 
-    def apply_nag(self, model, guidance_preset, nag_scale, nag_alpha, nag_tau, start_percent, end_percent):
+    def apply_nag(self, model, guidance_preset, nag_scale, nag_alpha, nag_tau, start_percent, end_percent, only_anima=True):
         if guidance_preset in self.PRESET_CONFIGS:
             nag_scale, nag_alpha, nag_tau, start_percent, end_percent = self.PRESET_CONFIGS[guidance_preset]
 
         m = model.clone()
+        if only_anima:
+            unet_config = getattr(getattr(m.model, "model_config", None), "unet_config", None)
+            image_model = None
+            if isinstance(unet_config, dict):
+                image_model = unet_config.get("image_model")
+            else:
+                image_model = getattr(unet_config, "image_model", None)
+            if image_model != "anima":
+                return (m, "HaDeS NAG: Bypassed (not an Anima model; only_anima=True).")
         if nag_scale <= 1.0 or nag_alpha <= 0.0 or start_percent >= end_percent:
             return (m, "HaDeS NAG: Bypassed (nag_scale <= 1.0 or nag_alpha == 0.0).")
 

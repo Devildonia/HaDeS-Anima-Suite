@@ -100,7 +100,7 @@ export function setupPromptStudioUI(node) {
                 {
                     label: "Vector",
                     onClick: () =>
-                        setWidgetValue(wStyle, "Flat Vector / Graphic (ye-pop + deviantart Header)", node),
+                        setWidgetValue(wStyle, "Flat Vector / Graphic (Non-Anime Dataset Header)", node),
                 },
             ],
         })
