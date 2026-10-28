@@ -1,0 +1,18 @@
+[project]
+name = "comfyui-hades-anima-blockmerger"
+description = "Complete 17-node Anima ecosystem suite for ComfyUI: Native Diffusers-aware Model/Qwen3-CLIP/16ch-VAE Loaders, Smart Tiled VAE Decode with Scribble Shield, Block-level Model/CLIP/LoRA Mergers, QR-SVD Exporter, Prompt Studio & Aesthetic Slop Guard, NAG CFG-1.0 Attention Guidance, 16ch Latent/VAE Guard, Universal Diffusers LoRA Remapper, and Single/Dual/Triple-Pass Anima Rectified Flow KSamplers."
+version = "0.1.0"
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "safetensors",
+]
+
+[project.urls]
+Repository = "https://github.com/HaDeS/Comfyui-HaDeS-Anima-BlockMerger"
+
+[tool.comfy]
+PublisherId = "hades"
+DisplayName = "HaDeS Anima Suite"
+Icon = ""
