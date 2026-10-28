@@ -152,6 +152,8 @@ class DummyModelSampling:
     def __init__(self, shift=3.0, multiplier=1.0):
         self.shift = shift
         self.multiplier = multiplier
+        self.sigmas = torch.linspace(10.0, 0.0, 100)
+        self._buffers = {"sigmas": self.sigmas}
 
     def set_parameters(self, shift=1.0, timesteps=1000, multiplier=1.0):
         self.shift = shift
@@ -821,17 +823,34 @@ def test_10_corner_scribble_shield():
         base.repeat(1, 1, 1, 3).clone(), 0.10, 0.75, "Bottom-Right Only", "Aggressive Corner Fill (Forced)", 8
     )
     assert "Auto-Expanded" not in clean_info, f"Clean corner must not trigger expansion: {clean_info}"
-    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, Aggressive mode, clean-corner safety, large-logo auto-expansion) verified")
+
+    # Global texture / uniform grain guard: gaussian noise (sigma=0.03) or hatching across the whole image
+    # Smart Auto-Heal must NOT mistake uniform texture for corner signatures.
+    torch.manual_seed(999)
+    grain_img = (base.repeat(1, 1, 1, 3) + torch.randn(1, 128, 128, 3) * 0.03).clamp(0.0, 1.0)
+    grain_healed, grain_mask, grain_info = shield.shield_corners(
+        grain_img, 0.12, 0.75, "All 4 Corners", "Smart Edge-Inward Blend (Auto-Heal)", 6
+    )
+    grain_diff = (grain_healed - grain_img).abs().max().item()
+    assert grain_diff < 0.005, f"Smart mode must not alter uniform grain/textures (max diff={grain_diff})"
+    assert grain_mask.sum().item() == 0, f"Expected zero masked pixels on uniform grain, got {grain_mask.sum().item()}"
+    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, Aggressive mode, clean-corner safety, large-logo auto-expansion, texture guard) verified")
 
 
 def test_11_anima_single_pass_ksampler_and_schedulers():
     m = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
+    orig_ms = DummyModelSampling(shift=3.0, multiplier=1.0)
+    m.add_object_patch("model_sampling", orig_ms)
 
     # 1. Verify multiplier=1.0 is preserved when patching flow_shift (unlike ModelSamplingSD3's multiplier=1000)
     m_shifted = hades.clone_model_with_anima_shift(m, 3.85)
     ms = m_shifted.get_model_object("model_sampling")
     assert abs(float(ms.shift) - 3.85) < 1e-4
     assert abs(float(ms.multiplier) - 1.0) < 1e-4, f"Expected multiplier=1.0, got {ms.multiplier}"
+
+    # Verify deepcopy buffer isolation: mutating ms.sigmas does NOT affect orig_ms.sigmas
+    ms.sigmas[0] = 999.0
+    assert float(orig_ms.sigmas[0]) == 10.0, "Cloned model_sampling mutated original model_sampling.sigmas buffer!"
 
     # 2. Verify anima_lightning_tdm exact 4-step trajectory from distilled_generation_config.json
     #    raw_sigmas: [1.0, 0.75, 0.5, 0.25]
@@ -1223,7 +1242,28 @@ def test_19_prompt_header_canonical_and_dual_legacy():
     assert "\n" not in plain.split(", ")[0] and plain.splitlines()[0].startswith("1girl"), (
         f"Expected header-less single line, got: {plain!r}"
     )
-    print("[OK] Test 19: Prompt header (canonical 3-line, title omit, dual legacy, dedup, non-header passthrough) verified")
+
+    # 6. Manual 3-line input preservation (case, punctuation, NL sentence untouched)
+    manual_input = (
+        "ye-pop\n"
+        "Sunrise Over Neo-Tokyo (2025 Edition)!\n"
+        "A breathtaking view of the futuristic cityscape at dawn, with neon reflections in the rain puddles."
+    )
+    manual_res = hades.format_anima_prompt_text(
+        manual_input,
+        "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Standard Anime / Illustration",
+        header_mode="Canonical (1 Trigger + Title)",
+    )
+    manual_lines = manual_res[0].split("\n")
+    assert manual_lines[0] == "ye-pop", f"Expected L1='ye-pop', got: {manual_lines[0]}"
+    assert manual_lines[1] == "Sunrise Over Neo-Tokyo (2025 Edition)!", (
+        f"Expected exact title preservation on L2, got: {manual_lines[1]}"
+    )
+    assert "A breathtaking view of the futuristic cityscape at dawn, with neon reflections in the rain puddles." in manual_lines[2], (
+        f"Expected intact NL sentence on L3, got: {manual_lines[2]}"
+    )
+    print("[OK] Test 19: Prompt header (canonical 3-line, title omit, dual legacy, dedup, non-header passthrough, manual 3-line preservation) verified")
 
 
 if __name__ == "__main__":
@@ -1246,4 +1286,4 @@ if __name__ == "__main__":
     test_17_anima_smart_vae_decode_and_scribble_shield()
     test_18_nag_only_anima_gate()
     test_19_prompt_header_canonical_and_dual_legacy()
-    print("\nALL 19 HADES ANIMA SUITE v0.1 TEST SUITES PASSED!")
+    print("\nALL 19 HADES ANIMA SUITE v0.1.2 TEST SUITES PASSED!")

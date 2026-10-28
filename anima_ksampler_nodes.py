@@ -125,7 +125,7 @@ def clone_model_with_anima_shift(model, flow_shift: float):
             m._hades_model_sampling = new_ms
     elif orig_ms is not None:
         import copy
-        new_ms = copy.copy(orig_ms)
+        new_ms = copy.deepcopy(orig_ms)
         if hasattr(new_ms, "set_parameters"):
             new_ms.set_parameters(shift=shift_val, multiplier=multiplier)
         else:

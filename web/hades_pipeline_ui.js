@@ -27,6 +27,8 @@ export function setupPromptStudioUI(node) {
     const wArtist = findW("artist_tag");
     const wPos = findW("positive_prompt");
     const wNeg = findW("negative_prompt");
+    const wHeaderMode = findW("header_mode");
+    const wHeaderTrig = findW("header_trigger");
 
     [wVariant, wStyle, wSanitize, wT5Mult, wChar, wArtist].forEach(hideBackingWidget);
 
@@ -59,8 +61,11 @@ export function setupPromptStudioUI(node) {
                     ctx.fillStyle = HADES_THEME.amber;
                     ctx.fillText("AUTO-STRIPPING SLOP TAGS", rect.x + rect.w - 8, badgeY);
                 } else if (isVector) {
+                    const trig = String(wHeaderTrig?.value || "ye-pop").toLowerCase();
+                    const mode = String(wHeaderMode?.value || "Canonical");
+                    const label = mode.includes("Dual") ? "DUAL: ye-pop + deviantart" : `HEADER: ${trig}`;
                     ctx.fillStyle = HADES_THEME.purple;
-                    ctx.fillText("HEADER: ye-pop + deviantart", rect.x + rect.w - 8, badgeY);
+                    ctx.fillText(label, rect.x + rect.w - 8, badgeY);
                 } else {
                     ctx.fillStyle = HADES_THEME.cyan;
                     ctx.fillText(`T5 QUERY EMPHASIS: ${t5Scale.toFixed(2)}x`, rect.x + rect.w - 8, badgeY);

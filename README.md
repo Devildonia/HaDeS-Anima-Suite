@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.1 — Complete 17-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.2 — Complete 17-Node Anima Ecosystem for ComfyUI
 
 **HaDeS Anima Suite** is a specialized **17-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
@@ -6,7 +6,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 
 ---
 
-## Key Architectural Innovations in v0.1
+## Key Architectural Innovations in v0.1.2
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -17,17 +17,17 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
    - Native ComfyUI (`comfy/lora.py`) does not automatically translate Diffusers-trained Anima LoRAs (`transformer_blocks.X.attn1.to_q`, `to_out.0`, `ff.net.0.proj`, `norm1.linear_1`, `text_conditioner`).
    - HaDeS canonicalizes Diffusers, Kohya (`lora_unet_*`), OneTrainer, and Musubi keys into native `MiniTrainDIT` keys on the fly—allowing you to load Diffusers LoRAs directly or **merge a Diffusers LoRA with a Kohya LoRA in the same QR-SVD subspace**.
 4. **Complete Anima Pipeline Guards:**
-   - **Prompt Studio & Aesthetic Guard:** Prevents *Anima-Aesthetic* / *2.9B* latent saturation (*slop*) by auto-stripping `score_*` & `masterpiece` tags when appropriate, normalizing Booru grammar while protecting kaomojis (`^_^`) and whitelisted tokens (`safe_for_work`), injecting `@artist` and `ye-pop, deviantart` vector headers, and scaling `T5XXL` query-token emphasis weights independently of `Qwen3`.
-   - **NAG Attention Guidance (`CFG = 1.0` Negative Enabler & Anti-Burn):** Enables real negative guidance on **Anima-Turbo / Lightning** at `CFG = 1.0` and prevents high-CFG edge frying on Base/Aesthetic via L1-norm-bounded attention extrapolation (`nag_tau`) inside an exact sigma window.
+   - **Prompt Studio & Aesthetic Guard:** Prevents *Anima-Aesthetic* / *2.9B* latent saturation (*slop*) by auto-stripping `score_*` & `masterpiece` tags when appropriate, normalizing Booru grammar while protecting kaomojis (`^_^`) and whitelisted tokens (`safe_for_work`), injecting `@artist` and canonical 3-line (`ye-pop` / `deviantart` + title) or dual-legacy headers, preserving manual multi-line headers verbatim, and scaling `T5XXL` query-token emphasis weights independently of `Qwen3`.
+   - **NAG Attention Guidance (`CFG = 1.0` Negative Enabler & Anti-Burn):** Enables real negative guidance on **Anima-Turbo / Lightning** at `CFG = 1.0` and prevents high-CFG edge frying on Base/Aesthetic via L1-norm-bounded attention extrapolation (`nag_tau`) inside an exact sigma window (safely gated to Anima models via `only_anima = True`).
    - **16-Channel Latent & Pipeline Guard:** Blocks the common **64-channel Qwen-Image 2.1 VAE trap**, enforces `32px` grid alignment across 11 native Anima aspect ratios (up to `1:4` and `4:1`), and prevents the **Anima-2.9B `1280×1280` white-background dataset bias**.
-   - **Corner Scribble Shield:** Detects and heals (or masks for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact**.
+   - **Corner Scribble Shield:** Detects and heals (or masks for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with ambient texture safeguards (rejecting grain $\sigma=0.03$ and hatching) and adaptive expansion capped strictly at 50% for large marks.
 
 ---
 
 ## Overview of the 17 Nodes
 
 ```
-HaDeS Anima Suite v0.1
+HaDeS Anima Suite v0.1.2
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. HaDeS Anima Diffusion Model Loader
 │   ├── 15. HaDeS Anima Qwen3 Text Encoder Loader
@@ -119,7 +119,7 @@ HaDeS Anima Suite v0.1
 - **How it works:**
   - **Aesthetic Slop Guard:** When `model_variant` is set to `Anima Aesthetic (Strip score_* & Slop Guard)`, it automatically strips `score_9`, `score_8_up`, `score_7_up`, `masterpiece`, `best quality`, `ultra-detailed`, `8k`, `4k`, `extremely detailed`, `insanely detailed`, etc., which otherwise over-saturate Anima-Aesthetic latents. The `Anima Aesthetic v1.0b (Keep masterpiece, best quality)` profile preserves the optional `masterpiece, best quality` quality tags while still stripping all forbidden `score_*` tokens.
   - **Smart Booru Sanitizer:** Converts tags to lowercase and replaces `_` with spaces while preserving whitelisted tokens (`score_*`, `*_up`, `safe_for_work`) and kaomojis (`^_^`, `o_o`, `>_<`, `;_;`, etc.).
-  - **Style Header Injection:** In `Flat Vector / Graphic` mode, injects the canonical non-anime dataset header: a single trigger (`ye-pop` or `deviantart`, selectable) on Line 1, an optional artwork title on Line 2 (`artwork_title`), and the prompt body on Line 3, `\n`-separated (CircleStone Labs 3-line format). The legacy dual-trigger header (`ye-pop\ndeviantart\n…`) is preserved via `header_mode = "Dual Legacy"`.
+  - **Style Header Injection & Preservation:** In `Flat Vector / Graphic` mode, injects the canonical non-anime dataset header: a single trigger (`ye-pop` or `deviantart`, selectable) on Line 1, an optional artwork title on Line 2 (`artwork_title`), and the prompt body on Line 3, `\n`-separated (CircleStone Labs 3-line format). The legacy dual-trigger header (`ye-pop\ndeviantart\n…`) is preserved via `header_mode = "Dual Legacy"`. If the user inputs a prompt that already starts with `ye-pop` or `deviantart`, manual 2-line or 3-line headers are preserved verbatim (title casing and punctuation intact) and descriptive natural language sentences are kept intact without improper comma-splitting.
   - **`t5_weight_multiplier`:** In ComfyUI's Anima implementation (`comfy/text_encoders/anima.py`), `Qwen3-0.6B` token weights are forced to `1.0` while `(tag:weight)` multipliers are passed through `T5XXLTokenizer` to multiply the output of `llm_adapter`. This slider scales those `T5XXL` emphasis weights directly!
 
 #### 7. `HaDeS Anima Attention Guidance (NAG / CFG-1.0)`
@@ -145,10 +145,10 @@ HaDeS Anima Suite v0.1
 #### 10. `HaDeS Anima Corner Scribble Shield`
 - **Class:** `HaDeSAnimaCornerScribbleShield`
 - **Purpose:** Mitigates Anima's chronic **~20% corner signature scribble artifact** (which negative prompts like `signature, watermark` cannot suppress because training images had unlabeled corner signatures).
-- **Tuning:** Detection sensitivity defaults to `0.75` (threshold auto-derives from it), and the inspection box defaults to `10%` of the shorter side (`0.03`–`0.30` allowed). The shield only touches corner pixels: clean corners are left 100% untouched in Smart mode.
+- **Tuning:** Detection sensitivity defaults to `0.75` (threshold auto-derives from it), and the inspection box defaults to `10%` of the shorter side (`0.03`–`0.50` allowed, with adaptive expansion capped strictly at 50% for large watermarks). The shield only touches corner pixels: clean corners are left 100% untouched in Smart mode.
 - **Modes:**
   - `Mask Only (No Pixel Modification)`: Outputs a feathered `[B, H, W]` `scribble_mask` of affected corners to feed into a second-pass `VAEEncodeForInpaint` or `LatentCompositeMasked`.
-  - `Smart Edge-Inward Blend (Auto-Heal)`: Detects high-frequency corner scribbles (tuned for realistic thin low-contrast strokes) and heals them by extending the clean **outer edge ring** (8–16 px outside the corner box) into the box, leaving the rest of the image 100% untouched. Safe default.
+  - `Smart Edge-Inward Blend (Auto-Heal)`: Detects high-frequency corner scribbles (tuned for realistic thin low-contrast strokes) and heals them by extending the clean **outer edge ring** (8–16 px outside the corner box) into the box, while an **Ambient Texture Guard** protects canvas grain, film noise ($\sigma=0.03$), and hatching textures from false positives. Safe default.
   - `Aggressive Corner Fill (Forced)`: Bypasses detection entirely and force-fills the corner box with spatially-falloff edge continuation. Use when the scribble is faint or Smart mode misses it — the strongest guaranteed removal.
   - `Soft Corner Blur`: Softens high-frequency corner artifacts with feathered local pooling (lightest touch, no content reconstruction).
 
@@ -158,7 +158,7 @@ HaDeS Anima Suite v0.1
 
 #### 11. `HaDeS Anima KSampler (Single-Pass Master)`
 - **Class:** `HaDeSAnimaKSampler`
-- **Purpose:** Single-pass Rectified Flow sampling engine tailored to Anima's `MiniTrainDIT` (`multiplier = 1.0` Flow Shift, unlike `ModelSamplingSD3` which injects `multiplier = 1000` and breaks Anima's timestep scaling).
+- **Purpose:** Single-pass Rectified Flow sampling engine tailored to Anima's `MiniTrainDIT` (`multiplier = 1.0` Flow Shift with deepcopy buffer isolation, unlike `ModelSamplingSD3` which injects `multiplier = 1000` and breaks Anima's timestep scaling).
 - **Key Features:**
   - **Built-in Custom Schedulers:** Adds `anima_beta57` ($\alpha = 0.50, \beta = 0.70$, allocating higher step density to low-noise texture/lineart refinement) and `anima_lightning_tdm` (exact 4-step Trajectory Distribution Matching schedule `999 → 749 → 499 → 249 → 0` for `Anima-Lightning`).
   - **1-Click Variant Profiles:** Pre-calibrated profiles for `Anima Base / Raehoshi`, `Anima Aesthetic Crisp`, `Anima Aesthetic Painterly (beta57)`, `Anima Turbo`, `Anima Lightning TDM`, and `Anima 2.9B / 3.8B`.
@@ -214,7 +214,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── hades_ksampler_ui.js  # UI installers & flow/staircase HUDs for the 3 Anima KSamplers
 │   └── hades_loaders_ui.js   # UI installers & diagnostic badges for the 4 Loader/Decode nodes
 ├── tests/
-│   └── test_hades_suite.py   # 17 automated unit & integration test suites
+│   └── test_hades_suite.py   # 19 automated unit & integration test suites
 ├── pyproject.toml
 ├── LICENSE
 └── README.md

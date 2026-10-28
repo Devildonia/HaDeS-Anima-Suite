@@ -19,6 +19,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate frontend JavaScript syntax
+        run: |
+          for f in web/*.js; do
+            node --check "$f"
+          done
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip

@@ -146,6 +146,26 @@ def _is_natural_language_sentence(tag):
     return False
 
 
+def _is_pure_natural_sentence_line(line: str) -> bool:
+    """
+    Detect whether an entire line is a single natural language sentence
+    (which may contain descriptive commas) rather than a comma-separated list of booru tags.
+    """
+    if not _is_natural_language_sentence(line):
+        return False
+    if "_" in line or ":" in line:
+        return False
+    if "," not in line:
+        return True
+    parts = [p.strip() for p in line.split(",") if p.strip()]
+    if not parts:
+        return False
+    short_parts = sum(1 for p in parts if len(p.split()) <= 2)
+    if short_parts > len(parts) / 2:
+        return False
+    return True
+
+
 def _clean_single_anima_tag(raw_tag, booru_sanitizer=True, strip_aesthetic_slop=False, strip_score_only=False):
     tag = raw_tag.strip()
     if not tag:
@@ -263,8 +283,36 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
                 total_tags += 1
 
     # 3. Process prompt body line by line
-    lines = [ln.strip() for ln in str(raw_prompt or "").splitlines() if ln.strip()]
-    for line in lines:
+    raw_lines = [ln.strip() for ln in str(raw_prompt or "").splitlines() if ln.strip()]
+    manual_header_lines = []
+    lines_to_process = raw_lines
+
+    if raw_lines and raw_lines[0].lower() in ("ye-pop", "deviantart"):
+        trigger_line = raw_lines[0].lower()
+        if len(raw_lines) >= 3:
+            title_line = raw_lines[1]
+            manual_header_lines = [trigger_line, title_line]
+            lines_to_process = raw_lines[2:]
+        elif len(raw_lines) == 2:
+            if _is_natural_language_sentence(raw_lines[1]) or "," in raw_lines[1]:
+                manual_header_lines = [trigger_line]
+                lines_to_process = raw_lines[1:]
+            else:
+                manual_header_lines = [trigger_line, raw_lines[1]]
+                lines_to_process = []
+        else:
+            manual_header_lines = [trigger_line]
+            lines_to_process = []
+
+    for line in lines_to_process:
+        if _is_pure_natural_sentence_line(line):
+            clean_nl = line.strip()
+            if clean_nl.lower() not in seen_tags:
+                seen_tags.add(clean_nl.lower())
+                b_natural.append(clean_nl)
+                total_tags += 1
+            continue
+
         parts = _split_tags_preserving_parens(line)
         for p in parts:
             if _is_natural_language_sentence(p):
@@ -327,7 +375,13 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
         body = ", ".join(canonical_parts)
 
     header_injected = False
-    if style_mode == "Flat Vector / Graphic (Non-Anime Dataset Header)":
+    if manual_header_lines:
+        if body.strip():
+            body = "\n".join(manual_header_lines) + "\n" + body.strip()
+        else:
+            body = "\n".join(manual_header_lines)
+        header_injected = True
+    elif style_mode == "Flat Vector / Graphic (Non-Anime Dataset Header)":
         trigger = "deviantart" if "deviantart" in str(header_trigger) else "ye-pop"
         title = str(artwork_title or "").strip().strip("\n")
         first_line = body.splitlines()[0].strip().lower() if body else ""
@@ -947,23 +1001,43 @@ class HaDeSAnimaCornerScribbleShield:
         smooth_chw = F.avg_pool2d(F.pad(patch_chw, (2, 2, 2, 2), mode="reflect"), kernel_size=5, stride=1)
         return (patch_chw - smooth_chw).abs().mean(dim=1)  # [B, y1-y0, x1-x0]
 
-    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, max_iter=3):
+    def _ambient_hf(self, image):
+        """Measures ambient / background high-frequency energy from the interior of the image
+        to distinguish global texture (grain, noise, canvas pattern) from localized corner watermarks."""
+        b, h, w, _ = image.shape
+        cy0, cy1 = max(0, h // 4), min(h, 3 * h // 4)
+        cx0, cx1 = max(0, w // 4), min(w, 3 * w // 4)
+        return float(self._high_freq_map(image, cy0, cy1, cx0, cx1).mean().item())
+
+    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, ambient_hf=0.0, max_iter=3):
         """Adaptive box expansion: if high-frequency (logo) content is still present
         at the box edge that faces the image center, the mark extends beyond the
-        box — grow it (x1.5 per step) and re-measure, up to 3 times. No-op on
-        clean corners (edge energy below threshold)."""
+        box — grow it (x1.5 per step) and re-measure, up to 3 times.
+        Strictly capped at 50% of image dimensions (max_bh, max_bw).
+        No-op on clean corners or dense global textures."""
+        max_bh = int(round(h * 0.50))
+        max_bw = int(round(w * 0.50))
+        eff_thresh = max(thresh, ambient_hf * 1.45) if ambient_hf >= 0.005 else thresh
         for _ in range(max_iter):
+            curr_bh = y1 - y0
+            curr_bw = x1 - x0
+            if curr_bh >= max_bh and curr_bw >= max_bw:
+                break
             hf = self._high_freq_map(image, y0, y1, x0, x1)
+
             band = max(2, min(6, hf.shape[1] // 4, hf.shape[2] // 4))
             if band < 2:
                 break
             # Inner edge = the box side that does NOT touch the image border.
             edge_y = hf[:, :band, :].mean().item() if y0 > 0 else hf[:, -band:, :].mean().item()
             edge_x = hf[:, :, :band].mean().item() if x0 > 0 else hf[:, :, -band:].mean().item()
-            if max(float(edge_y), float(edge_x)) < thresh:
+            if max(float(edge_y), float(edge_x)) < eff_thresh:
                 break
-            gy = max(16, (y1 - y0) // 2)
-            gx = max(16, (x1 - x0) // 2)
+
+            gy = min(max(16, curr_bh // 2), max(0, max_bh - curr_bh))
+            gx = min(max(16, curr_bw // 2), max(0, max_bw - curr_bw))
+            if gy == 0 and gx == 0:
+                break
             if y0 > 0:
                 y0 = max(0, y0 - gy)
             else:
@@ -987,6 +1061,8 @@ class HaDeSAnimaCornerScribbleShield:
         corners = self._get_corner_slices(h, w, bh, bw, active_corners)
         triggered_corners = []
 
+        ambient_hf = self._ambient_hf(image)
+
         # Threshold scales inversely with sensitivity (higher sensitivity -> lower threshold).
         # Calibrated against real Anima watermark signatures (hf_score ~0.03-0.04).
         thresh = max(0.008, 0.06 - 0.05 * float(detection_sensitivity))
@@ -994,30 +1070,41 @@ class HaDeSAnimaCornerScribbleShield:
         expanded_corners = []
         for name, y0, y1, x0, x1 in corners:
             # Large-logo support: auto-grow the box while logo content is still
-            # detected at its inner edge (bounded, no-op on clean corners).
-            y0e, y1e, x0e, x1e = self._expand_corner_box(name, y0, y1, x0, x1, image, thresh, h, w)
+            # detected at its inner edge (capped at 50%, no-op on clean/texture).
+            y0e, y1e, x0e, x1e = self._expand_corner_box(name, y0, y1, x0, x1, image, thresh, h, w, ambient_hf=ambient_hf)
             if (y0e, y1e, x0e, x1e) != (y0, y1, x0, x1):
                 expanded_corners.append(name)
             y0, y1, x0, x1 = y0e, y1e, x0e, x1e
 
-            bh = y1 - y0
-            bw = x1 - x0
-            patch = image[:, y0:y1, x0:x1, :3]  # [B, bh, bw, 3]
+            curr_bh = y1 - y0
+            curr_bw = x1 - x0
+            patch = image[:, y0:y1, x0:x1, :3]  # [B, curr_bh, curr_bw, 3]
             patch_chw = patch.permute(0, 3, 1, 2)
-            high_freq = self._high_freq_map(image, y0, y1, x0, x1)  # [B, bh, bw]
+            high_freq = self._high_freq_map(image, y0, y1, x0, x1)  # [B, curr_bh, curr_bw]
 
             # Build spatial falloff weight so the outer corner softly feathers inward
-            vy = torch.linspace(1.0, 0.0, bh, device=image.device, dtype=image.dtype) if y0 == 0 else torch.linspace(0.0, 1.0, bh, device=image.device, dtype=image.dtype)
-            vx = torch.linspace(1.0, 0.0, bw, device=image.device, dtype=image.dtype) if x0 == 0 else torch.linspace(0.0, 1.0, bw, device=image.device, dtype=image.dtype)
-            spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, bh, bw]
+            vy = torch.linspace(1.0, 0.0, curr_bh, device=image.device, dtype=image.dtype) if y0 == 0 else torch.linspace(0.0, 1.0, curr_bh, device=image.device, dtype=image.dtype)
+            vx = torch.linspace(1.0, 0.0, curr_bw, device=image.device, dtype=image.dtype) if x0 == 0 else torch.linspace(0.0, 1.0, curr_bw, device=image.device, dtype=image.dtype)
+            spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, curr_bh, curr_bw]
 
             hf_score = float(high_freq.mean().item())
-            # Wider normalization band: real thin-stroke scribbles have low per-pixel HF energy.
-            stroke_mask = ((high_freq - thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
-            # Permissive full-fill trigger: detection tunes strength, not a hard gate.
-            full_fill = (hf_score >= thresh * 0.4)
-            # Combine localized stroke mask with outer-corner spatial envelope
-            corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if full_fill else 0.0))
+
+            # Anti-Texture Guard: If ambient texture is detected and corner HF is not significantly elevated above it,
+            # it is global texture/grain across the canvas, NOT an isolated signature.
+            is_uniform_texture = (ambient_hf >= 0.005 and hf_score <= ambient_hf * 1.45) and heal_mode != "Aggressive Corner Fill (Forced)"
+
+            if is_uniform_texture:
+                stroke_mask = torch.zeros_like(high_freq)
+                full_fill = False
+            else:
+                eff_thresh = max(thresh, ambient_hf + 0.01) if ambient_hf >= 0.005 else thresh
+                stroke_mask = ((high_freq - eff_thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
+                full_fill = (hf_score >= eff_thresh * 0.8)
+
+            if heal_mode == "Aggressive Corner Fill (Forced)":
+                corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env)
+            else:
+                corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if full_fill else 0.0))
 
             if int(feather_radius) > 1:
                 k_sz = max(3, (int(feather_radius) // 2) * 2 + 1)
@@ -1033,17 +1120,17 @@ class HaDeSAnimaCornerScribbleShield:
                 # Robust reference: sample the guaranteed-clean outer ring (8-16px)
                 # just OUTSIDE the corner box and continue its content inward
                 # (edge continuation), instead of the old 2px inner strips.
-                ring = max(8, min(16, max(bh, bw) // 2))
+                ring = max(8, min(16, max(curr_bh, curr_bw) // 2))
                 if y0 > 0:
-                    v_rows = y0 - 1 - torch.arange(bh, device=image.device).flip(0).clamp(max=ring - 1)
+                    v_rows = y0 - 1 - torch.arange(curr_bh, device=image.device).flip(0).clamp(max=ring - 1)
                 else:
-                    v_rows = y1 + torch.arange(bh, device=image.device).clamp(max=ring - 1)
+                    v_rows = y1 + torch.arange(curr_bh, device=image.device).clamp(max=ring - 1)
                 if x0 > 0:
-                    h_cols = x0 - 1 - torch.arange(bw, device=image.device).flip(0).clamp(max=ring - 1)
+                    h_cols = x0 - 1 - torch.arange(curr_bw, device=image.device).flip(0).clamp(max=ring - 1)
                 else:
-                    h_cols = x1 + torch.arange(bw, device=image.device).clamp(max=ring - 1)
-                ref_v = image[:, v_rows, x0:x1, :3]  # vertical edge continuation [B, bh, bw, 3]
-                ref_h = image[:, y0:y1, h_cols, :3]  # horizontal edge continuation [B, bh, bw, 3]
+                    h_cols = x1 + torch.arange(curr_bw, device=image.device).clamp(max=ring - 1)
+                ref_v = image[:, v_rows, x0:x1, :3]  # vertical edge continuation [B, curr_bh, curr_bw, 3]
+                ref_h = image[:, y0:y1, h_cols, :3]  # horizontal edge continuation [B, curr_bh, curr_bw, 3]
                 clean_fill = 0.5 * (ref_v + ref_h)
 
                 def _blur4(t):
@@ -1053,11 +1140,6 @@ class HaDeSAnimaCornerScribbleShield:
                 clean_fill = _blur4(clean_fill)
 
                 if heal_mode == "Aggressive Corner Fill (Forced)":
-                    # Nuclear option: bypass detection entirely, force a smooth fill
-                    # with spatial falloff from the outer corner. Feathering is kept
-                    # deliberately light (kernel capped) so the fill stays strong even
-                    # in small corner boxes, where the full feather blur would
-                    # dilute the alpha envelope toward zero.
                     alpha = spatial_env.unsqueeze(-1)
                     if int(feather_radius) > 1:
                         k = max(3, (int(feather_radius) // 4) * 2 + 1)
