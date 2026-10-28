@@ -106,7 +106,12 @@ def clone_model_with_anima_shift(model, flow_shift: float):
     multiplier = float(getattr(orig_ms, "multiplier", 1.0)) if orig_ms is not None else 1.0
     inner_cfg = getattr(getattr(m, "model", None), "model_config", None)
 
-    if hasattr(comfy.model_sampling, "ModelSamplingDiscreteFlow") and hasattr(comfy.model_sampling, "CONST"):
+    if (
+        inner_cfg is not None
+        and hasattr(inner_cfg, "sampling_settings")
+        and hasattr(comfy.model_sampling, "ModelSamplingDiscreteFlow")
+        and hasattr(comfy.model_sampling, "CONST")
+    ):
         class _AnimaFlowSampling(comfy.model_sampling.ModelSamplingDiscreteFlow, comfy.model_sampling.CONST):
             pass
 
@@ -118,8 +123,18 @@ def clone_model_with_anima_shift(model, flow_shift: float):
             m.add_object_patch("model_sampling", new_ms)
         else:
             m._hades_model_sampling = new_ms
-    elif orig_ms is not None and hasattr(orig_ms, "set_parameters"):
-        orig_ms.set_parameters(shift=shift_val, multiplier=multiplier)
+    elif orig_ms is not None:
+        import copy
+        new_ms = copy.copy(orig_ms)
+        if hasattr(new_ms, "set_parameters"):
+            new_ms.set_parameters(shift=shift_val, multiplier=multiplier)
+        else:
+            new_ms.shift = shift_val
+            new_ms.multiplier = multiplier
+        if hasattr(m, "add_object_patch"):
+            m.add_object_patch("model_sampling", new_ms)
+        else:
+            m._hades_model_sampling = new_ms
 
     # Synchronize any upstream HaDeS NAG sigma window with the newly shifted model_sampling
     nag_state = getattr(m, "model_options", {}).get("_hades_nag_state")

@@ -822,9 +822,9 @@ export function setupCornerScribbleShieldUI(node) {
             label: "Corner Box Size Ratio",
             color: HADES_THEME.rose,
             min: 0.03,
-            max: 0.30,
+            max: 0.50,
             visMin: 0.03,
-            visMax: 0.30,
+            visMax: 0.50,
             step: 0.01,
             defaultVal: 0.10,
         })

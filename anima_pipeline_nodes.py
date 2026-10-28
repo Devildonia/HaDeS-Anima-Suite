@@ -894,8 +894,8 @@ class HaDeSAnimaCornerScribbleShield:
             "required": {
                 "image": ("IMAGE",),
                 "corner_box_percent": ("FLOAT", {
-                    "default": 0.08, "min": 0.03, "max": 0.20, "step": 0.01,
-                    "tooltip": "Size of corner inspection regions as a fraction of image width/height (default 8%)."
+                    "default": 0.10, "min": 0.03, "max": 0.50, "step": 0.01,
+                    "tooltip": "Size of corner inspection regions as a fraction of image width/height (default 10%). Large logos can be covered up to 50% — if high-frequency content is still present at the box edge, the box auto-expands up to this cap."
                 }),
                 "detection_sensitivity": ("FLOAT", {
                     "default": 0.75, "min": 0.0, "max": 1.0, "step": 0.05,
@@ -938,10 +938,48 @@ class HaDeSAnimaCornerScribbleShield:
             coords.append(("BL", h - bh, h, 0, bw))
         return coords
 
+    def _high_freq_map(self, image, y0, y1, x0, x1):
+        """High-frequency energy map [B, h_box, w_box] for one rectangular region.
+        Reflect padding: corner patches touch the image border, and zero padding
+        would artificially inflate high-frequency energy at that edge (false
+        positives on perfectly clean images)."""
+        patch_chw = image[:, y0:y1, x0:x1, :3].permute(0, 3, 1, 2)
+        smooth_chw = F.avg_pool2d(F.pad(patch_chw, (2, 2, 2, 2), mode="reflect"), kernel_size=5, stride=1)
+        return (patch_chw - smooth_chw).abs().mean(dim=1)  # [B, y1-y0, x1-x0]
+
+    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, max_iter=3):
+        """Adaptive box expansion: if high-frequency (logo) content is still present
+        at the box edge that faces the image center, the mark extends beyond the
+        box — grow it (x1.5 per step) and re-measure, up to 3 times. No-op on
+        clean corners (edge energy below threshold)."""
+        for _ in range(max_iter):
+            hf = self._high_freq_map(image, y0, y1, x0, x1)
+            band = max(2, min(6, hf.shape[1] // 4, hf.shape[2] // 4))
+            if band < 2:
+                break
+            # Inner edge = the box side that does NOT touch the image border.
+            edge_y = hf[:, :band, :].mean().item() if y0 > 0 else hf[:, -band:, :].mean().item()
+            edge_x = hf[:, :, :band].mean().item() if x0 > 0 else hf[:, :, -band:].mean().item()
+            if max(float(edge_y), float(edge_x)) < thresh:
+                break
+            gy = max(16, (y1 - y0) // 2)
+            gx = max(16, (x1 - x0) // 2)
+            if y0 > 0:
+                y0 = max(0, y0 - gy)
+            else:
+                y1 = min(h, y1 + gy)
+            if x0 > 0:
+                x0 = max(0, x0 - gx)
+            else:
+                x1 = min(w, x1 + gx)
+        return y0, y1, x0, x1
+
     def shield_corners(self, image, corner_box_percent, detection_sensitivity, active_corners, heal_mode, feather_radius):
         b_sz, h, w, c = image.shape
-        bh = max(8, min(h // 3, int(round(h * float(corner_box_percent)))))
-        bw = max(8, min(w // 3, int(round(w * float(corner_box_percent)))))
+        # Box may now cover up to 50% of the dimension (large logo support);
+        # the widget max (0.50) is the effective cap.
+        bh = max(8, min(h, int(round(h * float(corner_box_percent)))))
+        bw = max(8, min(w, int(round(w * float(corner_box_percent)))))
 
         out_img = image.clone()
         mask_out = torch.zeros((b_sz, h, w), dtype=image.dtype, device=image.device)
@@ -953,14 +991,20 @@ class HaDeSAnimaCornerScribbleShield:
         # Calibrated against real Anima watermark signatures (hf_score ~0.03-0.04).
         thresh = max(0.008, 0.06 - 0.05 * float(detection_sensitivity))
 
+        expanded_corners = []
         for name, y0, y1, x0, x1 in corners:
+            # Large-logo support: auto-grow the box while logo content is still
+            # detected at its inner edge (bounded, no-op on clean corners).
+            y0e, y1e, x0e, x1e = self._expand_corner_box(name, y0, y1, x0, x1, image, thresh, h, w)
+            if (y0e, y1e, x0e, x1e) != (y0, y1, x0, x1):
+                expanded_corners.append(name)
+            y0, y1, x0, x1 = y0e, y1e, x0e, x1e
+
+            bh = y1 - y0
+            bw = x1 - x0
             patch = image[:, y0:y1, x0:x1, :3]  # [B, bh, bw, 3]
             patch_chw = patch.permute(0, 3, 1, 2)
-            # Reflect padding: corner patches touch the image border, and zero
-            # padding would artificially inflate high-frequency energy at that
-            # edge (false positives on perfectly clean images).
-            smooth_chw = F.avg_pool2d(F.pad(patch_chw, (2, 2, 2, 2), mode="reflect"), kernel_size=5, stride=1)
-            high_freq = (patch_chw - smooth_chw).abs().mean(dim=1)  # [B, bh, bw]
+            high_freq = self._high_freq_map(image, y0, y1, x0, x1)  # [B, bh, bw]
 
             # Build spatial falloff weight so the outer corner softly feathers inward
             vy = torch.linspace(1.0, 0.0, bh, device=image.device, dtype=image.dtype) if y0 == 0 else torch.linspace(0.0, 1.0, bh, device=image.device, dtype=image.dtype)
@@ -1032,8 +1076,9 @@ class HaDeSAnimaCornerScribbleShield:
                 out_img[:, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + blurred * alpha
 
         det_str = ", ".join(triggered_corners) if triggered_corners else "Clean (Low HF Energy)"
+        expanded_note = f" | Auto-Expanded (large mark): {', '.join(expanded_corners)}" if expanded_corners else ""
         info = (
-            f"HaDeS Corner Scribble Shield | Box: {bw}x{bh}px ({corner_box_percent*100:.0f}%) | "
+            f"HaDeS Corner Scribble Shield | Box: {bw}x{bh}px ({corner_box_percent*100:.0f}% base){expanded_note} | "
             f"Mode: {heal_mode} | Active: {active_corners} | Detected: {det_str}"
         )
         return (out_img, mask_out, info)

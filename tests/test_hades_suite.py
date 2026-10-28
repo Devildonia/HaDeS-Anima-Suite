@@ -796,7 +796,32 @@ def test_10_corner_scribble_shield():
     )
     clean_diff = (clean_out - clean_img).abs().max().item()
     assert clean_diff < 0.005, f"Smart mode must not alter clean corners (max diff={clean_diff})"
-    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, Aggressive mode, clean-corner safety) verified")
+    # Large-logo support: a ~35% corner mark extends far beyond the default
+    # base box (0.10); adaptive expansion must detect high-freq content at the
+    # inner edge, grow the box, and remove the full mark. Center stays untouched.
+    big = base.repeat(1, 1, 1, 3).clone()  # [1, 128, 128, 3]
+    torch.manual_seed(7)
+    logo = 0.5 + 0.45 * torch.randn(1, 45, 45, 3)  # noisy high-freq block logo
+    big[:, 83:128, 83:128, :] = logo
+    big_out, big_mask, big_info = shield.shield_corners(
+        big, 0.10, 0.75, "Bottom-Right Only", "Aggressive Corner Fill (Forced)", 8
+    )
+    # (region well inside the untouched image center; box expansion stops at the mark)
+    assert torch.equal(big_out[:, 16:56, 16:56, :], big[:, 16:56, 16:56, :]), "Center must remain untouched"
+    logo_orig_var = big[:, 83:128, 83:128, :].var().item()
+    logo_healed_var = big_out[:, 83:128, 83:128, :].var().item()
+    # Feathered fill keeps a soft gradient at the outer ring; require >50% variance reduction
+    assert logo_healed_var < 0.5 * logo_orig_var, \
+        f"Large logo must be mostly removed via box expansion (var {logo_healed_var} vs {logo_orig_var})"
+    assert big_mask[:, 83:128, 83:128].sum().item() > 0.5 * big_mask[:, 83:128, 83:128].numel(), \
+        "Expansion mask must cover the bulk of the large logo region"
+
+    # Clean corner must NOT expand (no-op on smooth images)
+    clean2, clean_mask, clean_info = shield.shield_corners(
+        base.repeat(1, 1, 1, 3).clone(), 0.10, 0.75, "Bottom-Right Only", "Aggressive Corner Fill (Forced)", 8
+    )
+    assert "Auto-Expanded" not in clean_info, f"Clean corner must not trigger expansion: {clean_info}"
+    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, Aggressive mode, clean-corner safety, large-logo auto-expansion) verified")
 
 
 def test_11_anima_single_pass_ksampler_and_schedulers():
