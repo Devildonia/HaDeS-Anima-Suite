@@ -783,11 +783,15 @@ def test_11_anima_single_pass_ksampler_and_schedulers():
     assert abs(float(ms.shift) - 3.85) < 1e-4
     assert abs(float(ms.multiplier) - 1.0) < 1e-4, f"Expected multiplier=1.0, got {ms.multiplier}"
 
-    # 2. Verify anima_lightning_tdm exact 4-step trajectory (999 -> 749 -> 499 -> 249 -> 0)
+    # 2. Verify anima_lightning_tdm exact 4-step trajectory from distilled_generation_config.json
+    #    raw_sigmas: [1.0, 0.75, 0.5, 0.25]
+    #    effective (shift=3.0): [1.0, 0.9, 0.75, 0.5, 0.0]
     tdm_sigmas = hades.build_anima_sigmas(m, "anima_lightning_tdm", 4, denoise=1.0, flow_shift=3.0)
     assert len(tdm_sigmas) == 5 and float(tdm_sigmas[-1]) == 0.0
-    # At t=0.499, shift=3.0: 3*0.499 / (1 + 2*0.499) = 1.497 / 1.998 = 0.749249
-    assert abs(float(tdm_sigmas[2]) - (3.0 * 0.499 / (1.0 + 2.0 * 0.499))) < 1e-4
+    assert abs(float(tdm_sigmas[0]) - 1.0) < 1e-6
+    assert abs(float(tdm_sigmas[1]) - 0.9) < 1e-6
+    assert abs(float(tdm_sigmas[2]) - 0.75) < 1e-6
+    assert abs(float(tdm_sigmas[3]) - 0.5) < 1e-6
 
     # 3. Verify anima_beta57 schedule monotonically decreases to 0.0
     b57_sigmas = hades.build_anima_sigmas(m, "anima_beta57", 30, denoise=1.0, flow_shift=2.8)

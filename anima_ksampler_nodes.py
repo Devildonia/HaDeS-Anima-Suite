@@ -187,10 +187,11 @@ def build_anima_sigmas(
     shift = float(getattr(ms, "shift", flow_shift)) if ms is not None else float(flow_shift)
 
     if scheduler_name == "anima_lightning_tdm":
-        # Exact Trajectory Distribution Matching (TDM) schedule:
-        # For 4 steps -> (999 -> 749 -> 499 -> 249 -> 0) / 1000 shifted by flow_shift
+        # Exact TDM schedule from distilled_generation_config.json:
+        #   raw_sigmas: [1.0, 0.75, 0.5, 0.25]
+        #   effective (shift=3.0): [1.0, 0.9, 0.75, 0.5, 0.0]
         if total_steps == 4:
-            raw_t = [0.999, 0.749, 0.499, 0.249]
+            raw_t = [1.0, 0.75, 0.5, 0.25]
         else:
             raw_t = [max(0.0, min(0.999, 1.0 - (i / float(total_steps)) - 0.001)) for i in range(total_steps)]
         sigs = [_time_snr_shift_scalar(shift, t) for t in raw_t] + [0.0]
