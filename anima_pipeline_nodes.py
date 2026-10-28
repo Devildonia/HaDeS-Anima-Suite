@@ -898,7 +898,7 @@ class HaDeSAnimaCornerScribbleShield:
                     "tooltip": "Size of corner inspection regions as a fraction of image width/height (default 8%)."
                 }),
                 "detection_sensitivity": ("FLOAT", {
-                    "default": 0.60, "min": 0.0, "max": 1.0, "step": 0.05,
+                    "default": 0.75, "min": 0.0, "max": 1.0, "step": 0.05,
                     "tooltip": "Sensitivity to high-frequency corner signature scribbles."
                 }),
                 "active_corners": ([
@@ -911,6 +911,7 @@ class HaDeSAnimaCornerScribbleShield:
                     "Mask Only (No Pixel Modification)",
                     "Smart Edge-Inward Blend (Auto-Heal)",
                     "Soft Corner Blur",
+                    "Aggressive Corner Fill (Forced)",
                 ],),
                 "feather_radius": ("INT", {"default": 12, "min": 1, "max": 64, "step": 1}),
             }
@@ -948,13 +949,17 @@ class HaDeSAnimaCornerScribbleShield:
         corners = self._get_corner_slices(h, w, bh, bw, active_corners)
         triggered_corners = []
 
-        # Threshold scales inversely with sensitivity (higher sensitivity -> lower threshold)
-        thresh = max(0.015, 0.14 - 0.11 * float(detection_sensitivity))
+        # Threshold scales inversely with sensitivity (higher sensitivity -> lower threshold).
+        # Calibrated against real Anima watermark signatures (hf_score ~0.03-0.04).
+        thresh = max(0.008, 0.06 - 0.05 * float(detection_sensitivity))
 
         for name, y0, y1, x0, x1 in corners:
             patch = image[:, y0:y1, x0:x1, :3]  # [B, bh, bw, 3]
             patch_chw = patch.permute(0, 3, 1, 2)
-            smooth_chw = F.avg_pool2d(patch_chw, kernel_size=5, stride=1, padding=2)
+            # Reflect padding: corner patches touch the image border, and zero
+            # padding would artificially inflate high-frequency energy at that
+            # edge (false positives on perfectly clean images).
+            smooth_chw = F.avg_pool2d(F.pad(patch_chw, (2, 2, 2, 2), mode="reflect"), kernel_size=5, stride=1)
             high_freq = (patch_chw - smooth_chw).abs().mean(dim=1)  # [B, bh, bw]
 
             # Build spatial falloff weight so the outer corner softly feathers inward
@@ -963,26 +968,62 @@ class HaDeSAnimaCornerScribbleShield:
             spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, bh, bw]
 
             hf_score = float(high_freq.mean().item())
-            stroke_mask = ((high_freq - thresh).clamp(min=0.0) / max(1e-4, 0.15)).clamp(max=1.0)
+            # Wider normalization band: real thin-stroke scribbles have low per-pixel HF energy.
+            stroke_mask = ((high_freq - thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
+            # Permissive full-fill trigger: detection tunes strength, not a hard gate.
+            full_fill = (hf_score >= thresh * 0.4)
             # Combine localized stroke mask with outer-corner spatial envelope
-            corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if hf_score >= thresh else 0.0))
+            corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if full_fill else 0.0))
 
             if int(feather_radius) > 1:
                 k_sz = max(3, (int(feather_radius) // 2) * 2 + 1)
                 pad_sz = k_sz // 2
                 corner_mask = F.avg_pool2d(corner_mask.unsqueeze(1), kernel_size=k_sz, stride=1, padding=pad_sz).squeeze(1)
 
-            if hf_score >= thresh * 0.65 or float(corner_mask.max().item()) > 0.05:
+            if full_fill or float(corner_mask.max().item()) > 0.05:
                 triggered_corners.append(f"{name} (HF={hf_score:.3f})")
 
             mask_out[:, y0:y1, x0:x1] = torch.maximum(mask_out[:, y0:y1, x0:x1], corner_mask)
 
-            if heal_mode == "Smart Edge-Inward Blend (Auto-Heal)":
-                # Reference clean inner border strips just inside the corner box
-                ref_y = patch[:, -2:, :, :].mean(dim=1, keepdim=True) if y0 == 0 else patch[:, :2, :, :].mean(dim=1, keepdim=True)
-                ref_x = patch[:, :, -2:, :].mean(dim=2, keepdim=True) if x0 == 0 else patch[:, :, :2, :].mean(dim=2, keepdim=True)
-                clean_fill = 0.5 * (ref_y.expand_as(patch) + ref_x.expand_as(patch))
-                alpha = corner_mask.unsqueeze(-1)
+            if heal_mode in ("Smart Edge-Inward Blend (Auto-Heal)", "Aggressive Corner Fill (Forced)"):
+                # Robust reference: sample the guaranteed-clean outer ring (8-16px)
+                # just OUTSIDE the corner box and continue its content inward
+                # (edge continuation), instead of the old 2px inner strips.
+                ring = max(8, min(16, max(bh, bw) // 2))
+                if y0 > 0:
+                    v_rows = y0 - 1 - torch.arange(bh, device=image.device).flip(0).clamp(max=ring - 1)
+                else:
+                    v_rows = y1 + torch.arange(bh, device=image.device).clamp(max=ring - 1)
+                if x0 > 0:
+                    h_cols = x0 - 1 - torch.arange(bw, device=image.device).flip(0).clamp(max=ring - 1)
+                else:
+                    h_cols = x1 + torch.arange(bw, device=image.device).clamp(max=ring - 1)
+                ref_v = image[:, v_rows, x0:x1, :3]  # vertical edge continuation [B, bh, bw, 3]
+                ref_h = image[:, y0:y1, h_cols, :3]  # horizontal edge continuation [B, bh, bw, 3]
+                clean_fill = 0.5 * (ref_v + ref_h)
+
+                def _blur4(t):
+                    k = max(3, (int(feather_radius) // 2) * 2 + 1)
+                    return F.avg_pool2d(t.permute(0, -1, 1, 2), kernel_size=k, stride=1, padding=k // 2).permute(0, 2, 3, 1)
+
+                clean_fill = _blur4(clean_fill)
+
+                if heal_mode == "Aggressive Corner Fill (Forced)":
+                    # Nuclear option: bypass detection entirely, force a smooth fill
+                    # with spatial falloff from the outer corner. Feathering is kept
+                    # deliberately light (kernel capped) so the fill stays strong even
+                    # in small corner boxes, where the full feather blur would
+                    # dilute the alpha envelope toward zero.
+                    alpha = spatial_env.unsqueeze(-1)
+                    if int(feather_radius) > 1:
+                        k = max(3, (int(feather_radius) // 4) * 2 + 1)
+                        alpha = F.avg_pool2d(alpha.permute(0, -1, 1, 2), kernel_size=k, stride=1, padding=k // 2).permute(0, 2, 3, 1)
+                    alpha = alpha.clamp(min=0.0, max=1.0)
+                else:
+                    alpha = corner_mask.unsqueeze(-1)
+                    if not full_fill and float(corner_mask.max().item()) < 0.05:
+                        alpha = torch.zeros_like(alpha)  # nothing detected: leave pixels untouched
+
                 out_img[:, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + clean_fill * alpha
             elif heal_mode == "Soft Corner Blur":
                 blur_k = max(5, (int(feather_radius) // 2) * 2 + 1)

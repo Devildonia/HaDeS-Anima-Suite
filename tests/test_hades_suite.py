@@ -757,21 +757,46 @@ def test_9_latent_pipeline_guard():
 def test_10_corner_scribble_shield():
     shield = hades.HaDeSAnimaCornerScribbleShield()
     torch.manual_seed(123)
-    # Create clean smooth image [1, 128, 128, 3] with high-frequency scribble noise in bottom-right corner
-    img = torch.full((1, 128, 128, 3), 0.5, dtype=torch.float32)
-    img[:, 116:128, 116:128, :] = torch.randint(0, 2, (1, 12, 12, 3)).float()
+    # Realistic scene: smooth gradient background [1, 128, 128, 3] with low-contrast
+    # thin signature strokes in the bottom-right corner (mimics real Anima watermarks,
+    # far weaker than the old binary-noise test pattern).
+    base = torch.linspace(0.3, 0.7, 128).view(1, 1, 128, 1).expand(1, 128, 128, 1)
+    img = base.repeat(1, 1, 1, 3).clone()
+    strokes = torch.full((1, 20, 20, 3), 0.5, dtype=torch.float32)
+    for r in range(0, 20, 3):
+        strokes[:, r, :] = 0.15          # thin horizontal strokes
+        strokes[:, :, r] = 0.25          # thin vertical strokes
+    img[:, 108:128, 108:128, :] = strokes
 
     healed, mask, info = shield.shield_corners(
-        img, 0.12, 0.70, "Bottom-Right Only", "Smart Edge-Inward Blend (Auto-Heal)", 6
+        img, 0.12, 0.75, "Bottom-Right Only", "Smart Edge-Inward Blend (Auto-Heal)", 6
     )
     assert healed.shape == img.shape and mask.shape == (1, 128, 128)
     # Center of image must remain 100% untouched
     assert torch.equal(healed[:, 32:96, 32:96, :], img[:, 32:96, 32:96, :])
-    # Bottom-right corner variance must be reduced after healing
-    orig_var = img[:, 116:128, 116:128, :].var().item()
-    healed_var = healed[:, 116:128, 116:128, :].var().item()
-    assert healed_var < orig_var, f"Expected corner scribble variance to decrease ({healed_var} vs {orig_var})"
-    print(f"[OK] Test 10: Corner Scribble Shield (HF detection, mask shape, center preservation & auto-heal) verified")
+    # Bottom-right corner stroke variance must be reduced after healing
+    orig_var = img[:, 108:128, 108:128, :].var().item()
+    healed_var = healed[:, 108:128, 108:128, :].var().item()
+    assert healed_var < orig_var, f"Expected corner stroke variance to decrease ({healed_var} vs {orig_var})"
+    assert (healed[:, 108:128, 108:128, :] - img[:, 108:128, 108:128, :]).abs().mean().item() > 0.01, \
+        "Expected Smart Auto-Heal to visibly modify the scribble corner"
+
+    # Aggressive mode: forced fill, bypasses detection entirely; center stays untouched
+    aggr, mask_a, info_a = shield.shield_corners(
+        img, 0.12, 0.75, "Bottom-Right Only", "Aggressive Corner Fill (Forced)", 6
+    )
+    assert torch.equal(aggr[:, 32:96, 32:96, :], img[:, 32:96, 32:96, :])
+    aggr_diff = (aggr[:, 108:128, 108:128, :] - img[:, 108:128, 108:128, :]).abs().mean().item()
+    assert aggr_diff > 0.02, f"Aggressive mode should force a visible corner fill (diff={aggr_diff})"
+
+    # Clean corner (no scribbles) must be left essentially untouched in Smart mode
+    clean_img = base.repeat(1, 1, 1, 3).clone()  # [1, 128, 128, 3]
+    clean_out, _, _ = shield.shield_corners(
+        clean_img, 0.12, 0.75, "All 4 Corners", "Smart Edge-Inward Blend (Auto-Heal)", 6
+    )
+    clean_diff = (clean_out - clean_img).abs().max().item()
+    assert clean_diff < 0.005, f"Smart mode must not alter clean corners (max diff={clean_diff})"
+    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, Aggressive mode, clean-corner safety) verified")
 
 
 def test_11_anima_single_pass_ksampler_and_schedulers():

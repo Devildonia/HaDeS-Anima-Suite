@@ -741,7 +741,7 @@ export function setupCornerScribbleShieldUI(node) {
             drawCustomHUD(ctx, rect) {
                 const act = String(wCorners?.value || "All 4 Corners");
                 const mode = String(wHeal?.value || "");
-                const boxPct = Math.round(Number(wBox?.value ?? 0.08) * 100);
+                const boxPct = Math.round(Number(wBox?.value ?? 0.10) * 100);
 
                 // Mini 4-corner frame monitor
                 const fw = 44;
@@ -753,8 +753,8 @@ export function setupCornerScribbleShieldUI(node) {
                 ctx.strokeStyle = "#333947";
                 ctx.stroke();
 
-                const cw = Math.max(6, fw * Math.min(0.32, Number(wBox?.value ?? 0.08) * 2.2));
-                const ch = Math.max(5, fh * Math.min(0.32, Number(wBox?.value ?? 0.08) * 2.2));
+                const cw = Math.max(6, fw * Math.min(0.32, Number(wBox?.value ?? 0.10) * 2.2));
+                const ch = Math.max(5, fh * Math.min(0.32, Number(wBox?.value ?? 0.10) * 2.2));
 
                 const hasTL = act === "All 4 Corners";
                 const hasTR = act === "All 4 Corners";
@@ -790,6 +790,10 @@ export function setupCornerScribbleShieldUI(node) {
                     onClick: () => setWidgetValue(wHeal, "Smart Edge-Inward Blend (Auto-Heal)", node),
                 },
                 {
+                    label: "Forced",
+                    onClick: () => setWidgetValue(wHeal, "Aggressive Corner Fill (Forced)", node),
+                },
+                {
                     label: "Mask Only",
                     onClick: () => setWidgetValue(wHeal, "Mask Only (No Pixel Modification)", node),
                 },
@@ -818,11 +822,11 @@ export function setupCornerScribbleShieldUI(node) {
             label: "Corner Box Size Ratio",
             color: HADES_THEME.rose,
             min: 0.03,
-            max: 0.2,
+            max: 0.30,
             visMin: 0.03,
-            visMax: 0.2,
+            visMax: 0.30,
             step: 0.01,
-            defaultVal: 0.08,
+            defaultVal: 0.10,
         })
     );
 
@@ -837,7 +841,7 @@ export function setupCornerScribbleShieldUI(node) {
             visMin: 0.0,
             visMax: 1.0,
             step: 0.05,
-            defaultVal: 0.6,
+            defaultVal: 0.75,
         })
     );
 

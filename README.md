@@ -145,10 +145,12 @@ HaDeS Anima Suite v0.1
 #### 10. `HaDeS Anima Corner Scribble Shield`
 - **Class:** `HaDeSAnimaCornerScribbleShield`
 - **Purpose:** Mitigates Anima's chronic **~20% corner signature scribble artifact** (which negative prompts like `signature, watermark` cannot suppress because training images had unlabeled corner signatures).
+- **Tuning:** Detection sensitivity defaults to `0.75` (threshold auto-derives from it), and the inspection box defaults to `10%` of the shorter side (`0.03`–`0.30` allowed). The shield only touches corner pixels: clean corners are left 100% untouched in Smart mode.
 - **Modes:**
   - `Mask Only (No Pixel Modification)`: Outputs a feathered `[B, H, W]` `scribble_mask` of affected corners to feed into a second-pass `VAEEncodeForInpaint` or `LatentCompositeMasked`.
-  - `Smart Edge-Inward Blend (Auto-Heal)`: Automatically heals high-frequency corner scribbles using clean inner-perimeter directional blending while leaving the rest of the image 100% untouched.
-  - `Soft Corner Blur`: Softens high-frequency corner artifacts with feathered local pooling.
+  - `Smart Edge-Inward Blend (Auto-Heal)`: Detects high-frequency corner scribbles (tuned for realistic thin low-contrast strokes) and heals them by extending the clean **outer edge ring** (8–16 px outside the corner box) into the box, leaving the rest of the image 100% untouched. Safe default.
+  - `Aggressive Corner Fill (Forced)`: Bypasses detection entirely and force-fills the corner box with spatially-falloff edge continuation. Use when the scribble is faint or Smart mode misses it — the strongest guaranteed removal.
+  - `Soft Corner Blur`: Softens high-frequency corner artifacts with feathered local pooling (lightest touch, no content reconstruction).
 
 ---
 
@@ -192,7 +194,7 @@ HaDeS Anima Suite v0.1
 
 #### 17. `HaDeS Anima Smart Tiled VAE Decode & Scribble Shield`
 - **Class:** `HaDeSAnimaVAEDecode`
-- **Purpose:** Decodes 16-channel Anima latents with proactive **Auto Smart-Tile** switching when resolution exceeds `auto_tile_mp_threshold` (default `1.35 MP`) or free VRAM is tight—avoiding `WanVAE` untiled OOM spikes on 6GB–12GB GPUs—and integrates an optional post-decode **Corner Scribble Shield** in a single node.
+- **Purpose:** Decodes 16-channel Anima latents with proactive **Auto Smart-Tile** switching when resolution exceeds `auto_tile_mp_threshold` (default `1.35 MP`) or free VRAM is tight—avoiding `WanVAE` untiled OOM spikes on 6GB–12GB GPUs—and integrates an optional post-decode **Corner Scribble Shield** in a single node, with full user control over the shield: `corner_box_percent` (default `0.10`), `corner_sensitivity` (default `0.75`), `shield_heal_mode` (Smart Auto-Heal / Aggressive Forced Fill / Soft Blur) and `shield_feather_radius`.
 
 ---
 

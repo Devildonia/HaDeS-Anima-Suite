@@ -1,0 +1,852 @@
+{
+  "id": "4c53078c-504a-44f0-bf23-dfc04089b341",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 15,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "HaDeSAnimaVAELoader",
+      "pos": [
+        7607.522884874936,
+        2962.4361741660573
+      ],
+      "size": [
+        425.1577697971052,
+        186
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "vae",
+          "type": "VAE",
+          "links": [
+            8,
+            12
+          ]
+        },
+        {
+          "name": "vae_info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaVAELoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "qwen_image_vae.safetensors",
+        "bfloat16 (Recommended Wan21)"
+      ],
+      "widgets_values_named": {
+        "vae_name": "qwen_image_vae.safetensors",
+        "vae_precision": "bfloat16 (Recommended Wan21)"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 2,
+      "type": "HaDeSAnimaModelLoader",
+      "pos": [
+        7604.304236949378,
+        2355.9773986205505
+      ],
+      "size": [
+        430,
+        284
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "model_info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaModelLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "anima-base-v1.0.safetensors",
+        "default",
+        3,
+        true,
+        "None"
+      ],
+      "widgets_values_named": {
+        "unet_name": "anima-base-v1.0.safetensors",
+        "weight_dtype": "default",
+        "flow_shift": 3,
+        "auto_remap_diffusers": true,
+        "external_llm_adapter": "None"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 3,
+      "type": "HaDeSAnimaCLIPLoader",
+      "pos": [
+        7605.429128161182,
+        2676.3121932276335
+      ],
+      "size": [
+        427.81480272288627,
+        247.91605260723009
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "clip_info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaCLIPLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "qwen_3_06b_base.safetensors",
+        "default (GPU Dynamic)",
+        "auto",
+        true
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen_3_06b_base.safetensors",
+        "device_mode": "default (GPU Dynamic)",
+        "precision": "auto",
+        "strict_qwen3_guard": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 4,
+      "type": "HaDeSAnimaPredictiveModelMerger",
+      "pos": [
+        8396.134343342475,
+        2124.3633101855858
+      ],
+      "size": [
+        430,
+        276
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model1",
+          "type": "MODEL",
+          "link": 14
+        },
+        {
+          "name": "model2",
+          "type": "MODEL",
+          "link": 2
+        },
+        {
+          "name": "base_model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            11,
+            15
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaPredictiveModelMerger",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Style Transfer (Keep A identity, B style)",
+        0.5,
+        1,
+        true
+      ],
+      "widgets_values_named": {
+        "preset": "Style Transfer (Keep A identity, B style)",
+        "target_influence": 0.5,
+        "aggressiveness": 1,
+        "protect_llm_adapter": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 5,
+      "type": "HaDeSAnimaModelLoader",
+      "pos": [
+        7603.720329059664,
+        2029.2932699716494
+      ],
+      "size": [
+        430,
+        284
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "model_info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaModelLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "anima-aesthetic-v1.1.safetensors",
+        "default",
+        3,
+        true,
+        "None"
+      ],
+      "widgets_values_named": {
+        "unet_name": "anima-aesthetic-v1.1.safetensors",
+        "weight_dtype": "default",
+        "flow_shift": 3,
+        "auto_remap_diffusers": true,
+        "external_llm_adapter": "None"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 6,
+      "type": "HaDeSAnimaPromptStudio",
+      "pos": [
+        8391.259635067694,
+        2595.0939914471305
+      ],
+      "size": [
+        440,
+        566
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "shape": 7,
+          "type": "CLIP",
+          "link": 7
+        },
+        {
+          "name": "artist_in",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "character_in",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive_cond",
+          "type": "CONDITIONING",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "negative_cond",
+          "type": "CONDITIONING",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "formatted_positive",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "formatted_negative",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaPromptStudio",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Standard Anime / Illustration",
+        true,
+        1,
+        "",
+        "",
+        "Canonical (1 Trigger + Title)",
+        "ye-pop",
+        "",
+        "1girl, solo, silver hair, cyan eyes, detailed anime illustration, soft rim lighting",
+        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
+      ],
+      "widgets_values_named": {
+        "model_variant": "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "style_mode": "Standard Anime / Illustration",
+        "booru_sanitizer": true,
+        "t5_weight_multiplier": 1,
+        "character_tag": "",
+        "artist_tag": "",
+        "header_mode": "Canonical (1 Trigger + Title)",
+        "header_trigger": "ye-pop",
+        "artwork_title": "",
+        "positive_prompt": "1girl, solo, silver hair, cyan eyes, detailed anime illustration, soft rim lighting",
+        "negative_prompt": "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 7,
+      "type": "HaDeSAnimaKSampler",
+      "pos": [
+        9337.097690437551,
+        2585.950466877332
+      ],
+      "size": [
+        440,
+        470
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 15
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 5
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 6
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            9
+          ]
+        },
+        {
+          "name": "decoded_image",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "sampler_info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaKSampler",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Manual (Use Widget Settings)",
+        255837458068175,
+        "randomize",
+        32,
+        4.5,
+        "er_sde",
+        "normal",
+        1,
+        3
+      ],
+      "widgets_values_named": {
+        "variant_profile": "Manual (Use Widget Settings)",
+        "seed": 255837458068175,
+        "control_after_generate": "randomize",
+        "steps": 32,
+        "cfg": 4.5,
+        "sampler_name": "er_sde",
+        "scheduler": "normal",
+        "denoise": 1,
+        "flow_shift": 3
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 8,
+      "type": "HaDeSAnimaLatentPipelineGuard",
+      "pos": [
+        8863.99401812143,
+        2815.8360690352574
+      ],
+      "size": [
+        430,
+        334
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaLatentPipelineGuard",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "1024x1024 (1:1 Square - 1.05 MP)",
+        1024,
+        1024,
+        1,
+        true
+      ],
+      "widgets_values_named": {
+        "resolution_preset": "1024x1024 (1:1 Square - 1.05 MP)",
+        "custom_width": 1024,
+        "custom_height": 1024,
+        "batch_size": 1,
+        "prevent_29b_white_bg_bias": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 9,
+      "type": "HaDeSAnimaVAEDecode",
+      "pos": [
+        9857.155240606273,
+        2589.0415983002786
+      ],
+      "size": [
+        430,
+        368
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 9
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            10
+          ]
+        },
+        {
+          "name": "scribble_mask",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "decode_info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Auto Smart-Tile (VRAM & HiRes Aware)",
+        512,
+        64,
+        1.35,
+        false,
+        0.6,
+        "Bottom Corners Only (Left & Right)"
+      ],
+      "widgets_values_named": {
+        "decode_mode": "Auto Smart-Tile (VRAM & HiRes Aware)",
+        "tile_size_px": 512,
+        "tile_overlap_px": 64,
+        "auto_tile_mp_threshold": 1.35,
+        "clean_corner_scribbles": false,
+        "corner_sensitivity": 0.6,
+        "active_corners": "Bottom Corners Only (Left & Right)"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 10,
+      "type": "PreviewImage",
+      "pos": [
+        10404.494594706368,
+        2589.9629431020776
+      ],
+      "size": [
+        562.7736905532114,
+        715.1659117482732
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 11,
+      "type": "ModelSave",
+      "pos": [
+        9070.882028189879,
+        2130.128018521166
+      ],
+      "size": [
+        296.5390625,
+        58
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 11
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ModelSave",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "diffusion_models/ComfyUI"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "diffusion_models/ComfyUI"
+      }
+    }
+  ],
+  "links": [
+    [
+      2,
+      2,
+      0,
+      4,
+      1,
+      "MODEL"
+    ],
+    [
+      4,
+      6,
+      0,
+      7,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      6,
+      1,
+      7,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      6,
+      8,
+      0,
+      7,
+      3,
+      "LATENT"
+    ],
+    [
+      7,
+      3,
+      0,
+      6,
+      0,
+      "CLIP"
+    ],
+    [
+      8,
+      1,
+      0,
+      7,
+      4,
+      "VAE"
+    ],
+    [
+      9,
+      7,
+      0,
+      9,
+      0,
+      "LATENT"
+    ],
+    [
+      10,
+      9,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      4,
+      0,
+      11,
+      0,
+      "MODEL"
+    ],
+    [
+      12,
+      1,
+      0,
+      9,
+      1,
+      "VAE"
+    ],
+    [
+      14,
+      5,
+      0,
+      4,
+      0,
+      "MODEL"
+    ],
+    [
+      15,
+      4,
+      0,
+      7,
+      0,
+      "MODEL"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "ds": {
+      "scale": 0.3452271214393266,
+      "offset": [
+        -5848.74313318609,
+        -1107.7199327386486
+      ]
+    },
+    "frontendVersion": "1.53.10",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4,
+  "seed_widgets": {
+    "7": 3
+  }
+}
