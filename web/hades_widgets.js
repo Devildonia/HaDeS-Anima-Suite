@@ -687,10 +687,23 @@ export function createSpectralBannerWidget(node, config) {
                         else if (lbl === "Beta57") lbl = "B57";
                         else if (lbl === "Turbo") lbl = "Turb";
                         else if (lbl === "TDM 4s") lbl = "4s";
+                        else if (lbl === "HiRes 1.5x") lbl = "1.5x";
+                        else if (lbl === "Painterly") lbl = "Paint";
+                        else if (lbl === "Base→Turbo") lbl = "B→T";
+                        else if (lbl === "1.0x Polish") lbl = "1.0x";
+                        else if (lbl === "1.35→1.75x") lbl = "1.75x";
+                        else if (lbl === "1.5→2.0x") lbl = "2.0x";
+                        else if (lbl === "1.5x Lock") lbl = "Lock";
+                        else if (lbl === "Turbo S3") lbl = "Turbo";
                     }
 
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(bx + 1, by, btnW - 2, btnH);
+                    ctx.clip();
                     ctx.fillStyle = "#9da5b4";
                     ctx.fillText(lbl, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
+                    ctx.restore();
 
                     this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick, tooltip: act.tooltip, color: act.color });
                     cursorLeft = bx + btnW + btnGap;
@@ -729,7 +742,12 @@ export function createSpectralBannerWidget(node, config) {
 
                 this._pillBounds = [];
                 if (typeof drawCustomHUD === "function") {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(graphX, graphY, graphW, graphH);
+                    ctx.clip();
                     drawCustomHUD(ctx, { x: graphX, y: graphY, w: graphW, h: graphH }, n, this._pillBounds);
+                    ctx.restore();
                 } else if (typeof getBars === "function") {
                     const bars = getBars() || [];
                     const midY = graphY + graphH * 0.5;

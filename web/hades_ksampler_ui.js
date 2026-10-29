@@ -499,44 +499,86 @@ export function setupAnimaDualPassKSamplerUI(node) {
                 const d2 = Number(wDen2?.value ?? 0.42);
                 const sh2 = Number(wShift2?.value ?? 3.6);
 
-                const padX = 8;
-                const boxY = rect.y + 4;
-                const boxH = 26;
+                const padX = 6;
+                const boxY = rect.y + 3;
+                const boxH = Math.max(18, rect.h - 6);
                 const totalW = rect.w - padX * 2;
-                const boxW = (totalW - 56) * 0.5;
+                
+                // Allow dynamic space for bridge badge based on available width
+                const badgeW = totalW < 220 ? 24 : (totalW < 300 ? 36 : 48);
+                const availForBoxes = totalW - badgeW - 8;
+                const boxW = Math.max(30, Math.floor(availForBoxes * 0.5));
+
+                ctx.font = totalW < 240 ? "bold 8px monospace" : "bold 9px monospace";
 
                 // Pass 1 pill
-                drawRoundedRect(ctx, rect.x + padX, boxY, boxW, boxH, 4);
+                const p1X = rect.x + padX;
+                drawRoundedRect(ctx, p1X, boxY, boxW, boxH, 4);
                 ctx.fillStyle = `${HADES_THEME.blue}22`;
                 ctx.fill();
                 ctx.strokeStyle = HADES_THEME.blue;
                 ctx.stroke();
 
-                ctx.font = "bold 9px monospace";
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(p1X + 2, boxY, boxW - 4, boxH);
+                ctx.clip();
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
-                ctx.fillText(`PASS 1: 1.0x (${s1}s | CFG ${c1.toFixed(1)})`, rect.x + padX + boxW * 0.5, boxY + boxH * 0.5);
 
-                // Bridge arrow badge
-                const midX = rect.x + padX + boxW + 28;
+                let p1Text = `PASS 1: 1.0x (${s1}s | CFG ${c1.toFixed(1)})`;
+                if (ctx.measureText(p1Text).width > boxW - 4) {
+                    p1Text = `P1: ${s1}s · C${c1.toFixed(1)}`;
+                }
+                if (ctx.measureText(p1Text).width > boxW - 4) {
+                    p1Text = `P1 (${s1}s)`;
+                }
+                if (ctx.measureText(p1Text).width > boxW - 4) {
+                    p1Text = `${s1}s`;
+                }
+                ctx.fillText(p1Text, p1X + boxW * 0.5, boxY + boxH * 0.5);
+                ctx.restore();
+
+                // Bridge badge
+                const midX = p1X + boxW + 4 + badgeW * 0.5;
                 ctx.fillStyle = HADES_THEME.amber;
-                ctx.fillText(`×${scale.toFixed(2)}`, midX, boxY + boxH * 0.5);
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = totalW < 220 ? "bold 8px monospace" : "bold 9px monospace";
+                const badgeText = badgeW < 30 ? "→" : `×${scale.toFixed(badgeW < 40 ? 1 : 2)}`;
+                ctx.fillText(badgeText, midX, boxY + boxH * 0.5);
 
                 // Pass 2 pill
-                const p2X = rect.x + padX + boxW + 56;
-                drawRoundedRect(ctx, p2X, boxY, boxW, boxH, 4);
+                const p2X = p1X + boxW + 8 + badgeW;
+                const p2W = Math.max(30, rect.x + rect.w - padX - p2X);
+                drawRoundedRect(ctx, p2X, boxY, p2W, boxH, 4);
                 ctx.fillStyle = `${HADES_THEME.emerald}22`;
                 ctx.fill();
                 ctx.strokeStyle = HADES_THEME.emerald;
                 ctx.stroke();
 
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(p2X + 2, boxY, p2W - 4, boxH);
+                ctx.clip();
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
-                ctx.fillText(
-                    `PASS 2: ${s2}s | DEN ${d2.toFixed(2)} | S ${sh2.toFixed(1)}`,
-                    p2X + boxW * 0.5,
-                    boxY + boxH * 0.5
-                );
+                ctx.font = totalW < 240 ? "bold 8px monospace" : "bold 9px monospace";
+
+                let p2Text = `PASS 2: ${s2}s | DEN ${d2.toFixed(2)} | S ${sh2.toFixed(1)}`;
+                if (ctx.measureText(p2Text).width > p2W - 4) {
+                    p2Text = `P2: ${s2}s · D${d2.toFixed(2)}`;
+                }
+                if (ctx.measureText(p2Text).width > p2W - 4) {
+                    p2Text = `P2 (${s2}s)`;
+                }
+                if (ctx.measureText(p2Text).width > p2W - 4) {
+                    p2Text = `${s2}s`;
+                }
+                ctx.fillText(p2Text, p2X + p2W * 0.5, boxY + boxH * 0.5);
+                ctx.restore();
             },
             actions: [
                 {
@@ -886,17 +928,20 @@ export function setupAnimaTriplePassKSamplerUI(node) {
                 const s2 = Number(wSteps2?.value ?? 16);
                 const s3 = Number(wSteps3?.value ?? 12);
 
-                const padX = 8;
-                const gap = 6;
-                const cardW = (rect.w - padX * 2 - gap * 2) / 3;
-                const cardY = rect.y + 4;
-                const cardH = 28;
+                const padX = 6;
+                const gap = 4;
+                const totalW = rect.w - padX * 2;
+                const cardW = Math.max(20, (totalW - gap * 2) / 3);
+                const cardY = rect.y + 3;
+                const cardH = Math.max(18, rect.h - 6);
 
                 const stages = [
-                    { label: `S1 1.00x (${s1}s)`, sub: `DEN ${d1.toFixed(2)}`, col: HADES_THEME.blue },
-                    { label: `S2 ${sc2.toFixed(2)}x (${s2}s)`, sub: `DEN ${d2.toFixed(2)}`, col: HADES_THEME.cyan },
-                    { label: `S3 ${sc3.toFixed(2)}x (${s3}s)`, sub: `DEN ${d3.toFixed(2)}`, col: HADES_THEME.purple },
+                    { tag: "S1", scale: "1.00", steps: s1, den: d1, col: HADES_THEME.blue },
+                    { tag: "S2", scale: sc2.toFixed(2), steps: s2, den: d2, col: HADES_THEME.cyan },
+                    { tag: "S3", scale: sc3.toFixed(2), steps: s3, den: d3, col: HADES_THEME.purple },
                 ];
+
+                ctx.font = totalW < 260 ? "bold 8px monospace" : "bold 9px monospace";
 
                 stages.forEach((st, i) => {
                     const cx = rect.x + padX + i * (cardW + gap);
@@ -906,11 +951,27 @@ export function setupAnimaTriplePassKSamplerUI(node) {
                     ctx.strokeStyle = st.col;
                     ctx.stroke();
 
-                    ctx.font = "bold 9px monospace";
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(cx + 2, cardY, cardW - 4, cardH);
+                    ctx.clip();
+
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
                     ctx.fillStyle = HADES_THEME.textPrimary;
-                    ctx.fillText(`${st.label} | ${st.sub}`, cx + cardW * 0.5, cardY + cardH * 0.5);
+
+                    let text = `${st.tag} ${st.scale}x (${st.steps}s) | D${st.den.toFixed(2)}`;
+                    if (ctx.measureText(text).width > cardW - 4) {
+                        text = `${st.tag} ${st.scale}x (${st.steps}s)`;
+                    }
+                    if (ctx.measureText(text).width > cardW - 4) {
+                        text = `${st.tag} (${st.steps}s)`;
+                    }
+                    if (ctx.measureText(text).width > cardW - 4) {
+                        text = `${st.tag}`;
+                    }
+                    ctx.fillText(text, cx + cardW * 0.5, cardY + cardH * 0.5);
+                    ctx.restore();
                 });
             },
             actions: [
