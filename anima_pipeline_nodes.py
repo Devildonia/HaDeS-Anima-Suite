@@ -146,24 +146,50 @@ def _is_natural_language_sentence(tag):
     return False
 
 
+_TAG_WEIGHT_DIGIT_RE = re.compile(r":\d+(?:\.\d+)?")
+_PROSE_DISQUALIFY_PREFIX_RE = re.compile(
+    r"^(?:masterpiece|best quality|score_\d+(?:_up)?|1girl|1boy|2girls|2boys|3girls|3boys|solo|safe_for_work|nsfw)\s*,\s*",
+    re.IGNORECASE,
+)
+
+
 def _is_pure_natural_sentence_line(line: str) -> bool:
     """
     Detect whether an entire line is a single natural language sentence
     (which may contain descriptive commas) rather than a comma-separated list of booru tags.
     """
-    if not _is_natural_language_sentence(line):
+    stripped = line.strip()
+    if not stripped:
         return False
-    if "_" in line or ":" in line:
+    # If it starts with typical discrete booru tags like 'masterpiece,' or '1girl,', it's a tag list!
+    if _PROSE_DISQUALIFY_PREFIX_RE.match(stripped):
         return False
-    if "," not in line:
+    # If it contains booru tag weight syntax with digits like ':1.2', it's tag syntax
+    if _TAG_WEIGHT_DIGIT_RE.search(stripped):
+        return False
+    # If it contains underscores (except kaomoji), it's booru tags
+    if "_" in stripped and not any(k in stripped for k in _KAOMOJI_SET):
+        return False
+
+    words = stripped.split()
+    if len(words) < 3:
+        return False
+
+    has_prose_punct = any(stripped.endswith(p) for p in (".", "!", "?"))
+    has_preposition = any(
+        w.lower() in ("with", "wearing", "holding", "standing", "sitting", "under", "against", "in", "on", "from", "at", "by", "of")
+        for w in words
+    )
+    has_prose_opener = any(
+        stripped.lower().startswith(op)
+        for op in ("digital ", "a ", "an ", "the ", "oil painting", "abstract", "portrait of", "illustration of")
+    )
+
+    if has_prose_punct and (has_preposition or has_prose_opener):
         return True
-    parts = [p.strip() for p in line.split(",") if p.strip()]
-    if not parts:
-        return False
-    short_parts = sum(1 for p in parts if len(p.split()) <= 2)
-    if short_parts > len(parts) / 2:
-        return False
-    return True
+    if len(words) >= 6 and has_preposition and has_prose_punct:
+        return True
+    return False
 
 
 def _clean_single_anima_tag(raw_tag, booru_sanitizer=True, strip_aesthetic_slop=False, strip_score_only=False):
@@ -286,6 +312,7 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
     raw_lines = [ln.strip() for ln in str(raw_prompt or "").splitlines() if ln.strip()]
     manual_header_lines = []
     lines_to_process = raw_lines
+    embedded_trigger = None
 
     if raw_lines and raw_lines[0].lower() in ("ye-pop", "deviantart"):
         trigger_line = raw_lines[0].lower()
@@ -307,7 +334,12 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
     for line in lines_to_process:
         if _is_pure_natural_sentence_line(line):
             clean_nl = line.strip()
-            if clean_nl.lower() not in seen_tags:
+            if strip_score_only or strip_slop:
+                clean_nl = re.sub(r"\bscore_\d+(?:_up)?\b[, ]*", "", clean_nl, flags=re.IGNORECASE).strip(" ,")
+            if strip_slop:
+                for slop in ("masterpiece", "best quality", "ultra-detailed", "ultra detailed", "8k", "4k", "extremely detailed", "insanely detailed"):
+                    clean_nl = re.sub(rf"\b{re.escape(slop)}\b[, ]*", "", clean_nl, flags=re.IGNORECASE).strip(" ,")
+            if clean_nl and clean_nl.lower() not in seen_tags:
                 seen_tags.add(clean_nl.lower())
                 b_natural.append(clean_nl)
                 total_tags += 1
@@ -315,10 +347,22 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
 
         parts = _split_tags_preserving_parens(line)
         for p in parts:
+            p_strip = p.strip()
+            p_lower = p_strip.lower()
+            if p_lower in ("deviantart", "ye-pop"):
+                if embedded_trigger is None:
+                    embedded_trigger = p_lower
+                continue
+
             if _is_natural_language_sentence(p):
                 # Preserve natural language sentence without lowercasing
                 clean_nl = p.strip()
-                if clean_nl.lower() not in seen_tags:
+                if strip_score_only or strip_slop:
+                    clean_nl = re.sub(r"\bscore_\d+(?:_up)?\b[, ]*", "", clean_nl, flags=re.IGNORECASE).strip(" ,")
+                if strip_slop:
+                    for slop in ("masterpiece", "best quality", "ultra-detailed", "ultra detailed", "8k", "4k", "extremely detailed", "insanely detailed"):
+                        clean_nl = re.sub(rf"\b{re.escape(slop)}\b[, ]*", "", clean_nl, flags=re.IGNORECASE).strip(" ,")
+                if clean_nl and clean_nl.lower() not in seen_tags:
                     seen_tags.add(clean_nl.lower())
                     b_natural.append(clean_nl)
                     total_tags += 1
@@ -382,7 +426,8 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
             body = "\n".join(manual_header_lines)
         header_injected = True
     elif style_mode == "Flat Vector / Graphic (Non-Anime Dataset Header)":
-        trigger = "deviantart" if "deviantart" in str(header_trigger) else "ye-pop"
+        chosen_trigger = embedded_trigger if embedded_trigger else ("deviantart" if "deviantart" in str(header_trigger) else "ye-pop")
+        trigger = chosen_trigger
         title = str(artwork_title or "").strip().strip("\n")
         first_line = body.splitlines()[0].strip().lower() if body else ""
         already_has_trigger = first_line.startswith("ye-pop") or first_line.startswith("deviantart")
@@ -1002,14 +1047,15 @@ class HaDeSAnimaCornerScribbleShield:
         return (patch_chw - smooth_chw).abs().mean(dim=1)  # [B, y1-y0, x1-x0]
 
     def _ambient_hf(self, image):
-        """Measures ambient / background high-frequency energy from the interior of the image
+        """Measures ambient / background high-frequency energy (mean and peak) from the central core of the image
         to distinguish global texture (grain, noise, canvas pattern) from localized corner watermarks."""
         b, h, w, _ = image.shape
-        cy0, cy1 = max(0, h // 4), min(h, 3 * h // 4)
-        cx0, cx1 = max(0, w // 4), min(w, 3 * w // 4)
-        return float(self._high_freq_map(image, cy0, cy1, cx0, cx1).mean().item())
+        cy0, cy1 = max(0, int(round(h * 0.35))), min(h, int(round(h * 0.65)))
+        cx0, cx1 = max(0, int(round(w * 0.35))), min(w, int(round(w * 0.65)))
+        amb_map = self._high_freq_map(image, cy0, cy1, cx0, cx1)
+        return float(amb_map.mean().item()), float(amb_map.max().item())
 
-    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, ambient_hf=0.0, max_iter=3):
+    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, ambient_mean=0.0, ambient_max=0.0, max_iter=3):
         """Adaptive box expansion: if high-frequency (logo) content is still present
         at the box edge that faces the image center, the mark extends beyond the
         box — grow it (x1.5 per step) and re-measure, up to 3 times.
@@ -1017,7 +1063,7 @@ class HaDeSAnimaCornerScribbleShield:
         No-op on clean corners or dense global textures."""
         max_bh = int(round(h * 0.50))
         max_bw = int(round(w * 0.50))
-        eff_thresh = max(thresh, ambient_hf * 1.45) if ambient_hf >= 0.005 else thresh
+        eff_thresh = max(thresh, ambient_mean * 1.35 + 0.01) if ambient_mean >= 0.005 else thresh
         for _ in range(max_iter):
             curr_bh = y1 - y0
             curr_bw = x1 - x0
@@ -1061,19 +1107,21 @@ class HaDeSAnimaCornerScribbleShield:
         corners = self._get_corner_slices(h, w, bh, bw, active_corners)
         triggered_corners = []
 
-        ambient_hf = self._ambient_hf(image)
+        ambient_mean, ambient_max = self._ambient_hf(image)
+        has_ambient_texture = (ambient_mean >= 0.005)
 
         # Threshold scales inversely with sensitivity (higher sensitivity -> lower threshold).
         # Calibrated against real Anima watermark signatures (hf_score ~0.03-0.04).
         thresh = max(0.008, 0.06 - 0.05 * float(detection_sensitivity))
 
-        expanded_corners = []
+        actually_expanded = []
         for name, y0, y1, x0, x1 in corners:
             # Large-logo support: auto-grow the box while logo content is still
             # detected at its inner edge (capped at 50%, no-op on clean/texture).
-            y0e, y1e, x0e, x1e = self._expand_corner_box(name, y0, y1, x0, x1, image, thresh, h, w, ambient_hf=ambient_hf)
-            if (y0e, y1e, x0e, x1e) != (y0, y1, x0, x1):
-                expanded_corners.append(name)
+            y0e, y1e, x0e, x1e = self._expand_corner_box(
+                name, y0, y1, x0, x1, image, thresh, h, w, ambient_mean=ambient_mean, ambient_max=ambient_max
+            )
+            was_expanded = (y0e, y1e, x0e, x1e) != (y0, y1, x0, x1)
             y0, y1, x0, x1 = y0e, y1e, x0e, x1e
 
             curr_bh = y1 - y0
@@ -1088,16 +1136,22 @@ class HaDeSAnimaCornerScribbleShield:
             spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, curr_bh, curr_bw]
 
             hf_score = float(high_freq.mean().item())
+            hf_max = float(high_freq.max().item())
 
-            # Anti-Texture Guard: If ambient texture is detected and corner HF is not significantly elevated above it,
-            # it is global texture/grain across the canvas, NOT an isolated signature.
-            is_uniform_texture = (ambient_hf >= 0.005 and hf_score <= ambient_hf * 1.45) and heal_mode != "Aggressive Corner Fill (Forced)"
+            # Anti-Texture Guard: If ambient texture is detected AND neither the mean nor the local peak
+            # exceeds the ambient texture level, this corner is uniform canvas/grain/hatching.
+            is_uniform_texture = (
+                has_ambient_texture
+                and (hf_score <= ambient_mean * 1.45 + 0.01)
+                and (hf_max <= ambient_max * 1.40 + 0.02)
+                and heal_mode != "Aggressive Corner Fill (Forced)"
+            )
 
-            if is_uniform_texture:
+            if is_uniform_texture or (hf_max < thresh and heal_mode != "Aggressive Corner Fill (Forced)"):
                 stroke_mask = torch.zeros_like(high_freq)
                 full_fill = False
             else:
-                eff_thresh = max(thresh, ambient_hf + 0.01) if ambient_hf >= 0.005 else thresh
+                eff_thresh = max(thresh, ambient_max * 0.85) if has_ambient_texture else thresh
                 stroke_mask = ((high_freq - eff_thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
                 full_fill = (hf_score >= eff_thresh * 0.8)
 
@@ -1111,8 +1165,11 @@ class HaDeSAnimaCornerScribbleShield:
                 pad_sz = k_sz // 2
                 corner_mask = F.avg_pool2d(corner_mask.unsqueeze(1), kernel_size=k_sz, stride=1, padding=pad_sz).squeeze(1)
 
-            if full_fill or float(corner_mask.max().item()) > 0.05:
+            is_active_corner = (full_fill or float(corner_mask.max().item()) > 0.05) and not is_uniform_texture
+            if is_active_corner:
                 triggered_corners.append(f"{name} (HF={hf_score:.3f})")
+                if was_expanded:
+                    actually_expanded.append(name)
 
             mask_out[:, y0:y1, x0:x1] = torch.maximum(mask_out[:, y0:y1, x0:x1], corner_mask)
 
@@ -1158,7 +1215,7 @@ class HaDeSAnimaCornerScribbleShield:
                 out_img[:, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + blurred * alpha
 
         det_str = ", ".join(triggered_corners) if triggered_corners else "Clean (Low HF Energy)"
-        expanded_note = f" | Auto-Expanded (large mark): {', '.join(expanded_corners)}" if expanded_corners else ""
+        expanded_note = f" | Auto-Expanded (large mark): {', '.join(actually_expanded)}" if actually_expanded else ""
         info = (
             f"HaDeS Corner Scribble Shield | Box: {bw}x{bh}px ({corner_box_percent*100:.0f}% base){expanded_note} | "
             f"Mode: {heal_mode} | Active: {active_corners} | Detected: {det_str}"

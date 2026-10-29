@@ -18,7 +18,7 @@ except ImportError:
     def _convert_lora_fn(sd):
         return sd
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
@@ -1310,9 +1310,9 @@ class HaDeSAnimaStandaloneLoraMerger:
             # P2 guard: Auto mode can mis-detect partial LoRAs (e.g. blocks 0-20) as the 28L tier.
             max_seen_dit = max((parse_anima_block_key(p)[1] for p in all_prefixes
                                if parse_anima_block_key(p)[0] == "dit"), default=-1)
-            if n_dit == 28 and 0 <= max_seen_dit < 27:
+            if 0 <= max_seen_dit < (n_dit - 1):
                 logger.warning(
-                    f"HaDeS Standalone LoRA Merger: Auto topology detected 28 DiT layers, but the LoRAs only reach "
+                    f"HaDeS Standalone LoRA Merger: Auto topology detected {n_dit} DiT layers, but the LoRAs only reach "
                     f"block {max_seen_dit}. If these are partial Anima 2.9B (40L) or 3.8B (52L) LoRAs, set "
                     f"topology_override or pass reference_model to avoid silent band misalignment."
                 )

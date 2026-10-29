@@ -653,7 +653,40 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
     # Verify pos_cond token weight scaling: original 1.5 with multiplier 1.5 -> 1.0 + (0.5 * 1.5) = 1.75
     pos_tokens = pos_cond[0][1]["tokens"]["t5xxl"][0]
     assert abs(pos_tokens[1][1] - 1.75) < 1e-5, f"Expected T5 scaled weight 1.75, got {pos_tokens[1][1]}"
-    print("[OK] Test 7: Prompt Studio (Canonical Ordering, Character/Artist Sockets, Multi-Artist Weight Syntax, NL Capitalization & T5 Scaling) verified")
+
+    # Error 1 Check: multi-word booru tags must not trick aesthetic guard into treating line as prose
+    multi_tag_pos = "masterpiece, standing in the rain, wearing a red dress, holding a big umbrella, 1girl"
+    _, _, fmt_multi, _, _ = studio.process_prompt(
+        "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Standard Anime / Illustration",
+        True,
+        1.0,
+        "",
+        "",
+        multi_tag_pos,
+        "",
+        clip=None,
+    )
+    assert "masterpiece" not in fmt_multi, f"Aesthetic guard must strip 'masterpiece' even when multi-word tags are present! Got: {fmt_multi}"
+
+    # Error 4 Check: grammatical colon in natural language sentence must not be rejected as tag-weight
+    prose_colon_pos = "Abstract, oil painting. Left: white, draped figure. Right: dark backdrop."
+    _, _, fmt_colon, _, _ = studio.process_prompt(
+        "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Standard Anime / Illustration",
+        True,
+        1.0,
+        "",
+        "",
+        prose_colon_pos,
+        "",
+        clip=None,
+    )
+    assert "Left: white, draped figure. Right: dark backdrop." in fmt_colon, (
+        f"Grammatical colon in natural language prose must be preserved! Got: {fmt_colon}"
+    )
+
+    print("[OK] Test 7: Prompt Studio (Canonical Ordering, Multi-Word Slop Scrubbing, NL Grammatical Colons, Character/Artist Sockets, Multi-Artist Weight Syntax, NL Capitalization & T5 Scaling) verified")
 
 
 def test_8_nag_attention_guidance():
@@ -834,7 +867,23 @@ def test_10_corner_scribble_shield():
     grain_diff = (grain_healed - grain_img).abs().max().item()
     assert grain_diff < 0.005, f"Smart mode must not alter uniform grain/textures (max diff={grain_diff})"
     assert grain_mask.sum().item() == 0, f"Expected zero masked pixels on uniform grain, got {grain_mask.sum().item()}"
-    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, Aggressive mode, clean-corner safety, large-logo auto-expansion, texture guard) verified")
+    # Error 8 Check: Clean telemetry must not report contradictory Auto-Expanded corners
+    assert "Auto-Expanded" not in grain_info, f"Clean/uniform texture must not claim Auto-Expanded in telemetry! Got: {grain_info}"
+
+    # Error 2 Check: A thin 1px stroke in the corner on top of sigma=0.03 grain MUST be detected via peak HF
+    grain_stroke_img = grain_img.clone()
+    grain_stroke_img[:, 118:122, 118:126, :] = 0.0  # high-contrast dark stroke
+    gs_healed, gs_mask, gs_info = shield.shield_corners(
+        grain_stroke_img, 0.12, 0.75, "Bottom-Right Only", "Smart Edge-Inward Blend (Auto-Heal)", 6
+    )
+    assert gs_mask[:, 118:122, 118:126].max().item() > 0.5, (
+        f"Thin 1px stroke on top of sigma=0.03 grain must be detected and masked via hf_max! Info: {gs_info}"
+    )
+    stroke_orig_diff = (grain_stroke_img[:, 118:122, 118:126, :] - base[:, 118:122, 118:126, :].repeat(1, 1, 1, 3)).abs().mean().item()
+    stroke_healed_diff = (gs_healed[:, 118:122, 118:126, :] - base[:, 118:122, 118:126, :].repeat(1, 1, 1, 3)).abs().mean().item()
+    assert stroke_healed_diff < stroke_orig_diff, f"Expected stroke to be healed towards baseline ({stroke_healed_diff} vs {stroke_orig_diff})"
+
+    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, peak HF vs grain, Aggressive mode, clean-corner safety, large-logo auto-expansion, telemetry sync) verified")
 
 
 def test_11_anima_single_pass_ksampler_and_schedulers():
@@ -1263,7 +1312,25 @@ def test_19_prompt_header_canonical_and_dual_legacy():
     assert "A breathtaking view of the futuristic cityscape at dawn, with neon reflections in the rain puddles." in manual_lines[2], (
         f"Expected intact NL sentence on L3, got: {manual_lines[2]}"
     )
-    print("[OK] Test 19: Prompt header (canonical 3-line, title omit, dual legacy, dedup, non-header passthrough, manual 3-line preservation) verified")
+
+    # 7. Error 7 Check: Embedded triggers (e.g. deviantart) in the middle of tag list
+    # must be extracted into Line 1 header and stripped from body without injecting duplicate ye-pop
+    mid_prompt = "1girl, deviantart, silver hair"
+    mid_res = hades.format_anima_prompt_text(
+        mid_prompt,
+        "Anima Aesthetic (Strip score_* & Slop Guard)",
+        "Flat Vector / Graphic (Non-Anime Dataset Header)",
+        header_mode="Canonical (1 Trigger + Title)",
+        header_trigger="ye-pop",  # default selector, but deviantart is already in the tags!
+        artwork_title="",
+    )
+    mid_lines = mid_res[0].split("\n")
+    assert mid_lines[0] == "deviantart", f"Expected detected embedded trigger 'deviantart' on L1, got: {mid_lines[0]}"
+    assert "ye-pop" not in mid_res[0], f"Expected redundant 'ye-pop' not to be injected when 'deviantart' was embedded! Got: {mid_res[0]}"
+    assert "deviantart" not in mid_lines[-1], f"Expected 'deviantart' stripped from body line, got: {mid_lines[-1]}"
+    assert "1girl" in mid_lines[-1] and "silver hair" in mid_lines[-1]
+
+    print("[OK] Test 19: Prompt header (canonical 3-line, title omit, dual legacy, dedup, non-header passthrough, manual 3-line preservation, embedded trigger extraction) verified")
 
 
 if __name__ == "__main__":
@@ -1286,4 +1353,4 @@ if __name__ == "__main__":
     test_17_anima_smart_vae_decode_and_scribble_shield()
     test_18_nag_only_anima_gate()
     test_19_prompt_header_canonical_and_dual_legacy()
-    print("\nALL 19 HADES ANIMA SUITE v0.1.2 TEST SUITES PASSED!")
+    print("\nALL 19 HADES ANIMA SUITE v0.1.3 TEST SUITES PASSED!")

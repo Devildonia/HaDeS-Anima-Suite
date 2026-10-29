@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.1.2 — Complete 17-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.3 — Complete 17-Node Anima Ecosystem for ComfyUI
 
 **HaDeS Anima Suite** is a specialized **17-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
@@ -6,7 +6,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 
 ---
 
-## Key Architectural Innovations in v0.1.2
+## Key Architectural Innovations in v0.1.3
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -17,17 +17,17 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
    - Native ComfyUI (`comfy/lora.py`) does not automatically translate Diffusers-trained Anima LoRAs (`transformer_blocks.X.attn1.to_q`, `to_out.0`, `ff.net.0.proj`, `norm1.linear_1`, `text_conditioner`).
    - HaDeS canonicalizes Diffusers, Kohya (`lora_unet_*`), OneTrainer, and Musubi keys into native `MiniTrainDIT` keys on the fly—allowing you to load Diffusers LoRAs directly or **merge a Diffusers LoRA with a Kohya LoRA in the same QR-SVD subspace**.
 4. **Complete Anima Pipeline Guards:**
-   - **Prompt Studio & Aesthetic Guard:** Prevents *Anima-Aesthetic* / *2.9B* latent saturation (*slop*) by auto-stripping `score_*` & `masterpiece` tags when appropriate, normalizing Booru grammar while protecting kaomojis (`^_^`) and whitelisted tokens (`safe_for_work`), injecting `@artist` and canonical 3-line (`ye-pop` / `deviantart` + title) or dual-legacy headers, preserving manual multi-line headers verbatim, and scaling `T5XXL` query-token emphasis weights independently of `Qwen3`.
+   - **Prompt Studio & Aesthetic Guard:** Prevents *Anima-Aesthetic* / *2.9B* latent saturation (*slop*) by auto-stripping `score_*` & `masterpiece` tags when appropriate, normalizing Booru grammar while protecting kaomojis (`^_^`) and whitelisted tokens (`safe_for_work`), extracting embedded dataset triggers (`ye-pop`, `deviantart`) into canonical Line 1 headers, preserving natural language sentences with grammatical colons intact, and scaling `T5XXL` query-token emphasis weights independently of `Qwen3`.
    - **NAG Attention Guidance (`CFG = 1.0` Negative Enabler & Anti-Burn):** Enables real negative guidance on **Anima-Turbo / Lightning** at `CFG = 1.0` and prevents high-CFG edge frying on Base/Aesthetic via L1-norm-bounded attention extrapolation (`nag_tau`) inside an exact sigma window (safely gated to Anima models via `only_anima = True`).
    - **16-Channel Latent & Pipeline Guard:** Blocks the common **64-channel Qwen-Image 2.1 VAE trap**, enforces `32px` grid alignment across 11 native Anima aspect ratios (up to `1:4` and `4:1`), and prevents the **Anima-2.9B `1280×1280` white-background dataset bias**.
-   - **Corner Scribble Shield:** Detects and heals (or masks for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with ambient texture safeguards (rejecting grain $\sigma=0.03$ and hatching) and adaptive expansion capped strictly at 50% for large marks.
+   - **Corner Scribble Shield:** Detects and heals (or masks for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with core ambient texture safeguards (peak-aware HF detection differentiating fine 1px strokes from uniform grain $\sigma=0.03$), telemetry sync, and adaptive expansion capped strictly at 50% for large marks.
 
 ---
 
 ## Overview of the 17 Nodes
 
 ```
-HaDeS Anima Suite v0.1.2
+HaDeS Anima Suite v0.1.3
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. HaDeS Anima Diffusion Model Loader
 │   ├── 15. HaDeS Anima Qwen3 Text Encoder Loader
@@ -202,11 +202,15 @@ HaDeS Anima Suite v0.1.2
 
 ```
 Comfyui-HaDeS-Anima-BlockMerger/
+├── .github/
+│   └── workflows/
+│       └── ci.yml            # Multi-version CI (Python 3.10-3.12 + Node.js JS syntax checks)
 ├── __init__.py               # Core 34-block topology, 24-rule Diffusers remapper & 5 Merger nodes
 ├── anima_pipeline_nodes.py   # 5 Anima Pipeline & Guard nodes (Prompt, NAG, Latent, Remapper, Shield)
 ├── anima_ksampler_nodes.py   # 3 Anima Rectified Flow KSampler nodes (Single, Dual-Pass, Triple-Pass)
 ├── anima_loader_nodes.py     # 4 Native Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode
 ├── web/
+│   ├── icon.png              # 128x128 32-bit RGBA genuine PNG extension icon
 │   ├── hades_suite.js        # Lightweight ComfyUI extension orchestrator (17 nodes)
 │   ├── hades_widgets.js      # Reusable HaDeS Spectral Canvas UI components & theme tokens
 │   ├── hades_mergers_ui.js   # UI installers for the 5 Merger & LoRA nodes
