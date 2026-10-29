@@ -979,6 +979,7 @@ def test_12_anima_dual_pass_ksampler_16ch_upscale():
         m1 = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
         m2 = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8) * 2.0})
         dual = hades.HaDeSAnimaDualPassKSampler()
+        assert dual.RETURN_NAMES == ("final_latent", "pass1_latent", "decoded_image", "info")
         final_lat, p1_lat, dec_img, info = dual.sample_dual_pass(
             m1, [], [], base_lat,
             "HiRes Standard 1.5x (er_sde 30s -> er_sde + beta57 16s @ 0.42 denoise)",
@@ -986,7 +987,7 @@ def test_12_anima_dual_pass_ksampler_16ch_upscale():
             30, 4.5, "er_sde", "normal", 1.0, 3.0,
             "Latent 16ch Variance-Preserving Bicubic", 1.50,
             16, 4.0, "er_sde", "anima_beta57", 0.42, 3.6,
-            model_pass2_optional=m2, vae=DummyVAE(16),
+            model_pass2=m2, vae=DummyVAE(16),
         )
         assert tuple(p1_lat["samples"].shape) == (1, 16, 128, 128)
         assert tuple(final_lat["samples"].shape) == (1, 16, 192, 192)
@@ -1003,6 +1004,7 @@ def test_13_anima_triple_pass_progressive_ksampler():
     try:
         m = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
         triple = hades.HaDeSAnimaTriplePassKSampler()
+        assert triple.RETURN_NAMES == ("final_latent", "pass1_latent", "pass2_latent", "decoded_image", "info")
         base_lat = {"samples": torch.randn(1, 16, 128, 128)}
         final_lat, s1_lat, s2_lat, dec_img, info = triple.sample_triple_pass(
             m, [], [], base_lat,

@@ -638,13 +638,13 @@ class HaDeSAnimaDualPassKSampler:
                 "shift_pass2": ("FLOAT", {"default": 3.6, "min": 0.5, "max": 10.0, "step": 0.05}),
             },
             "optional": {
-                "model_pass2_optional": ("MODEL",),
+                "model_pass2": ("MODEL",),
                 "vae": ("VAE",),
             },
         }
 
     RETURN_TYPES = ("LATENT", "LATENT", "IMAGE", "STRING")
-    RETURN_NAMES = ("final_latent", "pass1_latent", "decoded_image", "sampler_info")
+    RETURN_NAMES = ("final_latent", "pass1_latent", "decoded_image", "info")
     FUNCTION = "sample_dual_pass"
     CATEGORY = "HaDeS/Anima Samplers"
 
@@ -670,9 +670,13 @@ class HaDeSAnimaDualPassKSampler:
         scheduler_pass2,
         denoise_pass2,
         shift_pass2,
-        model_pass2_optional=None,
+        model_pass2=None,
         vae=None,
+        **kwargs,
     ):
+        if model_pass2 is None:
+            model_pass2 = kwargs.get("model_pass2_optional")
+
         preset = self.DUAL_PRESETS.get(dual_preset)
         if preset is not None:
             (
@@ -702,7 +706,7 @@ class HaDeSAnimaDualPassKSampler:
         )
 
         # Pass 2: HiRes / Style Refinement (uses seed + 1 so noise pattern does not reinforce Pass 1 artifacts)
-        model_p2 = model_pass2_optional if model_pass2_optional is not None else model
+        model_p2 = model_pass2 if model_pass2 is not None else model
         final_latent, _ = run_anima_ksampler_pass(
             model=model_p2,
             seed=int(seed) + 1,
@@ -728,7 +732,7 @@ class HaDeSAnimaDualPassKSampler:
             f"Pass 1: {w1}x{h1}px ({sampler_pass1}/{scheduler_pass1}, {steps_pass1}s, CFG {cfg_pass1:.1f}, Shift {shift_pass1:.2f}) -> "
             f"Bridge: {effective_bridge} ({upscale_factor:.2f}x -> {w2}x{h2}px) -> "
             f"Pass 2: {w2}x{h2}px ({sampler_pass2}/{scheduler_pass2}, {steps_pass2}s, CFG {cfg_pass2:.1f}, "
-            f"Denoise {denoise_pass2:.2f}, Shift {shift_pass2:.2f}, HybridModel={'Yes' if model_pass2_optional is not None else 'No'})"
+            f"Denoise {denoise_pass2:.2f}, Shift {shift_pass2:.2f}, HybridModel={'Yes' if model_pass2 is not None else 'No'})"
         )
         print(f"\n[HaDeS Anima Dual-Pass KSampler] {info}")
         return (final_latent, pass1_latent, decoded_img, info)
@@ -812,14 +816,14 @@ class HaDeSAnimaTriplePassKSampler:
                 "shift_stage3": ("FLOAT", {"default": 4.0, "min": 0.5, "max": 10.0, "step": 0.05}),
             },
             "optional": {
-                "model_stage2_optional": ("MODEL",),
-                "model_stage3_optional": ("MODEL",),
+                "model_pass2": ("MODEL",),
+                "model_pass3": ("MODEL",),
                 "vae": ("VAE",),
             },
         }
 
     RETURN_TYPES = ("LATENT", "LATENT", "LATENT", "IMAGE", "STRING")
-    RETURN_NAMES = ("final_latent", "stage1_latent", "stage2_latent", "decoded_image", "sampler_info")
+    RETURN_NAMES = ("final_latent", "pass1_latent", "pass2_latent", "decoded_image", "info")
     FUNCTION = "sample_triple_pass"
     CATEGORY = "HaDeS/Anima Samplers"
 
@@ -852,10 +856,16 @@ class HaDeSAnimaTriplePassKSampler:
         scheduler_stage3,
         denoise_stage3,
         shift_stage3,
-        model_stage2_optional=None,
-        model_stage3_optional=None,
+        model_pass2=None,
+        model_pass3=None,
         vae=None,
+        **kwargs,
     ):
+        if model_pass2 is None:
+            model_pass2 = kwargs.get("model_stage2_optional")
+        if model_pass3 is None:
+            model_pass3 = kwargs.get("model_stage3_optional")
+
         preset = self.TRIPLE_PRESETS.get(triple_preset)
         if preset is not None:
             (
@@ -886,7 +896,7 @@ class HaDeSAnimaTriplePassKSampler:
         )
 
         # Stage 2: Structural & Aesthetic Bridge
-        model_s2 = model_stage2_optional if model_stage2_optional is not None else model
+        model_s2 = model_pass2 if model_pass2 is not None else model
         stage2_latent, _ = run_anima_ksampler_pass(
             model=model_s2,
             seed=int(seed) + 1,
@@ -907,7 +917,7 @@ class HaDeSAnimaTriplePassKSampler:
         )
 
         # Stage 3: Micro-Lineart & Surface Polish
-        model_s3 = model_stage3_optional if model_stage3_optional is not None else model_s2
+        model_s3 = model_pass3 if model_pass3 is not None else model_s2
         final_latent, _ = run_anima_ksampler_pass(
             model=model_s3,
             seed=int(seed) + 2,
