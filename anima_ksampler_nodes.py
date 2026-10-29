@@ -514,7 +514,7 @@ class HaDeSAnimaKSampler:
         }
 
     RETURN_TYPES = ("LATENT", "IMAGE", "STRING")
-    RETURN_NAMES = ("latent", "decoded_image", "sampler_info")
+    RETURN_NAMES = ("latent", "image", "info")
     FUNCTION = "sample_anima"
     CATEGORY = "HaDeS/Anima Samplers"
 

@@ -141,7 +141,7 @@ export function setupAnimaKSamplerUI(node) {
 
     const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "ANIMA RECTIFIED FLOW SAMPLER (M=1.0)",
+            title: "",
             accentColor: HADES_THEME.blue,
             customHeight: 72,
             drawCustomHUD(ctx, rect) {
@@ -152,9 +152,10 @@ export function setupAnimaKSamplerUI(node) {
                 const sampler = String(wSampler?.value ?? "er_sde");
                 const sched = String(wSched?.value ?? "normal");
 
-                const plotX = rect.x + 8;
+                const isNarrow = rect.w < 260;
+                const plotW = isNarrow ? Math.max(48, Math.round(rect.w * 0.28)) : 76;
+                const plotX = rect.x + 6;
                 const plotY = rect.y + 4;
-                const plotW = 92;
                 const plotH = rect.h - 8;
 
                 drawRoundedRect(ctx, plotX, plotY, plotW, plotH, 4);
@@ -165,7 +166,7 @@ export function setupAnimaKSamplerUI(node) {
 
                 // Draw shifted sigma(t) curve
                 ctx.beginPath();
-                const nPts = 24;
+                const nPts = 20;
                 for (let i = 0; i <= nPts; i++) {
                     const u = i / nPts;
                     const t = (1.0 - u) * denoise;
@@ -179,20 +180,21 @@ export function setupAnimaKSamplerUI(node) {
                 ctx.lineWidth = 1.6;
                 ctx.stroke();
 
-                const infoX = plotX + plotW + 10;
-                ctx.font = "bold 10px monospace";
+                const infoX = plotX + plotW + 8;
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
-                ctx.fillStyle = HADES_THEME.textPrimary;
-                ctx.fillText(`${sampler.toUpperCase()}  |  ${sched}`, infoX, rect.y + 11);
 
-                ctx.font = "9px monospace";
+                ctx.font = isNarrow ? "9px monospace" : "bold 10px monospace";
+                ctx.fillStyle = HADES_THEME.textPrimary;
+                const line1 = isNarrow ? `${sampler.toUpperCase()} · ${sched}` : `${sampler.toUpperCase()}  |  ${sched}`;
+                ctx.fillText(line1, infoX, rect.y + 11);
+
+                ctx.font = isNarrow ? "8.5px monospace" : "9px monospace";
                 ctx.fillStyle = HADES_THEME.emerald;
-                ctx.fillText(
-                    `STEPS: ${steps}  |  CFG: ${cfg.toFixed(1)}  |  SHIFT: ${shift.toFixed(2)}`,
-                    infoX,
-                    rect.y + 25
-                );
+                const line2 = isNarrow
+                    ? `${steps}s · C:${cfg.toFixed(1)} · S:${shift.toFixed(2)}`
+                    : `STEPS: ${steps}  |  CFG: ${cfg.toFixed(1)}  |  SHIFT: ${shift.toFixed(2)}`;
+                ctx.fillText(line2, infoX, rect.y + 25);
             },
             actions: [
                 {
@@ -225,15 +227,24 @@ export function setupAnimaKSamplerUI(node) {
         })
     );
 
-    const profileWidget = node.addCustomWidget(createStyledComboWidget(node, wProfile, { tag: "PROFILE", tagColor: HADES_THEME.blue }));
-    const samplerWidget = node.addCustomWidget(createStyledComboWidget(node, wSampler, { tag: "SAMPLER", tagColor: HADES_THEME.cyan }));
-    const schedWidget = node.addCustomWidget(createStyledComboWidget(node, wSched, { tag: "SCHED", tagColor: HADES_THEME.purple }));
+    const K_TAG_WIDTH = 66;
+
+    const profileWidget = node.addCustomWidget(
+        createStyledComboWidget(node, wProfile, { tag: "PROFILE", tagColor: HADES_THEME.blue, tagWidth: K_TAG_WIDTH })
+    );
+    const samplerWidget = node.addCustomWidget(
+        createStyledComboWidget(node, wSampler, { tag: "SAMPLER", tagColor: HADES_THEME.cyan, tagWidth: K_TAG_WIDTH })
+    );
+    const schedWidget = node.addCustomWidget(
+        createStyledComboWidget(node, wSched, { tag: "SCHEDULER", tagColor: HADES_THEME.purple, tagWidth: K_TAG_WIDTH })
+    );
 
     const stepsWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wSteps, {
             tag: "STEPS",
-            rangeTag: "COUNT",
-            label: "Sampling Steps",
+            rangeTag: "STEPS",
+            tagWidth: K_TAG_WIDTH,
+            label: "",
             color: HADES_THEME.blue,
             min: 1,
             max: 200,
@@ -247,8 +258,9 @@ export function setupAnimaKSamplerUI(node) {
     const cfgWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg, {
             tag: "CFG",
-            rangeTag: "SCALE",
-            label: "Classifier-Free Guidance",
+            rangeTag: "CFG",
+            tagWidth: K_TAG_WIDTH,
+            label: "",
             color: HADES_THEME.emerald,
             min: 1.0,
             max: 20.0,
@@ -261,8 +273,9 @@ export function setupAnimaKSamplerUI(node) {
     const denoiseWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDenoise, {
             tag: "DENOISE",
-            rangeTag: "RATIO",
-            label: "Denoise Strength",
+            rangeTag: "DENOISE",
+            tagWidth: K_TAG_WIDTH,
+            label: "",
             color: HADES_THEME.cyan,
             min: 0.0,
             max: 1.0,
@@ -275,8 +288,9 @@ export function setupAnimaKSamplerUI(node) {
     const shiftWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift, {
             tag: "SHIFT",
-            rangeTag: "M=1.0",
-            label: "Anima Rectified Flow Shift",
+            rangeTag: "SHIFT",
+            tagWidth: K_TAG_WIDTH,
+            label: "",
             color: HADES_THEME.amber,
             min: 0.5,
             max: 10.0,

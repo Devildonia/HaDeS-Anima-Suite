@@ -76,8 +76,125 @@ export function drawRoundedRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
+// =============================================================================
+// CLASSIC COMFYUI THEME / VANILLA TOGGLE ENGINE
+// =============================================================================
+try {
+    const saved = localStorage.getItem("Comfy.Settings.HaDeS.ClassicUI");
+    if (saved === "true") {
+        window._hadesGlobalClassicUI = true;
+    }
+} catch {}
+
+export function isNodeClassicUI(node) {
+    if (window._hadesGlobalClassicUI) return true;
+    return Boolean(node?.flags?.classic_ui);
+}
+
+export function setNodeClassicUI(node, enableClassic, skipResize = false, isUserOverride = false) {
+    if (!node) return;
+    
+    // Only persist on node.flags if explicitly triggered by user context menu on this node
+    if (isUserOverride) {
+        node.flags = node.flags || {};
+        if (enableClassic) {
+            node.flags.classic_ui = true;
+        } else {
+            delete node.flags.classic_ui;
+        }
+    }
+
+    const isClassic = Boolean(enableClassic);
+
+    // Save previous spectral size before shrinking to classic
+    if (isClassic && !node._hadesSavedSpectralSize && node.size) {
+        node._hadesSavedSpectralSize = [node.size[0], node.size[1]];
+    }
+
+    // 1. Toggle custom widgets (banners, styled combos, sliders)
+    for (const cw of node._hadesCustomWidgets || []) {
+        if (isClassic) {
+            cw.hidden = true;
+            if (cw.computeSize && !cw._origComputeSize) cw._origComputeSize = cw.computeSize;
+            if (cw.draw && !cw._origDraw) cw._origDraw = cw.draw;
+            cw.computeSize = () => [0, -4];
+            cw.draw = () => {};
+        } else {
+            cw.hidden = false;
+            if (cw._origComputeSize) cw.computeSize = cw._origComputeSize;
+            if (cw._origDraw) cw.draw = cw._origDraw;
+        }
+    }
+
+    // 2. Toggle backing widgets (standard ComfyUI inputs)
+    for (const w of node.widgets || []) {
+        if (w._isHadesBacking) {
+            if (isClassic) {
+                w.hidden = false;
+                if (w._origComputeSize) w.computeSize = w._origComputeSize;
+                else delete w.computeSize;
+                if (w._origDraw) w.draw = w._origDraw;
+                else delete w.draw;
+            } else {
+                w.hidden = true;
+                w.computeSize = () => [0, -4];
+                w.draw = () => {};
+            }
+        }
+    }
+
+    // 3. Node frame styling
+    if (isClassic) {
+        node.color = node._defaultHadesColor || undefined;
+        node.bgcolor = node._defaultHadesBgcolor || undefined;
+    } else {
+        node.color = "#1b2028";
+        node.bgcolor = "#12151a";
+    }
+
+    // 4. Resize and repaint
+    if (!skipResize) {
+        const sz = node.computeSize();
+        if (isClassic) {
+            node.setSize([Math.max(sz[0], 240), sz[1] + 6]);
+        } else {
+            const targetW = node._hadesSavedSpectralSize ? Math.max(node._hadesSavedSpectralSize[0], sz[0]) : Math.max(sz[0], 260);
+            const targetH = node._hadesSavedSpectralSize ? Math.max(node._hadesSavedSpectralSize[1], sz[1] + 8) : sz[1] + 8;
+            node.setSize([targetW, targetH]);
+            node._hadesSavedSpectralSize = null;
+        }
+        node.setDirtyCanvas?.(true, true);
+        app?.canvas?.setDirty?.(true, true);
+    }
+}
+
+export function setGlobalClassicUI(enableGlobalClassic) {
+    window._hadesGlobalClassicUI = Boolean(enableGlobalClassic);
+    try {
+        localStorage.setItem("Comfy.Settings.HaDeS.ClassicUI", String(Boolean(enableGlobalClassic)));
+    } catch {}
+
+    const graph = app?.graph || window?.app?.graph;
+    if (graph?._nodes) {
+        for (const n of graph._nodes) {
+            if (n._hadesCustomWidgets || n._hasHadesFrameStyle || (n.type && (n.type.startsWith("HaDeS") || n.type.includes("Anima")))) {
+                if (!enableGlobalClassic && n.flags?.classic_ui) {
+                    delete n.flags.classic_ui;
+                }
+                const shouldBeClassic = enableGlobalClassic ? true : Boolean(n.flags?.classic_ui);
+                setNodeClassicUI(n, shouldBeClassic, false, false);
+            }
+        }
+    }
+    app?.canvas?.setDirty?.(true, true);
+    graph?.setDirtyCanvas?.(true, true);
+}
+
 export function hideBackingWidget(widget) {
     if (!widget) return;
+    if (widget.computeSize && !widget._origComputeSize) widget._origComputeSize = widget.computeSize;
+    if (widget.draw && !widget._origDraw) widget._origDraw = widget.draw;
+    widget._isHadesBacking = true;
     widget.hidden = true;
     widget.computeSize = () => [0, -4];
     widget.draw = () => {};
@@ -113,12 +230,36 @@ export function enableNodeHeaderIcon(node, options = {}) {
             : isDefault;
 
         if (Array.isArray(menuOptions)) {
+            const isClassic = isNodeClassicUI(this);
+            const subOptions = [
+                {
+                    content: isClassic ? "Enable Spectral Theme" : "Disable UX (Classic ComfyUI View)",
+                    callback: () => {
+                        setNodeClassicUI(this, !isClassic, false, true);
+                    },
+                },
+                {
+                    content: isVisible ? "Hide Header Icon" : "Show Header Icon",
+                    callback: () => {
+                        this.flags = this.flags || {};
+                        this.flags.show_hades_icon = !isVisible;
+                        this.setDirtyCanvas?.(true, true);
+                    },
+                },
+            ];
+
             menuOptions.push({
-                content: isVisible ? "Hide HaDeS Icon" : "Show HaDeS Icon",
-                callback: () => {
-                    this.flags = this.flags || {};
-                    this.flags.show_hades_icon = !isVisible;
-                    this.setDirtyCanvas?.(true, true);
+                content: "HaDeS Suite",
+                has_submenu: true,
+                submenu: {
+                    options: subOptions,
+                },
+                callback: (value, options, event, parentMenu) => {
+                    if (parentMenu && parentMenu.current_submenu) return;
+                    const ContextMenu = window.LiteGraph?.ContextMenu || parentMenu?.constructor;
+                    if (ContextMenu) {
+                        new ContextMenu(subOptions, { event, parentMenu });
+                    }
                 },
             });
         }
@@ -127,6 +268,20 @@ export function enableNodeHeaderIcon(node, options = {}) {
     // 2. Custom header text & icon rendering
     const origOnDrawTitleText = node.onDrawTitleText;
     node.onDrawTitleText = function (ctx, title_height, size, scale, titleFontStyle, selected) {
+        if (isNodeClassicUI(this)) {
+            if (typeof origOnDrawTitleText === "function") {
+                origOnDrawTitleText.call(this, ctx, title_height, size, scale, titleFontStyle, selected);
+                return;
+            }
+            const h = title_height || 30;
+            ctx.font = titleFontStyle || this.titleFontStyle || "bold 12px sans-serif";
+            ctx.fillStyle = selected ? "#ffffff" : (this.constructor.title_text_color || "#e5e7eb");
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText(this.title || this.type, 10, Math.round(-h * 0.5));
+            return;
+        }
+
         if (typeof origOnDrawTitleText === "function") {
             origOnDrawTitleText.call(this, ctx, title_height, size, scale, titleFontStyle, selected);
             return;
@@ -185,9 +340,47 @@ export function enableNodeHeaderIcon(node, options = {}) {
 }
 
 export function applyNodeFrameStyle(node) {
+    if (!node) return;
+    node._hasHadesFrameStyle = true;
+    if (!node._defaultHadesColor && node.color !== "#1b2028") {
+        node._defaultHadesColor = node.color;
+    }
+    if (!node._defaultHadesBgcolor && node.bgcolor !== "#12151a") {
+        node._defaultHadesBgcolor = node.bgcolor;
+    }
+
+    if (!node._hadesCustomWidgetHooked) {
+        node._hadesCustomWidgetHooked = true;
+        const origAddCustomWidget = node.addCustomWidget;
+        node.addCustomWidget = function (widget) {
+            if (widget) {
+                widget._isHadesCustom = true;
+                if (!widget._origComputeSize) widget._origComputeSize = widget.computeSize;
+                if (!widget._origDraw) widget._origDraw = widget.draw;
+                this._hadesCustomWidgets = this._hadesCustomWidgets || [];
+                this._hadesCustomWidgets.push(widget);
+            }
+            return origAddCustomWidget.apply(this, arguments);
+        };
+    }
+
     node.color = "#1b2028";
     node.bgcolor = "#12151a";
     enableNodeHeaderIcon(node);
+
+    if (isNodeClassicUI(node)) {
+        setTimeout(() => {
+            setNodeClassicUI(node, true);
+        }, 1);
+    }
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        if (typeof origOnConfigure === "function") origOnConfigure.apply(this, arguments);
+        if (isNodeClassicUI(this)) {
+            setNodeClassicUI(this, true);
+        }
+    };
 }
 
 export function parseClientRecipePreview(recipeStr) {
@@ -290,43 +483,93 @@ export function createSpectralBannerWidget(node, config) {
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            const ledColor = getStatusColor ? getStatusColor() : accentColor;
-            ctx.beginPath();
-            ctx.arc(x + 11, topY + 12, 4, 0, Math.PI * 2);
-            ctx.fillStyle = ledColor;
-            ctx.fill();
-
-            ctx.font = "bold 10px sans-serif";
-            ctx.fillStyle = "#abb2bf";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "middle";
             const labelText = getStatusText ? getStatusText() : title;
-            ctx.fillText(labelText, x + 20, topY + 12);
+            if (labelText) {
+                const ledColor = getStatusColor ? getStatusColor() : accentColor;
+                ctx.beginPath();
+                ctx.arc(x + 11, topY + 12, 4, 0, Math.PI * 2);
+                ctx.fillStyle = ledColor;
+                ctx.fill();
+
+                ctx.font = "bold 10px sans-serif";
+                ctx.fillStyle = "#abb2bf";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+                ctx.fillText(labelText, x + 20, topY + 12);
+            }
 
             const btnH = 16;
             const btnGap = 4;
-            let cursorRight = x + w - 5;
             this._btnBounds = [];
 
             ctx.font = "10px sans-serif";
             ctx.textAlign = "center";
 
-            for (let i = actions.length - 1; i >= 0; i--) {
-                const act = actions[i];
-                const btnW = Math.max(32, ctx.measureText(act.label).width + 10);
-                const bx = cursorRight - btnW;
-                const by = topY + 4;
+            if (!labelText && actions.length > 0) {
+                const maxAvailableW = w - 8;
+                const isNarrow = w < 280;
+                const btnGap = isNarrow ? 2 : 4;
+                ctx.font = isNarrow ? "9px sans-serif" : "10px sans-serif";
 
-                drawRoundedRect(ctx, bx, by, btnW, btnH, 3);
-                ctx.fillStyle = "#232731";
-                ctx.fill();
-                ctx.strokeStyle = "#363c49";
-                ctx.stroke();
-                ctx.fillStyle = "#9da5b4";
-                ctx.fillText(act.label, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
+                let naturalTotal = 0;
+                const naturalWidths = actions.map((act) => {
+                    const baseW = Math.round(ctx.measureText(act.label).width + (isNarrow ? 6 : 8));
+                    const nw = Math.max(isNarrow ? 22 : 28, baseW);
+                    naturalTotal += nw;
+                    return nw;
+                });
 
-                this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick });
-                cursorRight = bx - btnGap;
+                const totalGaps = (actions.length - 1) * btnGap;
+                const availableForButtons = maxAvailableW - totalGaps;
+                const scale = naturalTotal > availableForButtons ? availableForButtons / naturalTotal : 1.0;
+
+                let cursorLeft = x + 4;
+                for (let i = 0; i < actions.length; i++) {
+                    const act = actions[i];
+                    const btnW = Math.max(20, Math.floor(naturalWidths[i] * scale));
+                    const bx = cursorLeft;
+                    const by = topY + 4;
+
+                    drawRoundedRect(ctx, bx, by, btnW, btnH, 3);
+                    ctx.fillStyle = "#232731";
+                    ctx.fill();
+                    ctx.strokeStyle = "#363c49";
+                    ctx.stroke();
+
+                    let lbl = act.label;
+                    if (ctx.measureText(lbl).width > btnW - 3) {
+                        if (lbl === "Base/Rae") lbl = "Base";
+                        else if (lbl === "Aesthetic") lbl = "Aesth";
+                        else if (lbl === "Beta57") lbl = "B57";
+                        else if (lbl === "Turbo") lbl = "Turb";
+                        else if (lbl === "TDM 4s") lbl = "4s";
+                    }
+
+                    ctx.fillStyle = "#9da5b4";
+                    ctx.fillText(lbl, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
+
+                    this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick });
+                    cursorLeft = bx + btnW + btnGap;
+                }
+            } else {
+                let cursorRight = x + w - 5;
+                for (let i = actions.length - 1; i >= 0; i--) {
+                    const act = actions[i];
+                    const btnW = Math.max(32, ctx.measureText(act.label).width + 10);
+                    const bx = cursorRight - btnW;
+                    const by = topY + 4;
+
+                    drawRoundedRect(ctx, bx, by, btnW, btnH, 3);
+                    ctx.fillStyle = "#232731";
+                    ctx.fill();
+                    ctx.strokeStyle = "#363c49";
+                    ctx.stroke();
+                    ctx.fillStyle = "#9da5b4";
+                    ctx.fillText(act.label, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
+
+                    this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick });
+                    cursorRight = bx - btnGap;
+                }
             }
 
             if (hasGraph) {
@@ -392,6 +635,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
     const {
         tag = "MODE",
         tagColor = config.color || HADES_THEME.purple,
+        tagWidth = null,
         label = "",
         cleanFileNames = false,
     } = config;
@@ -423,14 +667,14 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            const tagW = 52;
+            ctx.font = "bold 9px sans-serif";
+            const tagW = tagWidth || Math.max(52, Math.round(ctx.measureText(tag).width + 12));
             drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
             ctx.fillStyle = `${tagColor}22`;
             ctx.fill();
             ctx.strokeStyle = `${tagColor}66`;
             ctx.stroke();
 
-            ctx.font = "bold 9px sans-serif";
             ctx.fillStyle = tagColor;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -501,6 +745,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
         rangeTag = config.range || "",
         label = backingWidget?.name || "",
         color = HADES_THEME.blue,
+        tagWidth = null,
         min = -10.0,
         max = 10.0,
         visMin = config.min ?? 0.0,
@@ -521,6 +766,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
         _dragStartX: null,
         _dragStartVal: null,
         _didDrag: false,
+        _dragRail: false,
 
         computeSize(width) {
             return [width, 28];
@@ -543,24 +789,27 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            const tagW = rangeTag ? 52 : 46;
+            const isNarrow = w < 280;
+            const hasLabel = Boolean(label);
+            ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
+            const tagW = tagWidth || Math.max(isNarrow ? 42 : 50, Math.round(ctx.measureText(rangeTag || tag).width + (isNarrow ? 8 : 12)));
             drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
             ctx.fillStyle = `${color}22`;
             ctx.fill();
             ctx.strokeStyle = `${color}66`;
             ctx.stroke();
 
-            ctx.font = "bold 9px monospace";
             ctx.fillStyle = color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(rangeTag || tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
-            const ctrlW = 114;
+            // Right numeric box [ −  val  + ]
+            const ctrlW = hasLabel ? (isNarrow ? 96 : 114) : (isNarrow ? 74 : 82);
             const ctrlX = x + w - ctrlW - 3;
             const ctrlY = rowY + 3;
             const ctrlH = h - 6;
-            const btnW = 18;
+            const btnW = isNarrow ? 15 : 17;
 
             drawRoundedRect(ctx, ctrlX, ctrlY, ctrlW, ctrlH, 4);
             ctx.fillStyle = HADES_THEME.bgControl;
@@ -571,40 +820,102 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
             const trackX = ctrlX + btnW;
             const trackW = ctrlW - btnW * 2;
             const norm = Math.max(0, Math.min(1, (curVal - visMin) / (visMax - visMin || 1)));
-            const fillW = norm * trackW;
-            if (fillW > 0.5) {
-                ctx.fillStyle = `${color}44`;
-                ctx.fillRect(trackX, ctrlY + 1, fillW, ctrlH - 2);
+
+            if (hasLabel) {
+                const fillW = norm * trackW;
+                if (fillW > 0.5) {
+                    ctx.fillStyle = `${color}44`;
+                    ctx.fillRect(trackX, ctrlY + 1, fillW, ctrlH - 2);
+                }
             }
 
-            ctx.font = "bold 11px monospace";
+            ctx.font = isNarrow ? "bold 10px monospace" : "bold 11px monospace";
             ctx.textAlign = "center";
             ctx.fillStyle = HADES_THEME.textSecondary;
             ctx.fillText("−", ctrlX + btnW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
             ctx.fillText("+", ctrlX + ctrlW - btnW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
 
-            ctx.font = "11px monospace";
+            ctx.font = isNarrow ? "10px monospace" : "11px monospace";
             ctx.fillStyle = HADES_THEME.textPrimary;
             const valStr = isInt ? String(Math.round(curVal)) : curVal.toFixed(decimals);
             ctx.fillText(valStr, trackX + trackW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
 
-            const labelX = x + tagW + 9;
-            const labelMaxW = ctrlX - labelX - 6;
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(labelX, rowY, Math.max(20, labelMaxW), h);
-            ctx.clip();
-            ctx.font = "11px sans-serif";
-            ctx.fillStyle = "#d1d5db";
-            ctx.textAlign = "left";
-            ctx.fillText(label, labelX, rowY + h * 0.5 + 0.5);
-            ctx.restore();
+            let railStartX = 0;
+            let railW = 0;
+
+            if (hasLabel) {
+                const labelX = x + tagW + 7;
+                const labelMaxW = ctrlX - labelX - 5;
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(labelX, rowY, Math.max(0, labelMaxW), h);
+                ctx.clip();
+                ctx.font = isNarrow ? "10.5px sans-serif" : "11px sans-serif";
+                ctx.fillStyle = "#d1d5db";
+                ctx.textAlign = "left";
+
+                let displayLabel = label;
+                if (labelMaxW > 12 && ctx.measureText(displayLabel).width > labelMaxW) {
+                    while (displayLabel.length > 2 && ctx.measureText(displayLabel + "…").width > labelMaxW) {
+                        displayLabel = displayLabel.slice(0, -1);
+                    }
+                    displayLabel += "…";
+                }
+                ctx.fillText(displayLabel, labelX, rowY + h * 0.5 + 0.5);
+                ctx.restore();
+            } else {
+                // Precision Rail in center
+                railStartX = x + tagW + 8;
+                const railEndX = ctrlX - 8;
+                railW = railEndX - railStartX;
+
+                if (railW > 14) {
+                    const railH = 4.5;
+                    const railY = rowY + Math.round((h - railH) * 0.5);
+
+                    // Track background rail
+                    drawRoundedRect(ctx, railStartX, railY, railW, railH, 2.25);
+                    ctx.fillStyle = "#151820";
+                    ctx.fill();
+                    ctx.strokeStyle = "#252b37";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Active progress fill
+                    const fillRailW = norm * railW;
+                    if (fillRailW > 0.5) {
+                        drawRoundedRect(ctx, railStartX, railY, fillRailW, railH, 2.25);
+                        ctx.fillStyle = `${color}cc`;
+                        ctx.fill();
+                    }
+
+                    // Precision thumb indicator
+                    const thumbX = Math.round(railStartX + fillRailW);
+                    const thumbY = rowY + h * 0.5;
+                    const thumbH = 11;
+                    const thumbW = 4;
+
+                    ctx.save();
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 4;
+                    drawRoundedRect(ctx, thumbX - thumbW * 0.5, thumbY - thumbH * 0.5, thumbW, thumbH, 2);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fill();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
 
             this._zones = {
                 rowY,
                 h,
+                hasRail: !hasLabel && railW > 14,
+                rail: (!hasLabel && railW > 14) ? { x: railStartX, w: railW } : null,
                 dec: { x: ctrlX, w: btnW },
-                track: { x: x + tagW + 6, w: ctrlX + ctrlW - btnW - (x + tagW + 6) },
+                numBox: { x: trackX, w: trackW },
+                track: (!hasLabel && railW > 14) ? { x: railStartX, w: railW } : { x: trackX, w: trackW },
                 inc: { x: ctrlX + ctrlW - btnW, w: btnW },
             };
 
@@ -636,6 +947,16 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                     return true;
                 }
 
+                if (z.hasRail && z.rail && mx >= z.rail.x - 3 && mx <= z.rail.x + z.rail.w + 3) {
+                    this._dragRail = true;
+                    const ratio = Math.max(0, Math.min(1, (mx - z.rail.x) / z.rail.w));
+                    const rawVal = visMin + ratio * (visMax - visMin);
+                    const stepped = isInt ? Math.round(rawVal / step) * step : rawVal;
+                    const next = clampNum(stepped, min, max, isInt ? 0 : decimals);
+                    setWidgetValue(backingWidget, next, n);
+                    return true;
+                }
+
                 if (mx >= z.track.x && mx <= z.track.x + z.track.w) {
                     this._dragStartX = mx;
                     this._dragStartVal = Number(backingWidget.value) ?? defaultVal;
@@ -643,6 +964,15 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                     return true;
                 }
             } else if (event.type === "pointermove" || event.type === "mousemove") {
+                if (this._dragRail && z?.rail) {
+                    const ratio = Math.max(0, Math.min(1, (mx - z.rail.x) / z.rail.w));
+                    const rawVal = visMin + ratio * (visMax - visMin);
+                    const stepped = isInt ? Math.round(rawVal / step) * step : rawVal;
+                    const next = clampNum(stepped, min, max, isInt ? 0 : decimals);
+                    setWidgetValue(backingWidget, next, n);
+                    return true;
+                }
+
                 if (this._dragStartX !== null) {
                     const dx = mx - this._dragStartX;
                     if (Math.abs(dx) > 2) {
@@ -656,6 +986,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                     return true;
                 }
             } else if (event.type === "pointerup" || event.type === "mouseup") {
+                this._dragRail = false;
                 if (this._dragStartX !== null) {
                     const wasDrag = this._didDrag;
                     this._dragStartX = null;
@@ -664,7 +995,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
 
                     if (!wasDrag && app.canvas) {
                         app.canvas.prompt(
-                            `${label} (${min} to ${max})`,
+                            `${rangeTag || tag} (${min} to ${max})`,
                             String(backingWidget.value),
                             (val) => {
                                 const parsed = isInt ? parseInt(val, 10) : parseFloat(val);
