@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-hades-anima-suite"
 description = "Complete 18-node Anima ecosystem suite for ComfyUI: Native Diffusers-aware Model/Qwen3-CLIP/16ch-VAE Loaders, Smart Tiled VAE Decode, Corner Scribble Shield, Block-level Model/CLIP/LoRA Mergers, QR-SVD Exporter, Prompt Studio & Aesthetic Slop Guard, NAG CFG-1.0 Attention Guidance, 16ch Latent/VAE Guard, Universal Diffusers LoRA Remapper, Single/Dual/Triple-Pass Anima Rectified Flow KSamplers, and Centralized Suite Telemetry & Flight Auditor."
-version = "0.1.6"
+version = "0.1.7"
 authors = [
     { name = "Devildonia" }
 ]

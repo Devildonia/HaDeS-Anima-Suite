@@ -18,7 +18,7 @@ except ImportError:
     def _convert_lora_fn(sd):
         return sd
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 

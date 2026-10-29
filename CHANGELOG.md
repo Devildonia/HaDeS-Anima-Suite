@@ -5,6 +5,22 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.7] - 2026-10-30
+
+### Added
+- **Official Workflow Examples (`examples/`):**
+  - `HaDeS Anima Suite - Simple Pass Generation Example.json`: Complete single-pass reference pipeline featuring native Loaders, Prompt Studio with Slop Guard, NAG Attention Guidance, Rectified Flow KSampler, Smart VAE Decode, and Telemetry Flight Recorder.
+  - `HaDeS Anima Suite - Dual Pass Generation Example.json`: Two-stage HiRes generation pipeline with 16-channel Variance-Preserving Latent Bridge, 32px macroblock snapping, and hybrid model handoff.
+  - `HaDeS Anima Suite - Triple Pass Generation Example.json`: Progressive 3-stage staircase pipeline (`1.0x` -> `1.35x` -> `1.75x`) for ultra-high-resolution poster rendering with zero anatomical drift.
+  - `HaDeS - Anima Suite - Merge Workflow Example - Medium.json`: Advanced block-level model & LoRA merging workflow with QR-SVD rank adaptation, 24-rule Diffusers remapping, and `llm_adapter` golden rule protection.
+- **HaDeS UX vs Vanilla ComfyUI Theme Switch Documentation:**
+  - Added full user guide in `README.md` explaining how to toggle between the high-visibility **HaDeS Spectral Canvas UI** (cyberpunk badges, preset buttons, interactive HUDs, tooltips) and the **Native Classic ComfyUI Theme (Vanilla)** via the ComfyUI Settings menu (`HaDeS.ClassicUI`).
+
+### Documentation
+- Updated `README.md` project tree, feature documentation, and example workflows breakdown.
+
+---
+
 ## [0.1.6] - 2026-10-29
 
 ### Added

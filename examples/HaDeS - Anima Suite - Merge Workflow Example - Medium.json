@@ -1,0 +1,5408 @@
+{
+  "id": "ca068025-976f-4d0d-a27c-0b4127d2a824",
+  "revision": 0,
+  "last_node_id": 145,
+  "last_link_id": 203,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "ModelSave",
+      "pos": [
+        5353.835056495585,
+        3762.268753320004
+      ],
+      "size": [
+        296.5390625,
+        58
+      ],
+      "flags": {},
+      "order": 49,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 24
+        }
+      ],
+      "outputs": [],
+      "title": "Save Merge",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ModelSave",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "diffusion_models/Anima HaDeS v3.0"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "diffusion_models/Anima HaDeS v3.0"
+      },
+      "color": "#cfe04c",
+      "bgcolor": "#bbcc38"
+    },
+    {
+      "id": 15,
+      "type": "easy setNode",
+      "pos": [
+        5583.447864338723,
+        2309.0039979236053
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 82,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "link": 59
+        }
+      ],
+      "outputs": [],
+      "title": "➡️Donor A",
+      "properties": {
+        "previousName": "Donor A",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor A"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 16,
+      "type": "easy setNode",
+      "pos": [
+        5579.475622072949,
+        2618.179681821275
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 83,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "link": 57
+        }
+      ],
+      "outputs": [],
+      "title": "➡️Donor B",
+      "properties": {
+        "previousName": "Donor B",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor B"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor B"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 17,
+      "type": "easy getNode",
+      "pos": [
+        6945.083699763174,
+        2214.807465984107
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            121
+          ]
+        }
+      ],
+      "title": "⬅️Donor A",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor A"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 18,
+      "type": "easy getNode",
+      "pos": [
+        6945.891792132017,
+        2268.8344299075993
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            122
+          ]
+        }
+      ],
+      "title": "⬅️Donor B",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor B"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor B"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 19,
+      "type": "easy setNode",
+      "pos": [
+        5447.90103435459,
+        2921.769782641028
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 65,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 185
+        }
+      ],
+      "outputs": [],
+      "title": "➡️CLIP A",
+      "properties": {
+        "previousName": "CLIP A",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP A"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 20,
+      "type": "easy setNode",
+      "pos": [
+        5453.359357346828,
+        3195.7872559667017
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 66,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 186
+        }
+      ],
+      "outputs": [],
+      "title": "➡️VAE",
+      "properties": {
+        "previousName": "VAE",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "VAE"
+      ],
+      "widgets_values_named": {
+        "Constant": "VAE"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 21,
+      "type": "easy getNode",
+      "pos": [
+        6945.731464030702,
+        2693.4366659385864
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            141
+          ]
+        }
+      ],
+      "title": "⬅️CLIP A",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP A"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 22,
+      "type": "easy getNode",
+      "pos": [
+        5203.201568446722,
+        3790.3797374923556
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 3,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            24
+          ]
+        }
+      ],
+      "title": "⬅️A+B+LoRa",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A+B+LoRa"
+      ],
+      "widgets_values_named": {
+        "Constant": "A+B+LoRa"
+      },
+      "color": "#cfe04c",
+      "bgcolor": "#bbcc38"
+    },
+    {
+      "id": 23,
+      "type": "easy setNode",
+      "pos": [
+        7511.894515616349,
+        2712.0067238586653
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 90,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "link": 55
+        }
+      ],
+      "outputs": [],
+      "title": "➡️A+B+LoRa",
+      "properties": {
+        "previousName": "A+B+LoRa",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A+B+LoRa"
+      ],
+      "widgets_values_named": {
+        "Constant": "A+B+LoRa"
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 24,
+      "type": "easy getNode",
+      "pos": [
+        5751.774470915236,
+        1936.6022188717902
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            150
+          ]
+        }
+      ],
+      "title": "⬅️A+B+LoRa",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A+B+LoRa"
+      ],
+      "widgets_values_named": {
+        "Constant": "A+B+LoRa"
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 25,
+      "type": "easy getNode",
+      "pos": [
+        6354.650226280558,
+        1983.9896783433937
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            173
+          ]
+        }
+      ],
+      "title": "⬅️VAE",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "VAE"
+      ],
+      "widgets_values_named": {
+        "Constant": "VAE"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 26,
+      "type": "easy setNode",
+      "pos": [
+        8047.68610262155,
+        2830.0949708776257
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 68,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 190
+        }
+      ],
+      "outputs": [],
+      "title": "➡️LATENT",
+      "properties": {
+        "previousName": "LATENT",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "LATENT"
+      ],
+      "widgets_values_named": {
+        "Constant": "LATENT"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 27,
+      "type": "easy getNode",
+      "pos": [
+        5751.986159418248,
+        2093.0442074624902
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            153
+          ]
+        }
+      ],
+      "title": "⬅️LATENT",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "LATENT"
+      ],
+      "widgets_values_named": {
+        "Constant": "LATENT"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 28,
+      "type": "easy setNode",
+      "pos": [
+        8384.443483548483,
+        2229.969969437886
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 71,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 194
+        }
+      ],
+      "outputs": [],
+      "title": "➡️positive",
+      "properties": {
+        "previousName": "positive",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "positive"
+      ],
+      "widgets_values_named": {
+        "Constant": "positive"
+      },
+      "color": "#78dc78",
+      "bgcolor": "#64c864"
+    },
+    {
+      "id": 29,
+      "type": "easy setNode",
+      "pos": [
+        8383.940940567481,
+        2268.3873047596926
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 72,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 191
+        }
+      ],
+      "outputs": [],
+      "title": "➡️negative",
+      "properties": {
+        "previousName": "negative",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "negative"
+      ],
+      "widgets_values_named": {
+        "Constant": "negative"
+      },
+      "color": "#644141",
+      "bgcolor": "#502d2d"
+    },
+    {
+      "id": 30,
+      "type": "easy getNode",
+      "pos": [
+        5751.606774526469,
+        1989.0202593435606
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            151
+          ]
+        }
+      ],
+      "title": "⬅️positive",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "positive"
+      ],
+      "widgets_values_named": {
+        "Constant": "positive"
+      },
+      "color": "#78dc78",
+      "bgcolor": "#64c864"
+    },
+    {
+      "id": 31,
+      "type": "easy getNode",
+      "pos": [
+        5752.070043049417,
+        2041.2276757038765
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            152
+          ]
+        }
+      ],
+      "title": "⬅️negative",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "negative"
+      ],
+      "widgets_values_named": {
+        "Constant": "negative"
+      },
+      "color": "#644141",
+      "bgcolor": "#502d2d"
+    },
+    {
+      "id": 32,
+      "type": "easy setNode",
+      "pos": [
+        7511.266320286242,
+        2747.143981491929
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 85,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "link": 142
+        }
+      ],
+      "outputs": [],
+      "title": "➡️CLIP2PROMPT",
+      "properties": {
+        "previousName": "CLIP2PROMPT",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP2PROMPT"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP2PROMPT"
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 33,
+      "type": "easy getNode",
+      "pos": [
+        7732.688293481099,
+        2236.784781428799
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            195
+          ]
+        }
+      ],
+      "title": "⬅️CLIP2PROMPT",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP2PROMPT"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP2PROMPT"
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 34,
+      "type": "easy getNode",
+      "pos": [
+        5751.819905609065,
+        2436.642850486907
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            157
+          ]
+        }
+      ],
+      "title": "⬅️Donor A",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor A"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 35,
+      "type": "easy getNode",
+      "pos": [
+        5752.890718198739,
+        2488.981696945649
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 11,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            160
+          ]
+        }
+      ],
+      "title": "⬅️positive",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "positive"
+      ],
+      "widgets_values_named": {
+        "Constant": "positive"
+      },
+      "color": "#78dc78",
+      "bgcolor": "#64c864"
+    },
+    {
+      "id": 36,
+      "type": "easy getNode",
+      "pos": [
+        5753.228733166651,
+        2543.6649171495915
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 12,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            159
+          ]
+        }
+      ],
+      "title": "⬅️negative",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "negative"
+      ],
+      "widgets_values_named": {
+        "Constant": "negative"
+      },
+      "color": "#644141",
+      "bgcolor": "#502d2d"
+    },
+    {
+      "id": 37,
+      "type": "easy getNode",
+      "pos": [
+        5753.267199212224,
+        2596.8135789558805
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 13,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            158
+          ]
+        }
+      ],
+      "title": "⬅️LATENT",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "LATENT"
+      ],
+      "widgets_values_named": {
+        "Constant": "LATENT"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 39,
+      "type": "easy getNode",
+      "pos": [
+        6353.4313604211475,
+        2486.4810156907092
+      ],
+      "size": [
+        210,
+        34
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 14,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            175
+          ]
+        }
+      ],
+      "title": "⬅️VAE",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "VAE"
+      ],
+      "widgets_values_named": {
+        "Constant": "VAE"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 41,
+      "type": "easy getNode",
+      "pos": [
+        5761.843659959389,
+        2940.05216400752
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 15,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            166
+          ]
+        }
+      ],
+      "title": "⬅️Donor B",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor B"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor B"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 42,
+      "type": "easy getNode",
+      "pos": [
+        5763.462241798009,
+        2991.652548147737
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 16,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            165
+          ]
+        }
+      ],
+      "title": "⬅️positive",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "positive"
+      ],
+      "widgets_values_named": {
+        "Constant": "positive"
+      },
+      "color": "#78dc78",
+      "bgcolor": "#64c864"
+    },
+    {
+      "id": 43,
+      "type": "easy getNode",
+      "pos": [
+        5762.492505955219,
+        3045.193424099071
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 17,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            164
+          ]
+        }
+      ],
+      "title": "⬅️negative",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "negative"
+      ],
+      "widgets_values_named": {
+        "Constant": "negative"
+      },
+      "color": "#644141",
+      "bgcolor": "#502d2d"
+    },
+    {
+      "id": 44,
+      "type": "easy getNode",
+      "pos": [
+        5763.911405906352,
+        3098.2646958696228
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 18,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            163
+          ]
+        }
+      ],
+      "title": "⬅️LATENT",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "LATENT"
+      ],
+      "widgets_values_named": {
+        "Constant": "LATENT"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 46,
+      "type": "easy getNode",
+      "pos": [
+        6354.302605190743,
+        2985.790492336316
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 19,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            179
+          ]
+        }
+      ],
+      "title": "⬅️VAE",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "VAE"
+      ],
+      "widgets_values_named": {
+        "Constant": "VAE"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 48,
+      "type": "Seed Generator",
+      "pos": [
+        8078.338511360909,
+        2945.8192969126058
+      ],
+      "size": [
+        279.8276778858926,
+        86.91383894294631
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 20,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            48
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-image-saver",
+        "ver": "c6223965d45871d1ff2931b6ac9518a13947c920",
+        "Node name for S&R": "Seed Generator",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        1,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "seed": 1,
+        "control_after_generate": "fixed"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 49,
+      "type": "easy setNode",
+      "pos": [
+        8388.421294161844,
+        2973.303460357359
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 51,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "link": 48
+        }
+      ],
+      "outputs": [],
+      "title": "➡️SEED",
+      "properties": {
+        "previousName": "SEED",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "SEED"
+      ],
+      "widgets_values_named": {
+        "Constant": "SEED"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 50,
+      "type": "easy getNode",
+      "pos": [
+        5751.967256470085,
+        2675.7190928623463
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 21,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            161
+          ]
+        }
+      ],
+      "title": "⬅️SEED",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "SEED"
+      ],
+      "widgets_values_named": {
+        "Constant": "SEED"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 51,
+      "type": "easy getNode",
+      "pos": [
+        5763.849478684486,
+        3175.6382539897986
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 22,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            162
+          ]
+        }
+      ],
+      "title": "⬅️SEED",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "SEED"
+      ],
+      "widgets_values_named": {
+        "Constant": "SEED"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 52,
+      "type": "easy getNode",
+      "pos": [
+        5752.48173137283,
+        2177.3270957925993
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 23,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            154
+          ]
+        }
+      ],
+      "title": "⬅️SEED",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "SEED"
+      ],
+      "widgets_values_named": {
+        "Constant": "SEED"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 55,
+      "type": "PathchSageAttentionKJ",
+      "pos": [
+        7510.782462171318,
+        2675.794238436453
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 84,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 143
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            55
+          ]
+        }
+      ],
+      "title": "Sage",
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "d7641533d6634eb05f8570c980fce8fc8528dc7b",
+        "Node name for S&R": "PathchSageAttentionKJ",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "auto",
+        false
+      ],
+      "widgets_values_named": {
+        "sage_attention": "auto",
+        "allow_compile": false
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 56,
+      "type": "PathchSageAttentionKJ",
+      "pos": [
+        5463.5915793744525,
+        2310.058380577373
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 63,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 187
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            59
+          ]
+        }
+      ],
+      "title": "Sage",
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "d7641533d6634eb05f8570c980fce8fc8528dc7b",
+        "Node name for S&R": "PathchSageAttentionKJ",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "auto",
+        false
+      ],
+      "widgets_values_named": {
+        "sage_attention": "auto",
+        "allow_compile": false
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 57,
+      "type": "PathchSageAttentionKJ",
+      "pos": [
+        5464.111362770607,
+        2617.166924065108
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 64,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 188
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            57
+          ]
+        }
+      ],
+      "title": "Sage",
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "d7641533d6634eb05f8570c980fce8fc8528dc7b",
+        "Node name for S&R": "PathchSageAttentionKJ",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "auto",
+        false
+      ],
+      "widgets_values_named": {
+        "sage_attention": "auto",
+        "allow_compile": false
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 58,
+      "type": "easy setNode",
+      "pos": [
+        6711.805495722103,
+        1963.1696217602698
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 88,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 172
+        }
+      ],
+      "outputs": [],
+      "title": "➡️A+B+LoRa Preview",
+      "properties": {
+        "previousName": "A+B+LoRa Preview",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A+B+LoRa Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "A+B+LoRa Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 59,
+      "type": "easy setNode",
+      "pos": [
+        6724.173822114249,
+        2465.6929390752207
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 86,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 176
+        }
+      ],
+      "outputs": [],
+      "title": "➡️A Preview",
+      "properties": {
+        "previousName": "A Preview",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "A Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 60,
+      "type": "easy setNode",
+      "pos": [
+        6739.271469095039,
+        2964.0531588178596
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 87,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 177
+        }
+      ],
+      "outputs": [],
+      "title": "➡️B Preview",
+      "properties": {
+        "previousName": "B Preview",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "B Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "B Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 61,
+      "type": "PreviewImage",
+      "pos": [
+        8603.855168186523,
+        2145.2001606185754
+      ],
+      "size": [
+        1028.0686073522434,
+        1329.2920552726832
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 55,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 63
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Donor A Preview",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#3f467d",
+      "bgcolor": "#2b3269"
+    },
+    {
+      "id": 62,
+      "type": "PreviewImage",
+      "pos": [
+        9653.31248774283,
+        2145.8266973458494
+      ],
+      "size": [
+        1028.0686073522434,
+        1329.2920552726832
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 64
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "Donor B Preview",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#3f467d",
+      "bgcolor": "#2b3269"
+    },
+    {
+      "id": 63,
+      "type": "PreviewImage",
+      "pos": [
+        10704.048898190069,
+        2148.0540393240317
+      ],
+      "size": [
+        1028.0686073522434,
+        1329.2920552726832
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 57,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 65
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "A+B+LoRa Preview",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#682b2b",
+      "bgcolor": "#541717"
+    },
+    {
+      "id": 64,
+      "type": "easy getNode",
+      "pos": [
+        8606.470828608064,
+        2095.76576342845
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 24,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            63
+          ]
+        }
+      ],
+      "title": "⬅️A Preview",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "A Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 65,
+      "type": "easy getNode",
+      "pos": [
+        9656.44085519855,
+        2099.1429805223634
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 25,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            64
+          ]
+        }
+      ],
+      "title": "⬅️B Preview",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "B Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "B Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 66,
+      "type": "easy getNode",
+      "pos": [
+        10702.819999553141,
+        2099.0991129791623
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 26,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            65
+          ]
+        }
+      ],
+      "title": "⬅️A+B+LoRa Preview",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "A+B+LoRa Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "A+B+LoRa Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 69,
+      "type": "easy setNode",
+      "pos": [
+        5453.497753434596,
+        3407.6720543611787
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 67,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 189
+        }
+      ],
+      "outputs": [],
+      "title": "➡️CLIP B",
+      "properties": {
+        "previousName": "CLIP B",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP B"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP B"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 70,
+      "type": "easy getNode",
+      "pos": [
+        6952.414019412766,
+        3021.206183520663
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 27,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            126
+          ]
+        }
+      ],
+      "title": "⬅️CLIP A",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP A"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 71,
+      "type": "easy getNode",
+      "pos": [
+        6951.018143644841,
+        3058.33523736813
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 28,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            125
+          ]
+        }
+      ],
+      "title": "⬅️CLIP B",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP B"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP B"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 72,
+      "type": "easy setNode",
+      "pos": [
+        7500.01622657558,
+        3028.307920111845
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 76,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "link": 124
+        }
+      ],
+      "outputs": [],
+      "title": "➡️CLIP E",
+      "properties": {
+        "previousName": "CLIP E",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP E"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP E"
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 73,
+      "type": "Fast Groups Bypasser (rgthree)",
+      "pos": [
+        5229.43693017808,
+        2000.2361693787293
+      ],
+      "size": [
+        378.7311114313974,
+        94.80238275658735
+      ],
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "OPT_CONNECTION",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "matchColors": "black",
+        "matchTitle": "",
+        "showNav": true,
+        "showAllGraphs": true,
+        "sort": "position",
+        "customSortAlphabet": "",
+        "toggleRestriction": "default",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 81,
+      "type": "easy setNode",
+      "pos": [
+        7506.43602690607,
+        2250.5894083666694
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 70,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 120
+        }
+      ],
+      "outputs": [],
+      "title": "➡️Model Merge Info",
+      "properties": {
+        "previousName": "Model Merge Info",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Model Merge Info"
+      ],
+      "widgets_values_named": {
+        "Constant": "Model Merge Info"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 82,
+      "type": "easy setNode",
+      "pos": [
+        7499.690186923698,
+        3065.6974849774956
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 77,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 123
+        }
+      ],
+      "outputs": [],
+      "title": "➡️CLIP Merge Info",
+      "properties": {
+        "previousName": "CLIP Merge Info",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP Merge Info"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP Merge Info"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 83,
+      "type": "easy getNode",
+      "pos": [
+        7730.389148504773,
+        3203.864152974361
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 30,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            200
+          ]
+        }
+      ],
+      "title": "⬅️Model Merge Info",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Model Merge Info"
+      ],
+      "widgets_values_named": {
+        "Constant": "Model Merge Info"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 84,
+      "type": "easy getNode",
+      "pos": [
+        7730.434848843089,
+        3240.753278212246
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 31,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            199
+          ]
+        }
+      ],
+      "title": "⬅️CLIP Merge Info",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "CLIP Merge Info"
+      ],
+      "widgets_values_named": {
+        "Constant": "CLIP Merge Info"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 99,
+      "type": "easy getNode",
+      "pos": [
+        6946.068559704417,
+        3381.0154364322298
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 32,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            115
+          ]
+        }
+      ],
+      "title": "⬅️Donor A",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor A"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor A"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 100,
+      "type": "easy getNode",
+      "pos": [
+        6946.784539683388,
+        3424.8199016366925
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 33,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            116
+          ]
+        }
+      ],
+      "title": "⬅️Donor B",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Donor B"
+      ],
+      "widgets_values_named": {
+        "Constant": "Donor B"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 101,
+      "type": "easy setNode",
+      "pos": [
+        7515.026305656792,
+        3382.4649001480757
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 78,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "link": 111
+        }
+      ],
+      "outputs": [],
+      "title": "➡️Predictive A+B",
+      "properties": {
+        "previousName": "Predictive A+B",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Predictive A+B"
+      ],
+      "widgets_values_named": {
+        "Constant": "Predictive A+B"
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 102,
+      "type": "easy getNode",
+      "pos": [
+        11759.830414745427,
+        2102.0548950219227
+      ],
+      "size": [
+        212.93125,
+        50
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 34,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            101
+          ]
+        }
+      ],
+      "title": "⬅️Predictive A+B Preview",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Predictive A+B Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "Predictive A+B Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 103,
+      "type": "PreviewImage",
+      "pos": [
+        11761.059313382355,
+        2151.009821366792
+      ],
+      "size": [
+        1028.0686073522434,
+        1329.2920552726832
+      ],
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 101
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "Predictive A+B Preview",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewImage",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {},
+      "color": "#682b2b",
+      "bgcolor": "#541717"
+    },
+    {
+      "id": 104,
+      "type": "easy getNode",
+      "pos": [
+        5733.78951099262,
+        3467.9585739555496
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 35,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            167
+          ]
+        }
+      ],
+      "title": "⬅️Predictive A+B",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Predictive A+B"
+      ],
+      "widgets_values_named": {
+        "Constant": "Predictive A+B"
+      },
+      "color": "#8c5096",
+      "bgcolor": "#783c82"
+    },
+    {
+      "id": 105,
+      "type": "easy getNode",
+      "pos": [
+        5763.167094095146,
+        3522.587596300648
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 36,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            168
+          ]
+        }
+      ],
+      "title": "⬅️positive",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "positive"
+      ],
+      "widgets_values_named": {
+        "Constant": "positive"
+      },
+      "color": "#78dc78",
+      "bgcolor": "#64c864"
+    },
+    {
+      "id": 107,
+      "type": "easy getNode",
+      "pos": [
+        5763.061397820457,
+        3575.0116906740354
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 37,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            169
+          ]
+        }
+      ],
+      "title": "⬅️negative",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "negative"
+      ],
+      "widgets_values_named": {
+        "Constant": "negative"
+      },
+      "color": "#644141",
+      "bgcolor": "#502d2d"
+    },
+    {
+      "id": 108,
+      "type": "easy getNode",
+      "pos": [
+        5762.822760994436,
+        3628.086213624793
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 38,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            170
+          ]
+        }
+      ],
+      "title": "⬅️LATENT",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "LATENT"
+      ],
+      "widgets_values_named": {
+        "Constant": "LATENT"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 109,
+      "type": "easy getNode",
+      "pos": [
+        5762.894897119345,
+        3690.3403849125502
+      ],
+      "size": [
+        210,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 39,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            171
+          ]
+        }
+      ],
+      "title": "⬅️SEED",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "SEED"
+      ],
+      "widgets_values_named": {
+        "Constant": "SEED"
+      },
+      "color": "#7878e6",
+      "bgcolor": "#6464d2"
+    },
+    {
+      "id": 110,
+      "type": "easy getNode",
+      "pos": [
+        6354.674458530673,
+        3488.157459725273
+      ],
+      "size": [
+        210,
+        34
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 40,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            182
+          ]
+        }
+      ],
+      "title": "⬅️VAE",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "VAE"
+      ],
+      "widgets_values_named": {
+        "Constant": "VAE"
+      },
+      "color": "#c84646",
+      "bgcolor": "#b43232"
+    },
+    {
+      "id": 112,
+      "type": "easy setNode",
+      "pos": [
+        6715.753694212423,
+        3466.5873452782325
+      ],
+      "size": [
+        212.93125,
+        50
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 89,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 183
+        }
+      ],
+      "outputs": [],
+      "title": "➡️Predictive A+B Preview",
+      "properties": {
+        "previousName": "Predictive A+B Preview",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Predictive A+B Preview"
+      ],
+      "widgets_values_named": {
+        "Constant": "Predictive A+B Preview"
+      },
+      "color": "#5a96b4",
+      "bgcolor": "#4682a0"
+    },
+    {
+      "id": 114,
+      "type": "HaDeSAnimaPredictiveModelMerger",
+      "pos": [
+        7085.620043012946,
+        3356.3696866576784
+      ],
+      "size": [
+        401.2938757808637,
+        276
+      ],
+      "flags": {
+        "collapsed": false,
+        "pinned": true
+      },
+      "order": 59,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model1",
+          "type": "MODEL",
+          "link": 115
+        },
+        {
+          "name": "model2",
+          "type": "MODEL",
+          "link": 116
+        },
+        {
+          "name": "base_model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            111
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            127
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaPredictiveModelMerger",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Complementary Richness (Fill gaps of A with B)",
+        0.35,
+        0.8,
+        true
+      ],
+      "widgets_values_named": {
+        "preset": "Complementary Richness (Fill gaps of A with B)",
+        "target_influence": 0.35,
+        "aggressiveness": 0.8,
+        "protect_llm_adapter": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 115,
+      "type": "HaDeSAnimaModelBlockMerger",
+      "pos": [
+        7083.526301762278,
+        2201.2861903918447
+      ],
+      "size": [
+        402.5867208685453,
+        416
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model1",
+          "type": "MODEL",
+          "link": 121
+        },
+        {
+          "name": "model2",
+          "type": "MODEL",
+          "link": 122
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            140
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            120
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaModelBlockMerger",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        ""
+      ],
+      "widgets_values_named": {
+        "base_ratio": 0.5,
+        "BLOCKS_Layout_Geometry": 0.5,
+        "BLOCKS_Global_Composition": 0.5,
+        "BLOCKS_Subject_Identity": 0.5,
+        "BLOCKS_Material_Substance": 0.5,
+        "BLOCKS_Art_Style_Medium": 0.5,
+        "BLOCKS_Lighting_Sharpness": 0.5,
+        "ADAPTER_Text_Alignment": 0.5,
+        "recipe_override": ""
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 116,
+      "type": "HaDeSAnimaCLIPBlockMerger",
+      "pos": [
+        7085.566820620522,
+        3008.980939615901
+      ],
+      "size": [
+        399.309576195756,
+        320
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 58,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip1",
+          "type": "CLIP",
+          "link": 126
+        },
+        {
+          "name": "clip2",
+          "type": "CLIP",
+          "link": 125
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            124
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            123
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaCLIPBlockMerger",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "widgets_values_named": {
+        "base_ratio": 0.5,
+        "vocab_embeddings": 0.5,
+        "syntax_rigidity": 0.5,
+        "semantic_focus": 0.5,
+        "style_abstraction": 0.5,
+        "final_projections": 0.5
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 117,
+      "type": "easy setNode",
+      "pos": [
+        7514.502764900589,
+        3419.337792357366
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true,
+        "pinned": true
+      },
+      "order": 79,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "link": 127
+        }
+      ],
+      "outputs": [],
+      "title": "➡️Predictive Model Info",
+      "properties": {
+        "previousName": "Predictive Model Info",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Predictive Model Info"
+      ],
+      "widgets_values_named": {
+        "Constant": "Predictive Model Info"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 118,
+      "type": "easy getNode",
+      "pos": [
+        7731.027927964098,
+        3278.3456428315903
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 41,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": [
+            202
+          ]
+        }
+      ],
+      "title": "⬅️Predictive Model Info",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [
+        "Predictive Model Info"
+      ],
+      "widgets_values_named": {
+        "Constant": "Predictive Model Info"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 122,
+      "type": "HaDeSAnimaPredictiveMultiLoraLoader",
+      "pos": [
+        7084.325168164445,
+        2644.934761900729
+      ],
+      "size": [
+        403.64477928421184,
+        346
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 69,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 140
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 141
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            143
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            142
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
+        "Node name for S&R": "HaDeSAnimaPredictiveMultiLoraLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        true,
+        "Character + Style Fusion (A identity, B style)",
+        1,
+        "None",
+        false,
+        1,
+        "None",
+        false,
+        1,
+        "None",
+        false,
+        1,
+        "None",
+        false,
+        1,
+        true
+      ],
+      "widgets_values_named": {
+        "enable_all": true,
+        "preset": "Character + Style Fusion (A identity, B style)",
+        "aggressiveness": 1,
+        "lora_1": "None",
+        "on_1": false,
+        "strength_1": 1,
+        "lora_2": "None",
+        "on_2": false,
+        "strength_2": 1,
+        "lora_3": "None",
+        "on_3": false,
+        "strength_3": 1,
+        "lora_4": "None",
+        "on_4": false,
+        "strength_4": 1,
+        "protect_llm_adapter": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 127,
+      "type": "HaDeSAnimaKSampler",
+      "pos": [
+        5905.504615511662,
+        1936.5185437768191
+      ],
+      "size": [
+        440,
+        470
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 54,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 150
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 151
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 152
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 153
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 154
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            174
+          ]
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaKSampler",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima Base / Raehoshi",
+        0,
+        "randomize",
+        32,
+        4.5,
+        "er_sde",
+        "normal",
+        1,
+        3
+      ],
+      "widgets_values_named": {
+        "variant_profile": "Anima Base / Raehoshi",
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "steps": 32,
+        "cfg": 4.5,
+        "sampler_name": "er_sde",
+        "scheduler": "normal",
+        "denoise": 1,
+        "flow_shift": 3
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 128,
+      "type": "HaDeSAnimaKSampler",
+      "pos": [
+        5905.573187470638,
+        2436.420322201366
+      ],
+      "size": [
+        440,
+        470
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 157
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 160
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 159
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 158
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 161
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            180
+          ]
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaKSampler",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima Base / Raehoshi",
+        0,
+        "randomize",
+        32,
+        4.5,
+        "er_sde",
+        "normal",
+        1,
+        3
+      ],
+      "widgets_values_named": {
+        "variant_profile": "Anima Base / Raehoshi",
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "steps": 32,
+        "cfg": 4.5,
+        "sampler_name": "er_sde",
+        "scheduler": "normal",
+        "denoise": 1,
+        "flow_shift": 3
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 129,
+      "type": "HaDeSAnimaKSampler",
+      "pos": [
+        5905.954068895723,
+        2935.904265995667
+      ],
+      "size": [
+        440,
+        470
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 53,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 166
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 165
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 164
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 163
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 162
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            181
+          ]
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaKSampler",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima Base / Raehoshi",
+        0,
+        "randomize",
+        32,
+        4.5,
+        "er_sde",
+        "normal",
+        1,
+        3
+      ],
+      "widgets_values_named": {
+        "variant_profile": "Anima Base / Raehoshi",
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "steps": 32,
+        "cfg": 4.5,
+        "sampler_name": "er_sde",
+        "scheduler": "normal",
+        "denoise": 1,
+        "flow_shift": 3
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 130,
+      "type": "HaDeSAnimaKSampler",
+      "pos": [
+        5906.985696157568,
+        3434.7247547122533
+      ],
+      "size": [
+        440,
+        470
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 61,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 167
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 168
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 169
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 170
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 171
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            184
+          ]
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaKSampler",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima Base / Raehoshi",
+        0,
+        "randomize",
+        32,
+        4.5,
+        "er_sde",
+        "normal",
+        1,
+        3
+      ],
+      "widgets_values_named": {
+        "variant_profile": "Anima Base / Raehoshi",
+        "seed": 0,
+        "control_after_generate": "randomize",
+        "steps": 32,
+        "cfg": 4.5,
+        "sampler_name": "er_sde",
+        "scheduler": "normal",
+        "denoise": 1,
+        "flow_shift": 3
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 131,
+      "type": "HaDeSAnimaVAEDecode",
+      "pos": [
+        6475.340550972379,
+        1934.290780765838
+      ],
+      "size": [
+        210,
+        246
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 75,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 174
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 173
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            172
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Auto Smart-Tile (VRAM & HiRes Aware)",
+        512,
+        64,
+        1.35
+      ],
+      "widgets_values_named": {
+        "decode_mode": "Auto Smart-Tile (VRAM & HiRes Aware)",
+        "tile_size_px": 512,
+        "tile_overlap_px": 64,
+        "auto_tile_mp_threshold": 1.35
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 132,
+      "type": "HaDeSAnimaVAEDecode",
+      "pos": [
+        6475.124261156144,
+        2435.9736309808245
+      ],
+      "size": [
+        210,
+        246
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 180
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 175
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            176
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Auto Smart-Tile (VRAM & HiRes Aware)",
+        512,
+        64,
+        1.35
+      ],
+      "widgets_values_named": {
+        "decode_mode": "Auto Smart-Tile (VRAM & HiRes Aware)",
+        "tile_size_px": 512,
+        "tile_overlap_px": 64,
+        "auto_tile_mp_threshold": 1.35
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 133,
+      "type": "HaDeSAnimaVAEDecode",
+      "pos": [
+        6474.198460443682,
+        2935.2069348212367
+      ],
+      "size": [
+        210,
+        246
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 74,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 181
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 179
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            177
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Auto Smart-Tile (VRAM & HiRes Aware)",
+        512,
+        64,
+        1.35
+      ],
+      "widgets_values_named": {
+        "decode_mode": "Auto Smart-Tile (VRAM & HiRes Aware)",
+        "tile_size_px": 512,
+        "tile_overlap_px": 64,
+        "auto_tile_mp_threshold": 1.35
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 134,
+      "type": "HaDeSAnimaVAEDecode",
+      "pos": [
+        6473.20581282067,
+        3437.1233274701517
+      ],
+      "size": [
+        210,
+        246
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 80,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 184
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 182
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            183
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Auto Smart-Tile (VRAM & HiRes Aware)",
+        512,
+        64,
+        1.35
+      ],
+      "widgets_values_named": {
+        "decode_mode": "Auto Smart-Tile (VRAM & HiRes Aware)",
+        "tile_size_px": 512,
+        "tile_overlap_px": 64,
+        "auto_tile_mp_threshold": 1.35
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 135,
+      "type": "HaDeSAnimaModelLoader",
+      "pos": [
+        5143.502076512652,
+        2281.1907569829755
+      ],
+      "size": [
+        284.34470061769605,
+        278
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 42,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            187
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaModelLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima HaDeS v2.0.safetensors",
+        "default",
+        3,
+        true,
+        "None"
+      ],
+      "widgets_values_named": {
+        "unet_name": "Anima HaDeS v2.0.safetensors",
+        "weight_dtype": "default",
+        "flow_shift": 3,
+        "auto_remap_diffusers": true,
+        "external_llm_adapter": "None"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 138,
+      "type": "HaDeSAnimaModelLoader",
+      "pos": [
+        5144.0355165147885,
+        2588.5768540181784
+      ],
+      "size": [
+        284.34470061769605,
+        278
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 43,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            188
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaModelLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "anima_3D_from_hades_v1.0.safetensors",
+        "default",
+        3,
+        true,
+        "None"
+      ],
+      "widgets_values_named": {
+        "unet_name": "anima_3D_from_hades_v1.0.safetensors",
+        "weight_dtype": "default",
+        "flow_shift": 3,
+        "auto_remap_diffusers": true,
+        "external_llm_adapter": "None"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 139,
+      "type": "HaDeSAnimaCLIPLoader",
+      "pos": [
+        5144.460323192128,
+        2894.2693279579494
+      ],
+      "size": [
+        285.886767696471,
+        246
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 44,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            185
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaCLIPLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "qwen_3_06b_base.safetensors",
+        "default (GPU Dynamic)",
+        "auto",
+        true
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen_3_06b_base.safetensors",
+        "device_mode": "default (GPU Dynamic)",
+        "precision": "auto",
+        "strict_qwen3_guard": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 140,
+      "type": "HaDeSAnimaVAELoader",
+      "pos": [
+        5144.735336111356,
+        3167.283328652947
+      ],
+      "size": [
+        286.5313966258864,
+        182
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 45,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "vae",
+          "type": "VAE",
+          "links": [
+            186
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaVAELoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Wan2_1_VAE_bf16.safetensors",
+        "bfloat16 (Recommended Wan21)"
+      ],
+      "widgets_values_named": {
+        "vae_name": "Wan2_1_VAE_bf16.safetensors",
+        "vae_precision": "bfloat16 (Recommended Wan21)"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 141,
+      "type": "HaDeSAnimaCLIPLoader",
+      "pos": [
+        5145.368952670925,
+        3377.7193956626616
+      ],
+      "size": [
+        285.886767696471,
+        246
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 46,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "links": [
+            189
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaCLIPLoader",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "qwen_3_06b_abliterated.safetensors",
+        "default (GPU Dynamic)",
+        "auto",
+        true
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen_3_06b_abliterated.safetensors",
+        "device_mode": "default (GPU Dynamic)",
+        "precision": "auto",
+        "strict_qwen3_guard": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 142,
+      "type": "HaDeSAnimaPromptStudio",
+      "pos": [
+        7916.12638605419,
+        2207.6970784932437
+      ],
+      "size": [
+        440,
+        554
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "shape": 7,
+          "type": "CLIP",
+          "link": 195
+        },
+        {
+          "name": "artist",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "character",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            194
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            191
+          ]
+        },
+        {
+          "name": "positive_string",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "negative_string",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaPromptStudio",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Anima Base 2B (Keep Quality Tags)",
+        "Standard Anime / Illustration",
+        true,
+        1,
+        "souryuu asuka langley",
+        "ekubo (ciaobero)",
+        "Canonical (1 Trigger + Title)",
+        "ye-pop",
+        "",
+        "masterpiece, best quality, absurdres, score_7, low angle dramatic shot, tilted dutch angle, 1girl, seated inside the dark cramped cockpit of eva unit 02, intense fiery glare looking down at the viewer, tangled red hair floating weightlessly in LCL fluid, red plugsuit with matte mechanical seams and glowing green interface nodes, holographic tactical displays and hexagonal warning glyphs casting hard cyan and crimson shadows across her face, heavy ink lineart, high contrast shadows",
+        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
+      ],
+      "widgets_values_named": {
+        "model_variant": "Anima Base 2B (Keep Quality Tags)",
+        "style_mode": "Standard Anime / Illustration",
+        "booru_sanitizer": true,
+        "t5_weight_multiplier": 1,
+        "character_tag": "souryuu asuka langley",
+        "artist_tag": "ekubo (ciaobero)",
+        "header_mode": "Canonical (1 Trigger + Title)",
+        "header_trigger": "ye-pop",
+        "artwork_title": "",
+        "positive_prompt": "masterpiece, best quality, absurdres, score_7, low angle dramatic shot, tilted dutch angle, 1girl, seated inside the dark cramped cockpit of eva unit 02, intense fiery glare looking down at the viewer, tangled red hair floating weightlessly in LCL fluid, red plugsuit with matte mechanical seams and glowing green interface nodes, holographic tactical displays and hexagonal warning glyphs casting hard cyan and crimson shadows across her face, heavy ink lineart, high contrast shadows",
+        "negative_prompt": "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 143,
+      "type": "HaDeSAnimaLatentPipelineGuard",
+      "pos": [
+        7731.999732598687,
+        2800.7106813866853
+      ],
+      "size": [
+        293.9464690872019,
+        330
+      ],
+      "flags": {
+        "pinned": true
+      },
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            190
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaLatentPipelineGuard",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      },
+      "widgets_values": [
+        "Custom (Auto-Snap to 32px Grid)",
+        1152,
+        1536,
+        1,
+        true
+      ],
+      "widgets_values_named": {
+        "resolution_preset": "Custom (Auto-Snap to 32px Grid)",
+        "custom_width": 1152,
+        "custom_height": 1536,
+        "batch_size": 1,
+        "prevent_29b_white_bg_bias": true
+      },
+      "color": "#1b2028",
+      "bgcolor": "#12151a"
+    },
+    {
+      "id": 144,
+      "type": "HaDeSAnimaSuiteTelemetry",
+      "pos": [
+        7953.569390060411,
+        3230.3616225000046
+      ],
+      "size": [
+        363.6460378717129,
+        354
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 62,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "info_1",
+          "shape": 7,
+          "type": "STRING",
+          "link": 200
+        },
+        {
+          "name": "info_2",
+          "shape": 7,
+          "type": "STRING",
+          "link": 199
+        },
+        {
+          "name": "info_3",
+          "shape": 7,
+          "type": "STRING",
+          "link": 202
+        },
+        {
+          "name": "info_4",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "info_5",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "info_6",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "info_7",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "info_8",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": [
+            203
+          ]
+        },
+        {
+          "name": "json_telemetry",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "diagnostics",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaSuiteTelemetry"
+      },
+      "widgets_values": [
+        "Full Audit Report (Markdown)",
+        "HaDeS Anima Suite Telemetry",
+        ""
+      ],
+      "widgets_values_named": {
+        "report_format": "Full Audit Report (Markdown)",
+        "report_title": "HaDeS Anima Suite Telemetry",
+        "user_notes": ""
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    },
+    {
+      "id": 145,
+      "type": "ShowText|pysssss",
+      "pos": [
+        8165.692789757153,
+        3212.949077897651
+      ],
+      "size": [
+        403.96655478636967,
+        261.35479535148306
+      ],
+      "flags": {},
+      "order": 81,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 203
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "609f3afaa74b2f88ef9ce8d939626065e3247469",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
+      ],
+      "widgets_values_named": {
+        "text_undefined": "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
+      },
+      "color": "#ebdcdc",
+      "bgcolor": "#d7c8c8"
+    }
+  ],
+  "links": [
+    [
+      24,
+      22,
+      0,
+      2,
+      0,
+      "MODEL"
+    ],
+    [
+      48,
+      48,
+      0,
+      49,
+      0,
+      "INT"
+    ],
+    [
+      55,
+      55,
+      0,
+      23,
+      0,
+      "MODEL"
+    ],
+    [
+      57,
+      57,
+      0,
+      16,
+      0,
+      "MODEL"
+    ],
+    [
+      59,
+      56,
+      0,
+      15,
+      0,
+      "MODEL"
+    ],
+    [
+      63,
+      64,
+      0,
+      61,
+      0,
+      "IMAGE"
+    ],
+    [
+      64,
+      65,
+      0,
+      62,
+      0,
+      "IMAGE"
+    ],
+    [
+      65,
+      66,
+      0,
+      63,
+      0,
+      "IMAGE"
+    ],
+    [
+      101,
+      102,
+      0,
+      103,
+      0,
+      "IMAGE"
+    ],
+    [
+      111,
+      114,
+      0,
+      101,
+      0,
+      "MODEL"
+    ],
+    [
+      115,
+      99,
+      0,
+      114,
+      0,
+      "MODEL"
+    ],
+    [
+      116,
+      100,
+      0,
+      114,
+      1,
+      "MODEL"
+    ],
+    [
+      120,
+      115,
+      1,
+      81,
+      0,
+      "STRING"
+    ],
+    [
+      121,
+      17,
+      0,
+      115,
+      0,
+      "MODEL"
+    ],
+    [
+      122,
+      18,
+      0,
+      115,
+      1,
+      "MODEL"
+    ],
+    [
+      123,
+      116,
+      1,
+      82,
+      0,
+      "STRING"
+    ],
+    [
+      124,
+      116,
+      0,
+      72,
+      0,
+      "CLIP"
+    ],
+    [
+      125,
+      71,
+      0,
+      116,
+      1,
+      "CLIP"
+    ],
+    [
+      126,
+      70,
+      0,
+      116,
+      0,
+      "CLIP"
+    ],
+    [
+      127,
+      114,
+      1,
+      117,
+      0,
+      "STRING"
+    ],
+    [
+      140,
+      115,
+      0,
+      122,
+      0,
+      "MODEL"
+    ],
+    [
+      141,
+      21,
+      0,
+      122,
+      1,
+      "CLIP"
+    ],
+    [
+      142,
+      122,
+      1,
+      32,
+      0,
+      "CLIP"
+    ],
+    [
+      143,
+      122,
+      0,
+      55,
+      0,
+      "MODEL"
+    ],
+    [
+      150,
+      24,
+      0,
+      127,
+      0,
+      "MODEL"
+    ],
+    [
+      151,
+      30,
+      0,
+      127,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      152,
+      31,
+      0,
+      127,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      153,
+      27,
+      0,
+      127,
+      3,
+      "LATENT"
+    ],
+    [
+      154,
+      52,
+      0,
+      127,
+      5,
+      "INT"
+    ],
+    [
+      157,
+      34,
+      0,
+      128,
+      0,
+      "MODEL"
+    ],
+    [
+      158,
+      37,
+      0,
+      128,
+      3,
+      "LATENT"
+    ],
+    [
+      159,
+      36,
+      0,
+      128,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      160,
+      35,
+      0,
+      128,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      161,
+      50,
+      0,
+      128,
+      5,
+      "INT"
+    ],
+    [
+      162,
+      51,
+      0,
+      129,
+      5,
+      "INT"
+    ],
+    [
+      163,
+      44,
+      0,
+      129,
+      3,
+      "LATENT"
+    ],
+    [
+      164,
+      43,
+      0,
+      129,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      165,
+      42,
+      0,
+      129,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      166,
+      41,
+      0,
+      129,
+      0,
+      "MODEL"
+    ],
+    [
+      167,
+      104,
+      0,
+      130,
+      0,
+      "MODEL"
+    ],
+    [
+      168,
+      105,
+      0,
+      130,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      169,
+      107,
+      0,
+      130,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      170,
+      108,
+      0,
+      130,
+      3,
+      "LATENT"
+    ],
+    [
+      171,
+      109,
+      0,
+      130,
+      5,
+      "INT"
+    ],
+    [
+      172,
+      131,
+      0,
+      58,
+      0,
+      "IMAGE"
+    ],
+    [
+      173,
+      25,
+      0,
+      131,
+      1,
+      "VAE"
+    ],
+    [
+      174,
+      127,
+      0,
+      131,
+      0,
+      "LATENT"
+    ],
+    [
+      175,
+      39,
+      0,
+      132,
+      1,
+      "VAE"
+    ],
+    [
+      176,
+      132,
+      0,
+      59,
+      0,
+      "IMAGE"
+    ],
+    [
+      177,
+      133,
+      0,
+      60,
+      0,
+      "IMAGE"
+    ],
+    [
+      179,
+      46,
+      0,
+      133,
+      1,
+      "VAE"
+    ],
+    [
+      180,
+      128,
+      0,
+      132,
+      0,
+      "LATENT"
+    ],
+    [
+      181,
+      129,
+      0,
+      133,
+      0,
+      "LATENT"
+    ],
+    [
+      182,
+      110,
+      0,
+      134,
+      1,
+      "VAE"
+    ],
+    [
+      183,
+      134,
+      0,
+      112,
+      0,
+      "IMAGE"
+    ],
+    [
+      184,
+      130,
+      0,
+      134,
+      0,
+      "LATENT"
+    ],
+    [
+      185,
+      139,
+      0,
+      19,
+      0,
+      "CLIP"
+    ],
+    [
+      186,
+      140,
+      0,
+      20,
+      0,
+      "VAE"
+    ],
+    [
+      187,
+      135,
+      0,
+      56,
+      0,
+      "MODEL"
+    ],
+    [
+      188,
+      138,
+      0,
+      57,
+      0,
+      "MODEL"
+    ],
+    [
+      189,
+      141,
+      0,
+      69,
+      0,
+      "CLIP"
+    ],
+    [
+      190,
+      143,
+      0,
+      26,
+      0,
+      "LATENT"
+    ],
+    [
+      191,
+      142,
+      1,
+      29,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      194,
+      142,
+      0,
+      28,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      195,
+      33,
+      0,
+      142,
+      0,
+      "CLIP"
+    ],
+    [
+      199,
+      84,
+      0,
+      144,
+      1,
+      "STRING"
+    ],
+    [
+      200,
+      83,
+      0,
+      144,
+      0,
+      "STRING"
+    ],
+    [
+      202,
+      118,
+      0,
+      144,
+      2,
+      "STRING"
+    ],
+    [
+      203,
+      144,
+      0,
+      145,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "LoaDeRS",
+      "bounding": [
+        5133.502076512652,
+        2211.1907569829755,
+        582.734850326071,
+        1414.5286386796859
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "Merge Module",
+      "bounding": [
+        6938.671355128647,
+        2133.8476823406622,
+        777.5598251231486,
+        1547.4083892872259
+      ],
+      "color": "#3f789e",
+      "flags": {
+        "pinned": true
+      }
+    },
+    {
+      "id": 3,
+      "title": "Save Module",
+      "bounding": [
+        5193.201568446722,
+        3692.268753320004,
+        467.1725505488639,
+        138
+      ],
+      "color": "#444",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "Control Center",
+      "bounding": [
+        7722.688293481099,
+        2137.6970784932437,
+        865.288100597797,
+        993.3522749262565
+      ],
+      "color": "#3f789e",
+      "flags": {
+        "pinned": true
+      }
+    },
+    {
+      "id": 5,
+      "title": "Sampling",
+      "bounding": [
+        5723.78951099262,
+        1864.290780765838,
+        1210.276683219803,
+        2042.4339739464153
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 6,
+      "title": "Previews",
+      "bounding": [
+        8593.855168186523,
+        2025.7657634284526,
+        3148.262337355789,
+        1461.5803311682648
+      ],
+      "color": "#3f789e",
+      "flags": {
+        "pinned": true
+      }
+    },
+    {
+      "id": 7,
+      "title": "Merge Telemetry",
+      "bounding": [
+        7723.318133862856,
+        3135.2877654251547,
+        865.6826398237927,
+        353.3501064311358
+      ],
+      "color": "#444",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "ds": {
+      "scale": 0.2357947691000316,
+      "offset": [
+        -2913.836243252661,
+        -452.8081327262461
+      ]
+    },
+    "links_added_by_ue": [],
+    "frontendVersion": "1.53.10",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4,
+  "seed_widgets": {
+    "48": 0,
+    "127": 3,
+    "128": 3,
+    "129": 3,
+    "130": 3
+  }
+}

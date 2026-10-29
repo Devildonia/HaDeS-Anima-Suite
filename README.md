@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.1.6 — Complete 18-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.7 — Complete 18-Node Anima Ecosystem for ComfyUI
 
 **HaDeS Anima Suite** is a specialized **18-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
@@ -6,7 +6,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 
 ---
 
-## Key Architectural Innovations in v0.1.6
+## Key Architectural Innovations in v0.1.7
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -29,7 +29,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 ## Overview of the 18 Nodes
 
 ```
-HaDeS Anima Suite v0.1.6
+HaDeS Anima Suite v0.1.7
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader
@@ -205,6 +205,51 @@ HaDeS Anima Suite v0.1.6
 
 ---
 
+## HaDeS Spectral Canvas UX vs. Vanilla ComfyUI Theme
+
+HaDeS Anima Suite features a custom front-end architecture (`web/hades_widgets.js`, `web/hades_suite.js`) engineered for high clarity, rapid prototyping, and real-time diagnostic visibility:
+
+- **HaDeS Spectral UX (Default):**
+  - **Dynamic Visual Badges:** Real-time feedback badges (e.g., `16CH WAN2.1 ONLY`, `1024d LOCKED`, `24-RULE REMAP`, `DIT: 3.00`).
+  - **Interactive Presets:** One-click recipe buttons (`Character + Style Fusion`, `HiRes Standard 1.5x`, `TDM Lightning`, `Progressive Staircase`).
+  - **Telemetry HUD Monitors:** Visual spectral bars, real-time staircase flow monitors, and Corner Shield perimeter indicators directly embedded into node canvases.
+  - **Contextual Hover Tooltips:** Granular, technical explanations when hovering over controls, buttons, and switches across all 18 nodes.
+
+- **Vanilla ComfyUI Mode (Classic Theme Switch):**
+  - Designed for minimalists or purists who prefer standard native ComfyUI controls and input widgets without custom canvas overlays.
+  - **How to Toggle:**
+    1. Open the **ComfyUI Settings** dialog (click the `⚙` **Gear Icon** in the top navigation panel).
+    2. Scroll to the **HaDeS Anima Suite** section and locate:
+       `HaDeS Suite: Force Classic ComfyUI Theme (Vanilla)`
+    3. Toggle the switch:
+       - **OFF (Default):** Full HaDeS Spectral Cyberpunk UX with interactive widgets, HUD monitors, and preset chips.
+       - **ON (Vanilla):** Hides custom canvas widgets and restores standard ComfyUI text/number inputs across all 18 nodes.
+    4. The setting updates immediately and persists automatically across sessions in browser storage (`HaDeS.ClassicUI`).
+
+---
+
+## Official Workflow Examples (`examples/`)
+
+The repository includes four production-ready, pre-configured ComfyUI workflows in the [`examples/`](file:///examples) directory:
+
+1. **`HaDeS Anima Suite - Simple Pass Generation Example.json`**
+   - **Architecture:** Complete single-pass reference pipeline.
+   - **Highlights:** Native Diffusers-aware `Model Loader` (Flow Shift 3.0), `Text Encoder Loader` (Qwen3 1024d safe), `VAE Loader` (16ch Wan2.1 verified), `Prompt Studio` (Aesthetic Slop Guard + Trigger extraction), `Attention Guidance (NAG)` (enabling CFG=1 negative steering on Lightning/Turbo), `Anima KSampler`, proactive `Smart Tiled VAE Decode`, and `Anima Suite Telemetry`.
+
+2. **`HaDeS Anima Suite - Dual Pass Generation Example.json`**
+   - **Architecture:** Two-stage HiRes pipeline (`1.0 MP Composition` $\to$ `1.5x Refiner`).
+   - **Highlights:** Utilizes `Anima Dual-Pass KSampler` featuring the **16-Channel Variance-Preserving Latent Bridge** snapped strictly to the **32px pixel grid** (restoring per-channel variance to eliminate washed-out lines at low denoise) and hybrid model handoff.
+
+3. **`HaDeS Anima Suite - Triple Pass Generation Example.json`**
+   - **Architecture:** Progressive 3-stage staircase pipeline (`1.0x` $\to$ `1.35x` $\to$ `1.75x`).
+   - **Highlights:** Utilizes `Anima Triple-Pass KSampler` for rendering pristine 3–4 MP poster-grade outputs. Distributes high-frequency generation smoothly across stages to eliminate patch-hallucinations (e.g., duplicated fingers/hair) without losing micro-detail.
+
+4. **`HaDeS - Anima Suite - Merge Workflow Example - Medium.json`**
+   - **Architecture:** Advanced block-level model and LoRA merging suite.
+   - **Highlights:** Demonstrates `Anima Model Block Merger`, `Anima Predictive Multi-LoRA`, and `Anima LoRA Merger` with QR-SVD rank adaptation, 24-rule Diffusers $\leftrightarrow$ native key remapping, and default `llm_adapter` text conditioner bridge protection (`lr = 0`).
+
+---
+
 ## Modular Project Structure
 
 ```
@@ -224,9 +269,10 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── hades_pipeline_ui.js  # UI installers & custom telemetry HUDs for the 6 Pipeline nodes
 │   ├── hades_ksampler_ui.js  # UI installers & flow/staircase HUDs for the 3 Anima KSamplers
 │   └── hades_loaders_ui.js   # UI installers & diagnostic badges for the 4 Loader/Decode nodes
-├── examples/                 # Ready-to-use ComfyUI workflow JSONs (Single, Dual, and Triple Pass)
-│   ├── HaDeS Anima Suite - Simple Pass Generation Example.json
+├── examples/                 # Ready-to-use ComfyUI workflow JSONs (Single, Dual, Triple Pass, & Merging)
+│   ├── HaDeS - Anima Suite - Merge Workflow Example - Medium.json
 │   ├── HaDeS Anima Suite - Dual Pass Generation Example.json
+│   ├── HaDeS Anima Suite - Simple Pass Generation Example.json
 │   └── HaDeS Anima Suite - Triple Pass Generation Example.json
 ├── tests/
 │   └── test_hades_suite.py   # 22 automated unit & integration test suites
