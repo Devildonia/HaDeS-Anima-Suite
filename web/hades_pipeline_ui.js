@@ -15,8 +15,43 @@ import {
 // UI INSTALLERS FOR THE 5 HADES ANIMA PIPELINE & GUARD NODES
 // =============================================================================
 
+function migratePromptStudioInputs(node) {
+    if (!node || !Array.isArray(node.inputs)) return;
+
+    const migrateSlot = (oldName, newName) => {
+        const oldIdx = node.inputs.findIndex((i) => i && i.name === oldName);
+        if (oldIdx === -1) return;
+
+        const newIdx = node.inputs.findIndex((i) => i && i.name === newName);
+        const oldInput = node.inputs[oldIdx];
+
+        if (newIdx !== -1 && oldInput) {
+            // Transfer wire/link if old slot has one and new slot doesn't
+            if (oldInput.link !== null && oldInput.link !== undefined && node.graph?.links) {
+                const link = node.graph.links[oldInput.link];
+                if (link && (node.inputs[newIdx].link === null || node.inputs[newIdx].link === undefined)) {
+                    link.target_slot = newIdx;
+                    node.inputs[newIdx].link = oldInput.link;
+                    oldInput.link = null; // detach so removeInput doesn't destroy the transferred link
+                }
+            }
+            if (typeof node.removeInput === "function") {
+                node.removeInput(oldIdx);
+            } else {
+                node.inputs.splice(oldIdx, 1);
+            }
+        } else if (newIdx === -1 && oldInput) {
+            oldInput.name = newName;
+        }
+    };
+
+    migrateSlot("artist_in", "artist");
+    migrateSlot("character_in", "character");
+}
+
 export function setupPromptStudioUI(node) {
     applyNodeFrameStyle(node);
+    migratePromptStudioInputs(node);
     const findW = (name) => node.widgets?.find((w) => w.name === name);
 
     const wVariant = findW("model_variant");
@@ -203,9 +238,17 @@ export function setupPromptStudioUI(node) {
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
+        migratePromptStudioInputs(this);
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
             this.size = [info.size[0], info.size[1]];
         }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        if (origOnConfigure) origOnConfigure.apply(this, arguments);
+        migratePromptStudioInputs(this);
         this.setDirtyCanvas?.(true, true);
     };
 
