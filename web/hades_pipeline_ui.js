@@ -368,15 +368,18 @@ export function setupAttentionGuidanceUI(node) {
             actions: [
                 {
                     label: "Turbo CFG=1",
+                    tooltip: `<strong>Turbo / Lightning Preset</strong><br>Sets Scale 3.5, Alpha 0.45, Tau 2.5, Window 0% - 70%. Enables negative prompt steering on CFG=1 models.`,
                     onClick: () =>
                         applyPresetValues("Turbo / Lightning Negative Enabler", 3.5, 0.45, 2.5, 0.0, 0.7),
                 },
                 {
                     label: "Anti-Burn",
+                    tooltip: `<strong>Aesthetic Crispness (Anti-Burn)</strong><br>Sets Scale 2.2, Alpha 0.30, Tau 2.0, Window 0% - 60%. Smooth high-contrast control without oversaturation.`,
                     onClick: () => applyPresetValues("Aesthetic Crispness (Anti-Burn)", 2.2, 0.3, 2.0, 0.0, 0.6),
                 },
                 {
                     label: "High",
+                    tooltip: `<strong>High Adherence Preset</strong><br>Sets Scale 4.5, Alpha 0.50, Tau 3.0, Window 0% - 75%. Strongest prompt adherence guidance.`,
                     onClick: () => applyPresetValues("High Adherence Extrapolation", 4.5, 0.5, 3.0, 0.0, 0.75),
                 },
             ],
@@ -387,6 +390,7 @@ export function setupAttentionGuidanceUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.amber,
+            tooltip: `<strong>Attention Guidance Preset</strong><br>Pre-tuned guidance parameters for Turbo/Lightning, Base, or High Adherence.`,
         })
     );
 
@@ -402,6 +406,7 @@ export function setupAttentionGuidanceUI(node) {
             visMax: 8.0,
             step: 0.1,
             defaultVal: 3.0,
+            tooltip: `<strong>Guidance Extrapolation Scale (s)</strong><br>Strength of normalized attention guidance vector extrapolation.`,
         })
     );
 
@@ -417,6 +422,7 @@ export function setupAttentionGuidanceUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.35,
+            tooltip: `<strong>Guided Attention Blend (α)</strong><br>Interpolation ratio blending the guidance delta into the base attention maps.`,
         })
     );
 
@@ -432,6 +438,7 @@ export function setupAttentionGuidanceUI(node) {
             visMax: 5.0,
             step: 0.1,
             defaultVal: 2.5,
+            tooltip: `<strong>L1-Norm Ceiling (τ)</strong><br>Clamps the magnitude of attention deltas to completely prevent pixel burning and artifacts.`,
         })
     );
 
@@ -447,6 +454,7 @@ export function setupAttentionGuidanceUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.0,
+            tooltip: `<strong>Guidance Start Step (%)</strong><br>Normalized diffusion timestep where NAG attention guidance begins.`,
         })
     );
 
@@ -462,6 +470,7 @@ export function setupAttentionGuidanceUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.65,
+            tooltip: `<strong>Guidance End Step (%)</strong><br>Normalized diffusion timestep where NAG guidance disengages (settling stage).`,
         })
     );
 
@@ -759,6 +768,7 @@ export function setupUniversalLoraLoaderUI(node) {
             tag: "LORA",
             tagColor: HADES_THEME.purple,
             cleanFileNames: true,
+            tooltip: `<strong>Target LoRA File</strong><br>External (Diffusers, Kohya, Musubi) or native LoRA to load and adapt for Anima.`,
         })
     );
 
@@ -774,6 +784,7 @@ export function setupUniversalLoraLoaderUI(node) {
             visMax: 1.5,
             step: 0.05,
             defaultVal: 1.0,
+            tooltip: `<strong>Diffusion Model Strength</strong><br>Strength applied to the 28 core Anima DiT transformer blocks.`,
         })
     );
 
@@ -790,6 +801,7 @@ export function setupUniversalLoraLoaderUI(node) {
                 visMax: 1.5,
                 step: 0.05,
                 defaultVal: 0.5,
+                tooltip: `<strong>Qwen CLIP Strength</strong><br>Strength applied to the Qwen3 text conditioner layers (recommended 0.50x).`,
             })
         );
     }
@@ -801,6 +813,7 @@ export function setupUniversalLoraLoaderUI(node) {
             label: "Strip llm_adapter Weights (lr=0 Rule)",
             onText: "STRIP",
             offText: "KEEP",
+            tooltip: `<strong>Strip llm_adapter Weights</strong><br>Golden rule enforcement: strips text conditioner weights trained at lr=0.`,
         })
     );
 
@@ -811,6 +824,7 @@ export function setupUniversalLoraLoaderUI(node) {
             label: "Scrub NaN/Inf & Clamp >10σ Outliers",
             onText: "ACTIVE",
             offText: "OFF",
+            tooltip: `<strong>Weight Sanitization</strong><br>Detects and cleans NaN/Inf values and clamps runaway weights exceeding 10 standard deviations.`,
         })
     );
 
@@ -821,6 +835,7 @@ export function setupUniversalLoraLoaderUI(node) {
             label: "Save Converted Copy to models/loras/",
             onText: "SAVE COPY",
             offText: "IN-MEMORY",
+            tooltip: `<strong>Export Converted SafeTensors</strong><br>Persists the converted native format LoRA to disk for instant loading next time.`,
         })
     );
 
@@ -831,6 +846,7 @@ export function setupUniversalLoraLoaderUI(node) {
             promptTitle: "Output Filename for Converted LoRA",
             suffix: ".safetensors",
             emptyPlaceholder: "Anima_ComfyNative_LoRA",
+            tooltip: `<strong>Converted Filename</strong><br>File name used when saving the converted LoRA to disk.`,
         })
     );
 
@@ -838,8 +854,34 @@ export function setupUniversalLoraLoaderUI(node) {
     node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
 }
 
+function migrateOutputSlot(node, oldName, newName) {
+    if (!node || !Array.isArray(node.outputs)) return;
+    const slot = node.outputs.find((o) => o && o.name === oldName);
+    if (slot) {
+        slot.name = newName;
+        slot.localized_name = newName;
+        slot.label = newName;
+    }
+}
+
 export function setupCornerScribbleShieldUI(node) {
     applyNodeFrameStyle(node);
+    migrateOutputSlot(node, "scribble_mask", "mask");
+
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        const ret = origConfigure ? origConfigure.apply(this, arguments) : undefined;
+        migrateOutputSlot(this, "scribble_mask", "mask");
+        return ret;
+    };
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function (info) {
+        const ret = origOnConfigure ? origOnConfigure.apply(this, arguments) : undefined;
+        migrateOutputSlot(this, "scribble_mask", "mask");
+        return ret;
+    };
+
     const findW = (name) => node.widgets?.find((w) => w.name === name);
 
     const wBox = findW("corner_box_percent");
@@ -905,22 +947,27 @@ export function setupCornerScribbleShieldUI(node) {
             actions: [
                 {
                     label: "All 4",
+                    tooltip: `<strong>All 4 Corners</strong><br>Inspects and processes all four corner margins of the image canvas.`,
                     onClick: () => setWidgetValue(wCorners, "All 4 Corners", node),
                 },
                 {
                     label: "Bottom",
+                    tooltip: `<strong>Bottom Corners Only</strong><br>Restricts scanning to bottom-left and bottom-right corners (most common location for Anima signatures).`,
                     onClick: () => setWidgetValue(wCorners, "Bottom Corners Only (Left & Right)", node),
                 },
                 {
                     label: "Auto-Heal",
+                    tooltip: `<strong>Smart Edge-Inward Blend</strong><br>Intelligently blends edge pixels inward across detected stroke areas to remove scribbles seamlessly.`,
                     onClick: () => setWidgetValue(wHeal, "Smart Edge-Inward Blend (Auto-Heal)", node),
                 },
                 {
                     label: "Forced",
+                    tooltip: `<strong>Aggressive Corner Fill</strong><br>Forces inward edge fill across corner boxes regardless of stroke detection threshold.`,
                     onClick: () => setWidgetValue(wHeal, "Aggressive Corner Fill (Forced)", node),
                 },
                 {
                     label: "Mask Only",
+                    tooltip: `<strong>Mask Only (No Pixel Modification)</strong><br>Outputs a feathered soft mask of affected corners without altering the RGB image pixels.`,
                     onClick: () => setWidgetValue(wHeal, "Mask Only (No Pixel Modification)", node),
                 },
             ],
@@ -931,6 +978,7 @@ export function setupCornerScribbleShieldUI(node) {
         createStyledComboWidget(node, wCorners, {
             tag: "CORNERS",
             tagColor: HADES_THEME.rose,
+            tooltip: `<strong>Target Corner Regions</strong><br>Select which image perimeter corners to inspect for signature scribbles.`,
         })
     );
 
@@ -938,6 +986,7 @@ export function setupCornerScribbleShieldUI(node) {
         createStyledComboWidget(node, wHeal, {
             tag: "MODE",
             tagColor: HADES_THEME.emerald,
+            tooltip: `<strong>Remediation Strategy</strong><br>Auto-Heal (inward edge continuation), Aggressive Fill (forced replacement), or Mask Only.`,
         })
     );
 
@@ -953,6 +1002,7 @@ export function setupCornerScribbleShieldUI(node) {
             visMax: 0.50,
             step: 0.01,
             defaultVal: 0.10,
+            tooltip: `<strong>Corner Box Perimeter Ratio</strong><br>Percentage of image width and height defining the corner inspection box (e.g., 0.10 = 10%).`,
         })
     );
 
@@ -968,6 +1018,7 @@ export function setupCornerScribbleShieldUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.75,
+            tooltip: `<strong>Scribble Detection Sensitivity</strong><br>Laplacian high-frequency threshold for identifying artificial strokes and watermarks.`,
         })
     );
 
@@ -984,6 +1035,7 @@ export function setupCornerScribbleShieldUI(node) {
             step: 1,
             defaultVal: 12,
             isInt: true,
+            tooltip: `<strong>Mask Feather Radius (px)</strong><br>Gaussian blur kernel size for smooth alpha transitions at corner borders.`,
         })
     );
 

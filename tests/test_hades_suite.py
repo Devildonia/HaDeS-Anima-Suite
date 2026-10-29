@@ -790,6 +790,7 @@ def test_9_latent_pipeline_guard():
 
 def test_10_corner_scribble_shield():
     shield = hades.HaDeSAnimaCornerScribbleShield()
+    assert shield.RETURN_NAMES == ("image", "mask", "info"), f"Expected RETURN_NAMES ('image', 'mask', 'info'), got {shield.RETURN_NAMES}"
     torch.manual_seed(123)
     # Realistic scene: smooth gradient background [1, 128, 128, 3] with low-contrast
     # thin signature strokes in the bottom-right corner (mimics real Anima watermarks,

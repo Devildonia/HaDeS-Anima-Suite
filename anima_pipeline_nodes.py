@@ -1035,7 +1035,7 @@ class HaDeSAnimaCornerScribbleShield:
         }
 
     RETURN_TYPES = ("IMAGE", "MASK", "STRING")
-    RETURN_NAMES = ("image", "scribble_mask", "info")
+    RETURN_NAMES = ("image", "mask", "info")
     FUNCTION = "shield_corners"
     CATEGORY = "HaDeS/Anima Pipeline"
 

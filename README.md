@@ -147,7 +147,7 @@ HaDeS Anima Suite v0.1.5
 - **Purpose:** Mitigates Anima's chronic **~20% corner signature scribble artifact** (which negative prompts like `signature, watermark` cannot suppress because training images had unlabeled corner signatures).
 - **Tuning:** Detection sensitivity defaults to `0.75` (threshold auto-derives from it), and the inspection box defaults to `10%` of the shorter side (`0.03`–`0.50` allowed, with adaptive expansion capped strictly at 50% for large watermarks). The shield only touches corner pixels: clean corners are left 100% untouched in Smart mode.
 - **Modes:**
-  - `Mask Only (No Pixel Modification)`: Outputs a feathered `[B, H, W]` `scribble_mask` of affected corners to feed into a second-pass `VAEEncodeForInpaint` or `LatentCompositeMasked`.
+  - `Mask Only (No Pixel Modification)`: Outputs a feathered `[B, H, W]` `mask` of affected corners to feed into a second-pass `VAEEncodeForInpaint` or `LatentCompositeMasked`.
   - `Smart Edge-Inward Blend (Auto-Heal)`: Detects high-frequency corner scribbles (tuned for realistic thin low-contrast strokes) and heals them by extending the clean **outer edge ring** (8–16 px outside the corner box) into the box, while an **Ambient Texture Guard** protects canvas grain, film noise ($\sigma=0.03$), and hatching textures from false positives. Safe default.
   - `Aggressive Corner Fill (Forced)`: Bypasses detection entirely and force-fills the corner box with spatially-falloff edge continuation. Use when the scribble is faint or Smart mode misses it — the strongest guaranteed removal.
   - `Soft Corner Blur`: Softens high-frequency corner artifacts with feathered local pooling (lightest touch, no content reconstruction).

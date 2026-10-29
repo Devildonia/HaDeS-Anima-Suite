@@ -152,9 +152,10 @@ if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
 
                 // 3. Check custom widgets (combos, sliders, toggles)
                 const b = w._rowBounds || w._bounds;
-                if (b && w.tooltip) {
+                const tt = w.tooltipHtml || w.tooltip;
+                if (b && tt) {
                     if (localX >= b.x && localX <= b.x + b.w && localY >= b.y && localY <= b.y + b.h) {
-                        showHadesTooltip(w.tooltip, e.clientX, e.clientY, w.tagColor || w.color || HADES_THEME.emerald);
+                        showHadesTooltip(tt, e.clientX, e.clientY, w.tagColor || w.color || HADES_THEME.emerald);
                         return;
                     }
                 }
@@ -830,6 +831,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
         type: "custom",
         value: "",
         tooltip: plainTooltip,
+        tooltipHtml: tooltip,
         options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _bounds: null,
@@ -974,6 +976,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
         type: "custom",
         value: "",
         tooltip: plainTooltip,
+        tooltipHtml: tooltip,
         options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _zones: null,
@@ -1269,6 +1272,7 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
         type: "custom",
         value: "",
         tooltip: plainTooltip,
+        tooltipHtml: tooltip,
         tagColor: color,
         options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
@@ -1378,6 +1382,7 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
         type: "custom",
         value: "",
         tooltip: plainTooltip,
+        tooltipHtml: tooltip,
         options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _bounds: null,

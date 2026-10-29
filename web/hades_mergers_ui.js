@@ -391,6 +391,7 @@ export function setupMultiLoraLoaderUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.purple,
+            tooltip: `<strong>Predictive Multi-LoRA Preset</strong><br>Grassmann subspace allocation strategy (Character + Style Fusion, Style Harmony, or Balanced Fusion).`,
         })
     );
 
@@ -406,6 +407,7 @@ export function setupMultiLoraLoaderUI(node) {
             visMax: 2.5,
             step: 0.05,
             defaultVal: 1.0,
+            tooltip: `<strong>Subspace Aggressiveness</strong><br>Sensitivity multiplier for singular value truncation and angle steering across secondary slots.`,
         })
     );
 
@@ -417,6 +419,7 @@ export function setupMultiLoraLoaderUI(node) {
                 label: "Strip Dirty llm_adapter LoRA Keys",
                 onText: "PROTECTED",
                 offText: "ALLOW ALL",
+                tooltip: `<strong>Protect llm_adapter Bridge</strong><br>Strips secondary text adapter weights from LoRAs to keep Anima's Qwen3 conditioner stable.`,
             })
         );
     }
@@ -487,6 +490,7 @@ export function setupStandaloneLoraMergerUI(node) {
             tag: "DONOR A",
             tagColor: HADES_THEME.blue,
             cleanFileNames: true,
+            tooltip: `<strong>Donor LoRA A</strong><br>Primary baseline LoRA model for subspace fusion.`,
         })
     );
 
@@ -495,6 +499,7 @@ export function setupStandaloneLoraMergerUI(node) {
             tag: "DONOR B",
             tagColor: HADES_THEME.purple,
             cleanFileNames: true,
+            tooltip: `<strong>Donor LoRA B</strong><br>Secondary donor LoRA contributing style or supplementary features.`,
         })
     );
 
@@ -502,6 +507,7 @@ export function setupStandaloneLoraMergerUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.cyan,
+            tooltip: `<strong>Merge Preset</strong><br>Grassmann subspace allocation curve across the 34 Anima model layers.`,
         })
     );
 
@@ -510,6 +516,7 @@ export function setupStandaloneLoraMergerUI(node) {
             createStyledComboWidget(node, wMode, {
                 tag: "MODE",
                 tagColor: HADES_THEME.emerald,
+                tooltip: `<strong>Merge Mathematical Mode</strong><br>Additive, Orthogonal Task-Vector, or Normalized Subspace projection.`,
             })
         );
     }
@@ -519,6 +526,7 @@ export function setupStandaloneLoraMergerUI(node) {
             createStyledComboWidget(node, wTopo, {
                 tag: "TOPO",
                 tagColor: HADES_THEME.blue,
+                tooltip: `<strong>Topology Architecture</strong><br>Target model topology (Auto-Detect, Anima-2.9B 40L, Anima-3.8B 52L).`,
             })
         );
     }
@@ -535,6 +543,7 @@ export function setupStandaloneLoraMergerUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.5,
+            tooltip: `<strong>Target Influence B</strong><br>Weight ratio applied to Donor B in the subspace projection.`,
         })
     );
 
@@ -550,6 +559,7 @@ export function setupStandaloneLoraMergerUI(node) {
             visMax: 2.5,
             step: 0.05,
             defaultVal: 1.0,
+            tooltip: `<strong>Spectral Aggressiveness</strong><br>Sensitivity multiplier for singular value truncation and angle steering.`,
         })
     );
 
@@ -566,6 +576,7 @@ export function setupStandaloneLoraMergerUI(node) {
             step: 4,
             defaultVal: 32,
             isInt: true,
+            tooltip: `<strong>Target SVD Rank (k)</strong><br>Low-rank truncation dimension for the fused safetensors weights (R16, R32, R64).`,
         })
     );
 
@@ -577,6 +588,7 @@ export function setupStandaloneLoraMergerUI(node) {
                 label: "Strip Dirty llm_adapter Keys",
                 onText: "STRIP",
                 offText: "KEEP",
+                tooltip: `<strong>llm_adapter Protection</strong><br>Prevents dirty text conditioner weights from corrupting prompt understanding.`,
             })
         );
     }
@@ -589,6 +601,7 @@ export function setupStandaloneLoraMergerUI(node) {
                 label: "Overwrite Existing Output File",
                 onText: "OVERWRITE",
                 offText: "AUTO-INC",
+                tooltip: `<strong>File Overwrite Policy</strong><br>When OFF, automatically appends sequential numbers (e.g. _001) to protect existing files.`,
             })
         );
     }
@@ -600,6 +613,7 @@ export function setupStandaloneLoraMergerUI(node) {
             promptTitle: "Export LoRA Filename (saved in models/loras/)",
             suffix: ".safetensors",
             emptyPlaceholder: "HaDeS_Merged_LoRA",
+            tooltip: `<strong>Export Filename</strong><br>Name of the merged LoRA file saved to ComfyUI models/loras/.`,
         })
     );
 
