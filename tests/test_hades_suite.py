@@ -1100,6 +1100,7 @@ def test_14_anima_model_loader_diffusers_and_external_adapter():
     assert "llm_adapter.blocks.0.cross_attn.q_proj.weight" in merged_sd
     assert "llm_adapter.blocks.0.self_attn.o_proj.weight" in merged_sd
     assert "llm_adapter.embed.weight" in merged_sd
+    assert hades.HaDeSAnimaModelLoader.RETURN_NAMES == ("model", "info")
     print("[OK] Test 14: HaDeSAnimaModelLoader (24-rule Diffusers checkpoint remap & external llm_adapter injection) verified")
 
 
@@ -1133,6 +1134,7 @@ def test_15_anima_clip_loader_qwen3_validation():
     except ValueError as e:
         q7b_blocked = "3584" in str(e)
     assert q7b_blocked, "Expected 3584-dim Qwen2.5-7B encoder to be blocked by HaDeSAnimaCLIPLoader!"
+    assert hades.HaDeSAnimaCLIPLoader.RETURN_NAMES == ("clip", "info")
     print("[OK] Test 15: HaDeSAnimaCLIPLoader (Qwen3-0.6B 1024d validation & T5/Qwen2.5-7B block) verified")
 
 
@@ -1158,6 +1160,7 @@ def test_16_anima_vae_loader_64ch_pre_load_block():
     except ValueError as e:
         trap_blocked = "64-channel" in str(e) and "CRITICAL TRAP BLOCKED" in str(e)
     assert trap_blocked, "Expected 64-channel Qwen-Image 2.1 VAE state_dict to be blocked pre-instantiation!"
+    assert hades.HaDeSAnimaVAELoader.RETURN_NAMES == ("vae", "info")
     print("[OK] Test 16: HaDeSAnimaVAELoader (Pre-instantiation 16ch Wan21 validation & 64ch Qwen-Image 2.1 trap block) verified")
 
 

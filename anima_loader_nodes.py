@@ -257,7 +257,7 @@ class HaDeSAnimaModelLoader:
         }
 
     RETURN_TYPES = ("MODEL", "STRING")
-    RETURN_NAMES = ("model", "model_info")
+    RETURN_NAMES = ("model", "info")
     FUNCTION = "load_anima_model"
     CATEGORY = "HaDeS/Anima Loaders"
 
@@ -376,7 +376,7 @@ class HaDeSAnimaCLIPLoader:
         }
 
     RETURN_TYPES = ("CLIP", "STRING")
-    RETURN_NAMES = ("clip", "clip_info")
+    RETURN_NAMES = ("clip", "info")
     FUNCTION = "load_anima_clip"
     CATEGORY = "HaDeS/Anima Loaders"
 
@@ -476,7 +476,7 @@ class HaDeSAnimaVAELoader:
         }
 
     RETURN_TYPES = ("VAE", "STRING")
-    RETURN_NAMES = ("vae", "vae_info")
+    RETURN_NAMES = ("vae", "info")
     FUNCTION = "load_anima_vae"
     CATEGORY = "HaDeS/Anima Loaders"
 

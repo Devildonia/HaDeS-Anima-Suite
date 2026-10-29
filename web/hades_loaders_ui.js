@@ -34,6 +34,16 @@ function drawPill(ctx, x, y, text, color, tooltip = "", pillBounds = null) {
     return tw + 5;
 }
 
+function migrateOutputSlot(node, oldName, newName) {
+    if (!node || !Array.isArray(node.outputs)) return;
+    const slot = node.outputs.find((o) => o && o.name === oldName);
+    if (slot) {
+        slot.name = newName;
+        slot.localized_name = newName;
+        slot.label = newName;
+    }
+}
+
 const TAG_W = 66;
 
 export function setupAnimaModelLoaderUI(node) {
@@ -209,12 +219,22 @@ export function setupAnimaModelLoaderUI(node) {
         wAdapter,
     ].filter(Boolean);
 
+    migrateOutputSlot(node, "model_info", "info");
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
+        migrateOutputSlot(this, "model_info", "info");
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
             this.size = [info.size[0], info.size[1]];
         }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        if (origOnConfigure) origOnConfigure.apply(this, arguments);
+        migrateOutputSlot(this, "model_info", "info");
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -361,12 +381,22 @@ export function setupAnimaCLIPLoaderUI(node) {
         wGuard,
     ].filter(Boolean);
 
+    migrateOutputSlot(node, "clip_info", "info");
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
+        migrateOutputSlot(this, "clip_info", "info");
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
             this.size = [info.size[0], info.size[1]];
         }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        if (origOnConfigure) origOnConfigure.apply(this, arguments);
+        migrateOutputSlot(this, "clip_info", "info");
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -480,12 +510,22 @@ export function setupAnimaVAELoaderUI(node) {
         wPrec,
     ].filter(Boolean);
 
+    migrateOutputSlot(node, "vae_info", "info");
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
+        migrateOutputSlot(this, "vae_info", "info");
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
             this.size = [info.size[0], info.size[1]];
         }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        if (origOnConfigure) origOnConfigure.apply(this, arguments);
+        migrateOutputSlot(this, "vae_info", "info");
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -638,6 +678,12 @@ export function setupAnimaVAEDecodeUI(node) {
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
             this.size = [info.size[0], info.size[1]];
         }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        if (origOnConfigure) origOnConfigure.apply(this, arguments);
         this.setDirtyCanvas?.(true, true);
     };
 
