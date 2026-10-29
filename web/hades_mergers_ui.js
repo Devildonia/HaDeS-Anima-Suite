@@ -59,7 +59,7 @@ export function setupManualBlockMergerUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "34-BLOCK SPECTRUM (28/40/52L + BRIDGE)",
+            title: "",
             accentColor: HADES_THEME.blue,
             getBars() {
                 const overrideArr = parseClientRecipePreview(wRecipe?.value);
@@ -84,10 +84,12 @@ export function setupManualBlockMergerUI(node) {
             actions: [
                 {
                     label: "M1",
+                    tooltip: `<strong>100% Model 1</strong><br>Sets all block groups to 0.0 (pure Model 1).`,
                     onClick: () => setAllGroups(Object.fromEntries(groupKeys.map((k) => [k, 0.0]))),
                 },
                 {
                     label: "50/50 (Lock Brg)",
+                    tooltip: `<strong>50/50 Balanced Merge</strong><br>Even 0.50 blend while strictly preserving Model 1's llm_adapter bridge (0.0).`,
                     onClick: () =>
                         setAllGroups({
                             base_ratio: 0.5,
@@ -102,6 +104,7 @@ export function setupManualBlockMergerUI(node) {
                 },
                 {
                     label: "Style B",
+                    tooltip: `<strong>Model 1 Structure / Model 2 Style</strong><br>Keeps M1 geometry/identity while transferring M2 textures, lighting, and style.`,
                     onClick: () =>
                         setAllGroups({
                             base_ratio: 0.5,
@@ -116,6 +119,7 @@ export function setupManualBlockMergerUI(node) {
                 },
                 {
                     label: "M2",
+                    tooltip: `<strong>100% Model 2</strong><br>Sets all block groups to 1.0 (pure Model 2).`,
                     onClick: () => setAllGroups(Object.fromEntries(groupKeys.map((k) => [k, 1.0]))),
                 },
             ],
@@ -133,6 +137,17 @@ export function setupManualBlockMergerUI(node) {
         ADAPTER_Text_Alignment: "LLM Adapter Bridge (0=Lock)",
     };
 
+    const groupTooltips = {
+        base_ratio: `<strong>Global Base Fallback Ratio</strong><br>Ratio applied to root embeddings, timesteps, and non-block parameters.`,
+        BLOCKS_Layout_Geometry: `<strong>Layout & Geometry (Blocks 0–4)</strong><br>Core spatial composition, framing, perspective, and global anatomy.`,
+        BLOCKS_Global_Composition: `<strong>Global Composition (Blocks 5–9)</strong><br>Scene staging, major structural forms, and background elements.`,
+        BLOCKS_Subject_Identity: `<strong>Subject Identity (Blocks 10–14)</strong><br>Character features, facial contours, clothing, and primary subjects.`,
+        BLOCKS_Material_Substance: `<strong>Material & Substance (Blocks 15–19)</strong><br>Surface textures, materials, reflections, and skin rendering.`,
+        BLOCKS_Art_Style_Medium: `<strong>Art Style & Medium (Blocks 20–23)</strong><br>Brushwork, line weight, painterly vs flat vector aesthetics.`,
+        BLOCKS_Lighting_Sharpness: `<strong>Lighting & Sharpness (Blocks 24–27)</strong><br>Micro-contrast, highlight bloom, rim lighting, and final acuity.`,
+        ADAPTER_Text_Alignment: `<strong>LLM Adapter Bridge (Blocks 28–33)</strong><br>Anima text conditioning adapter. Keep locked at 0.0 per official guidelines.`,
+    };
+
     for (const k of groupKeys) {
         const meta = GROUP_META[k];
         const defVal = k === "ADAPTER_Text_Alignment" ? 0.0 : 0.5;
@@ -148,6 +163,7 @@ export function setupManualBlockMergerUI(node) {
                 visMax: 1.0,
                 step: 0.05,
                 defaultVal: defVal,
+                tooltip: groupTooltips[k],
             })
         );
     }
@@ -160,12 +176,25 @@ export function setupManualBlockMergerUI(node) {
                 promptTitle: "Paste 34-Block CSV Vector or Predictive JSON Recipe (Right-click to clear)",
                 emptyPlaceholder: "— Manual Sliders Active (Click to paste CSV/JSON) —",
                 allowClearOnRightClick: true,
+                tooltip: `<strong>CSV / JSON Recipe Vector</strong><br>Paste a custom 34-element vector or predictive recipe to override sliders. Right-click to clear.`,
             })
         );
     }
 
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 430;
     const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupPredictiveModelMergerUI(node) {
@@ -181,7 +210,7 @@ export function setupPredictiveModelMergerUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "PREDICTIVE PROFILE (28/40/52L)",
+            title: "",
             accentColor: HADES_THEME.purple,
             getBars() {
                 return estimatePredictiveCurve(
@@ -194,6 +223,7 @@ export function setupPredictiveModelMergerUI(node) {
             actions: [
                 {
                     label: "Soft",
+                    tooltip: `<strong>Soft Influence (0.35 / 0.80)</strong><br>Subtle integration of Model 2 with restrained divergence response.`,
                     onClick: () => {
                         setWidgetValue(wInf, 0.35, node);
                         setWidgetValue(wAgg, 0.8, node);
@@ -201,6 +231,7 @@ export function setupPredictiveModelMergerUI(node) {
                 },
                 {
                     label: "Balanced",
+                    tooltip: `<strong>Balanced Influence (0.50 / 1.00)</strong><br>Standard calibrated predictive spectral fusion.`,
                     onClick: () => {
                         setWidgetValue(wInf, 0.5, node);
                         setWidgetValue(wAgg, 1.0, node);
@@ -208,6 +239,7 @@ export function setupPredictiveModelMergerUI(node) {
                 },
                 {
                     label: "Strong",
+                    tooltip: `<strong>Strong Influence (0.75 / 1.35)</strong><br>High Model 2 dominance with pronounced divergence adaptation.`,
                     onClick: () => {
                         setWidgetValue(wInf, 0.75, node);
                         setWidgetValue(wAgg, 1.35, node);
@@ -221,6 +253,7 @@ export function setupPredictiveModelMergerUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.purple,
+            tooltip: `<strong>Predictive Fusion Heuristic</strong><br>• <strong>Style Transfer:</strong> Retains Model 1 geometry while blending Model 2 style bands.<br>• <strong>Interference Guard:</strong> Dampens high-divergence blocks to prevent burning/artifacts.<br>• <strong>Complementary Richness:</strong> Fills capacity gaps of Model 1 using Model 2.<br>• <strong>Balanced Geometric Fusion:</strong> Harmonic block-by-block spectral integration.`,
         })
     );
 
@@ -236,6 +269,7 @@ export function setupPredictiveModelMergerUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.5,
+            tooltip: `<strong>Global Target Influence (Model 2)</strong><br>Baseline weight allocation for Model 2 across the 34 Anima blocks.`,
         })
     );
 
@@ -251,6 +285,7 @@ export function setupPredictiveModelMergerUI(node) {
             visMax: 2.5,
             step: 0.05,
             defaultVal: 1.0,
+            tooltip: `<strong>Spectral Aggressiveness Multiplier</strong><br>Sensitivity scaling factor for block-level task-vector divergence and cosine angle warping.`,
         })
     );
 
@@ -262,12 +297,25 @@ export function setupPredictiveModelMergerUI(node) {
                 label: "Lock llm_adapter (Model 1 Bridge)",
                 onText: "LOCKED (0.0)",
                 offText: "ADAPTIVE",
+                tooltip: `<strong>Lock llm_adapter Bridge (Blocks 28–33)</strong><br>Ensures Anima's text adapter layers remain locked to Model 1 (0.0) per official guidelines to prevent prompt drift.`,
             })
         );
     }
 
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 430;
     const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupMultiLoraLoaderUI(node) {
@@ -585,9 +633,18 @@ export function setupCLIPBlockMergerUI(node) {
         }
     };
 
+    const clipTooltips = {
+        base_ratio: `<strong>Global Base Fallback Ratio</strong><br>Interpolation ratio applied to non-block and root text encoder tensors.`,
+        vocab_embeddings: `<strong>Vocab & Token Embeddings</strong><br>Blend ratio for word embedding lookups and initial token projections.`,
+        syntax_rigidity: `<strong>Syntax & Tag Rigidity</strong><br>Low-level grammar, token positioning, and punctuation sensitivity layers (0–35% depth).`,
+        semantic_focus: `<strong>Semantic & Concept Focus</strong><br>Mid-depth layers governing conceptual understanding and subject semantics (35–72% depth).`,
+        style_abstraction: `<strong>Style & Mood Abstraction</strong><br>High-depth layers governing artistic atmosphere and aesthetic interpretation (72%+ depth).`,
+        final_projections: `<strong>Final Norm Projections</strong><br>Output layernorm and final conditioning projection layers.`,
+    };
+
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "QWEN3 LINGUISTIC BANDS (28L / 36L)",
+            title: "",
             accentColor: HADES_THEME.cyan,
             getBars() {
                 const bandKeys = [
@@ -605,14 +662,17 @@ export function setupCLIPBlockMergerUI(node) {
             actions: [
                 {
                     label: "CLIP 1",
+                    tooltip: `<strong>100% CLIP 1</strong><br>Sets all linguistic bands to 0.0 (pure CLIP 1).`,
                     onClick: () => setAll(Object.fromEntries(clipKeys.map((k) => [k, 0.0]))),
                 },
                 {
                     label: "50/50",
+                    tooltip: `<strong>50/50 Balanced Interpolation</strong><br>Even blend across all linguistic bands.`,
                     onClick: () => setAll(Object.fromEntries(clipKeys.map((k) => [k, 0.5]))),
                 },
                 {
                     label: "A-Synt/B-Styl",
+                    tooltip: `<strong>Syntax A / Style B</strong><br>Prioritizes CLIP 1 for syntax/structure and CLIP 2 for aesthetic/style abstraction.`,
                     onClick: () =>
                         setAll({
                             base_ratio: 0.5,
@@ -625,6 +685,7 @@ export function setupCLIPBlockMergerUI(node) {
                 },
                 {
                     label: "CLIP 2",
+                    tooltip: `<strong>100% CLIP 2</strong><br>Sets all linguistic bands to 1.0 (pure CLIP 2).`,
                     onClick: () => setAll(Object.fromEntries(clipKeys.map((k) => [k, 1.0]))),
                 },
             ],
@@ -645,12 +706,25 @@ export function setupCLIPBlockMergerUI(node) {
                 visMax: 1.0,
                 step: 0.05,
                 defaultVal: 0.5,
+                tooltip: clipTooltips[k],
             })
         );
     }
 
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 430;
     const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export const MERGER_NODE_DISPATCH = {
