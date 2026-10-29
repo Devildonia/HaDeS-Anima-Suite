@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-hades-anima-suite"
-description = "Complete 18-node Anima ecosystem suite for ComfyUI: Native Diffusers-aware Model/Qwen3-CLIP/16ch-VAE Loaders, Smart Tiled VAE Decode with Scribble Shield, Block-level Model/CLIP/LoRA Mergers, QR-SVD Exporter, Prompt Studio & Aesthetic Slop Guard, NAG CFG-1.0 Attention Guidance, 16ch Latent/VAE Guard, Universal Diffusers LoRA Remapper, Single/Dual/Triple-Pass Anima Rectified Flow KSamplers, and Centralized Suite Telemetry & Flight Auditor."
+description = "Complete 18-node Anima ecosystem suite for ComfyUI: Native Diffusers-aware Model/Qwen3-CLIP/16ch-VAE Loaders, Smart Tiled VAE Decode, Corner Scribble Shield, Block-level Model/CLIP/LoRA Mergers, QR-SVD Exporter, Prompt Studio & Aesthetic Slop Guard, NAG CFG-1.0 Attention Guidance, 16ch Latent/VAE Guard, Universal Diffusers LoRA Remapper, Single/Dual/Triple-Pass Anima Rectified Flow KSamplers, and Centralized Suite Telemetry & Flight Auditor."
 version = "0.1.6"
 authors = [
     { name = "Devildonia" }
@@ -8,6 +8,12 @@ authors = [
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Framework :: ComfyUI",
+]
 keywords = [
     "comfyui",
     "anima",
@@ -25,16 +31,13 @@ dependencies = [
 
 [project.urls]
 Repository = "https://github.com/Devildonia/HaDeS-Anima-Suite"
+"Bug Tracker" = "https://github.com/Devildonia/HaDeS-Anima-Suite/issues"
 
 [tool.comfy]
 PublisherId = "hades"
 DisplayName = "HaDeS Anima Suite"
 Icon = "https://raw.githubusercontent.com/Devildonia/HaDeS-Anima-Suite/main/web/icon.png"
 includes = [
-    "__init__.py",
-    "anima_*.py",
-    "web/**",
-    "pyproject.toml",
-    "LICENSE",
-    "README.md",
+    "web",
+    "examples",
 ]

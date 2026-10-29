@@ -172,7 +172,7 @@ HaDeS Anima Suite v0.1.6
 - **Purpose:** Two-stage `Composition (1.0 MP) → HiRes/Style Refiner (1.25x–2.0x)` KSampler with a **16-channel Variance-Preserving Latent Bridge** snapped strictly to the **32px pixel grid**.
 - **Key Features:**
   - **16-Channel Variance Restoration:** Standard bicubic upscaling on `Wan21` 16-channel latents dampens high-frequency per-channel variance ($\text{Var}(z') < \text{Var}(z)$), causing soft/washed-out lineart at `denoise < 0.50`. HaDeS restores per-channel $(\mu_c, \sigma_c)$ across all 16 channels (or performs a `Pixel-Space VAE Round-Trip (Lanczos 32px)` when selected).
-  - **Hybrid Model Handoff (`model_pass2_optional`):** Run Pass 1 with `Raehoshi` or `Anima-Base + Character LoRA` for exact character anatomy, and hand off Pass 2 to `Anima-Aesthetic` or `Anima-Turbo` (8 steps, `CFG 1.0`) for high-resolution rendering.
+  - **Hybrid Model Handoff (`model_pass2`):** Run Pass 1 with `Raehoshi` or `Anima-Base + Character LoRA` for exact character anatomy, and hand off Pass 2 to `Anima-Aesthetic` or `Anima-Turbo` (8 steps, `CFG 1.0`) for high-resolution rendering (backward-compatible with legacy `model_pass2_optional`).
 
 #### 13. `Anima Triple-Pass KSampler`
 - **Class:** `HaDeSAnimaTriplePassKSampler`
@@ -224,8 +224,13 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── hades_pipeline_ui.js  # UI installers & custom telemetry HUDs for the 6 Pipeline nodes
 │   ├── hades_ksampler_ui.js  # UI installers & flow/staircase HUDs for the 3 Anima KSamplers
 │   └── hades_loaders_ui.js   # UI installers & diagnostic badges for the 4 Loader/Decode nodes
+├── examples/                 # Ready-to-use ComfyUI workflow JSONs (Single, Dual, and Triple Pass)
+│   ├── HaDeS Anima Suite - Simple Pass Generation Example.json
+│   ├── HaDeS Anima Suite - Dual Pass Generation Example.json
+│   └── HaDeS Anima Suite - Triple Pass Generation Example.json
 ├── tests/
 │   └── test_hades_suite.py   # 22 automated unit & integration test suites
+├── CHANGELOG.md              # Historical version changelog
 ├── pyproject.toml
 ├── LICENSE
 └── README.md

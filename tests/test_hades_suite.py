@@ -1423,9 +1423,18 @@ def test_22_anima_suite_telemetry():
     telemetry_node = hades.HaDeSAnimaSuiteTelemetry()
     assert telemetry_node.RETURN_NAMES == ("report", "json_telemetry", "diagnostics"), \
         f"Expected RETURN_NAMES ('report', 'json_telemetry', 'diagnostics'), got {telemetry_node.RETURN_NAMES}"
+    assert getattr(hades.HaDeSAnimaSuiteTelemetry, "OUTPUT_NODE", False) is True, \
+        "Expected HaDeSAnimaSuiteTelemetry to declare OUTPUT_NODE = True for autonomous execution"
+
+    def _exec_telemetry(*args, **kwargs):
+        res = telemetry_node.audit_telemetry(*args, **kwargs)
+        assert isinstance(res, dict) and "ui" in res and "result" in res, \
+            "Expected audit_telemetry to return {'ui': ..., 'result': ...} for ComfyUI execution dispatch"
+        assert "report" in res["ui"] and "json_telemetry" in res["ui"] and "diagnostics" in res["ui"]
+        return res["result"]
 
     # 1. Idle state check
-    rep_idle, json_idle, diag_idle = telemetry_node.audit_telemetry(
+    rep_idle, json_idle, diag_idle = _exec_telemetry(
         "Full Audit Report (Markdown)", "Idle Report"
     )
     import json
@@ -1444,7 +1453,7 @@ def test_22_anima_suite_telemetry():
     t_shield = "HaDeS Corner Scribble Shield | Box: 102x102px (10% base) | Mode: Smart Edge-Inward Blend (Auto-Heal) | Active: All 4 Corners | Detected: Clean (Low HF Energy)"
     t_decode = "HaDeS Anima VAE Decode | Output: 1024x1024px (1.05 MP) | Strategy: Direct Full Pass (Tile 512px / Overlap 64px)"
 
-    rep_full, json_full, diag_full = telemetry_node.audit_telemetry(
+    rep_full, json_full, diag_full = _exec_telemetry(
         report_format="Full Audit Report (Markdown)",
         report_title="HaDeS Flight Test Nominal",
         user_notes="High quality anime render test",
@@ -1472,7 +1481,7 @@ def test_22_anima_suite_telemetry():
     # 3. Test divergence / warning detection (Mismatch shift + non-32px resolution)
     t_model_div = "HaDeS Anima Model Loader | Model: Anima HaDeS v2.0 | Flow Shift: 3.00"
     t_ksamp_div = "HaDeS Anima KSampler | Resolution: 1000x1000px | Steps: 20 | CFG: 4.50 | Flow Shift (multiplier=1.0): 1.00"
-    rep_div, json_div, diag_div = telemetry_node.audit_telemetry(
+    rep_div, json_div, diag_div = _exec_telemetry(
         report_format="Compact Flight Summary",
         report_title="HaDeS Flight Test Warning",
         info_1=t_model_div,
@@ -1484,11 +1493,27 @@ def test_22_anima_suite_telemetry():
     assert any("not 32px macroblock aligned" in iss["message"] for iss in data_div["diagnostics"]["issues"])
     assert "Flow Shift Divergence" in diag_div or "warnings" in diag_div
 
-    # 4. Test format variations
-    rep_diag, _, _ = telemetry_node.audit_telemetry("Diagnostics Only", "Diag Mode", info_1=t_model)
+    # 4. Regression Test for Audit B2 & B4: Shield + Prompt Studio (No false 32px warning, no false LoRA warning)
+    t_studio = "=== HADES ANIMA PROMPT STUDIO ===\nModel Variant: Anima Aesthetic\nEmphasis Scale: 1.50x"
+    t_shield_only = "HaDeS Corner Scribble Shield | Box: 153x153px (15% base) | Mode: Smart Edge-Inward Blend (Auto-Heal) | Detected: Clean (Low HF Energy)"
+    rep_reg, json_reg, diag_reg = _exec_telemetry(
+        report_format="Full Audit Report (Markdown)",
+        report_title="Shield & Studio Regression",
+        info_1=t_studio,
+        info_2=t_shield_only,
+    )
+    data_reg = json.loads(json_reg)
+    assert not any("32px macroblock" in iss["message"] for iss in data_reg["diagnostics"]["issues"]), \
+        "Shield inspection box must NOT trigger false 32px canvas alignment warnings"
+    assert not any("External LoRAs detected" in iss["message"] for iss in data_reg["diagnostics"]["issues"]), \
+        "Prompt Studio alone must NOT trigger false External LoRAs warnings"
+    assert data_reg["health_score"] == 100, f"Expected 100 health score on clean studio+shield, got {data_reg['health_score']}"
+
+    # 5. Test format variations
+    rep_diag, _, _ = _exec_telemetry("Diagnostics Only", "Diag Mode", info_1=t_model)
     assert "Passed Validations" in rep_diag
 
-    rep_raw_json, _, _ = telemetry_node.audit_telemetry("JSON Raw Data", "JSON Mode", info_1=t_model)
+    rep_raw_json, _, _ = _exec_telemetry("JSON Raw Data", "JSON Mode", info_1=t_model)
     data_raw = json.loads(rep_raw_json)
     assert data_raw["report_title"] == "JSON Mode"
 

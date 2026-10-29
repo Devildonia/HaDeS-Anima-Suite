@@ -1141,16 +1141,24 @@ export function setupSuiteTelemetryUI(node) {
     node.onExecuted = function (output) {
         if (typeof origOnExecuted === "function") origOnExecuted.apply(this, arguments);
         if (output) {
-            if (Array.isArray(output.report) && output.report[0]) {
-                this._latestReport = output.report[0];
-            } else if (typeof output.report === "string") {
-                this._latestReport = output.report;
+            const data = output.ui || output;
+            if (Array.isArray(data.report) && data.report[0]) {
+                this._latestReport = data.report[0];
+            } else if (typeof data.report === "string") {
+                this._latestReport = data.report;
             }
-            if (Array.isArray(output.json_telemetry) && output.json_telemetry[0]) {
-                this._latestJson = output.json_telemetry[0];
+            if (Array.isArray(data.json_telemetry) && data.json_telemetry[0]) {
+                this._latestJson = data.json_telemetry[0];
+            } else if (typeof data.json_telemetry === "string") {
+                this._latestJson = data.json_telemetry;
             }
-            if (Array.isArray(output.diagnostics) && output.diagnostics[0]) {
-                this._latestDiag = output.diagnostics[0];
+            if (Array.isArray(data.diagnostics) && data.diagnostics[0]) {
+                this._latestDiag = data.diagnostics[0];
+            } else if (typeof data.diagnostics === "string") {
+                this._latestDiag = data.diagnostics;
+            }
+            if (typeof this.setDirtyCanvas === "function") {
+                this.setDirtyCanvas(true, true);
             }
         }
     };

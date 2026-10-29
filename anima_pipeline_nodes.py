@@ -32,7 +32,7 @@ _KAOMOJI_SET = {
 _AESTHETIC_SLOP_TAGS = {
     "score_9", "score_8_up", "score_7_up", "score_6_up", "score_5_up", "score_4_up",
     "masterpiece", "best quality", "ultra-detailed", "ultra detailed", "8k", "4k",
-    "extremely detailed", "insanely detailed"
+    "extremely detailed", "insanely detailed", "trending on artstation"
 }
 _WEIGHTED_TAG_RE = re.compile(r"^\((.+):([+-]?\d+(?:\.\d+)?)\)$")
 _WEIGHTED_PARENS_ONLY_RE = re.compile(r"^\((.+)\)$")
@@ -1287,6 +1287,7 @@ class HaDeSAnimaSuiteTelemetry:
 
     RETURN_TYPES = ("STRING", "STRING", "STRING")
     RETURN_NAMES = ("report", "json_telemetry", "diagnostics")
+    OUTPUT_NODE = True
     FUNCTION = "audit_telemetry"
     CATEGORY = "HaDeS/Anima Pipeline"
 
@@ -1327,7 +1328,7 @@ class HaDeSAnimaSuiteTelemetry:
             cat = self._classify_stream(item)
             buckets[cat].append(item)
 
-        # 3. Extract key telemetry telemetry points for diagnostics
+        # 3. Extract key telemetry points for diagnostics (isolated by bucket)
         model_shift = None
         sampler_shift = None
         sampler_cfg = None
@@ -1340,8 +1341,6 @@ class HaDeSAnimaSuiteTelemetry:
         corner_status = None
         vae_strategy = None
 
-        full_text = "\n\n".join(raw_inputs)
-
         # Shift checks
         for arch_item in buckets["ARCHITECTURE"]:
             m_s = re.search(r"(?:Flow Shift|Shift)[:\s=]+([0-9]+(?:\.[0-9]+)?)", arch_item, re.IGNORECASE)
@@ -1351,6 +1350,7 @@ class HaDeSAnimaSuiteTelemetry:
                 except ValueError:
                     pass
 
+        # Sampling checks: shift, CFG, NAG
         for samp_item in buckets["SAMPLING"]:
             m_ss = re.search(r"Flow Shift(?:\s*\([^)]*\))?[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
             if m_ss:
@@ -1358,52 +1358,63 @@ class HaDeSAnimaSuiteTelemetry:
                     sampler_shift = float(m_ss.group(1))
                 except ValueError:
                     pass
-            m_cfg = re.search(r"\bCFG[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
+            m_cfg = re.search(r"\bCFG(?:\s+is|[:\s=]+)\s*([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
             if m_cfg:
                 try:
                     sampler_cfg = float(m_cfg.group(1))
                 except ValueError:
                     pass
 
-        # NAG check
-        if any("ATTENTION GUIDANCE" in s.upper() or "NAG" in s.upper() for s in buckets["SAMPLING"]):
-            nag_active = True
-            m_sc = re.search(r"Scale[:\s=]+([0-9]+(?:\.[0-9]+)?)", full_text, re.IGNORECASE)
-            if m_sc:
+            if "ATTENTION GUIDANCE" in samp_item.upper():
+                m_act = re.search(r"Active:\s*(True|False)", samp_item, re.IGNORECASE)
+                if m_act:
+                    nag_active = (m_act.group(1).lower() == "true")
+                else:
+                    nag_active = True
+                m_sc = re.search(r"Scale[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
+                if m_sc:
+                    try:
+                        nag_scale = float(m_sc.group(1))
+                    except ValueError:
+                        pass
+                m_tau = re.search(r"Tau[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
+                if m_tau:
+                    try:
+                        nag_tau = float(m_tau.group(1))
+                    except ValueError:
+                        pass
+
+        # Resolution check: isolated specifically to SAMPLING & POST_PROCESSING with tag
+        for res_candidate in buckets["SAMPLING"] + buckets["POST_PROCESSING"]:
+            m_res = re.search(r"(?:Resolution|Canvas|Output|Dimensions)[:\s]+([0-9]{3,5})\s*x\s*([0-9]{3,5})", res_candidate, re.IGNORECASE)
+            if m_res:
                 try:
-                    nag_scale = float(m_sc.group(1))
+                    res_w, res_h = int(m_res.group(1)), int(m_res.group(2))
+                    break
                 except ValueError:
                     pass
-            m_tau = re.search(r"Tau[:\s=]+([0-9]+(?:\.[0-9]+)?)", full_text, re.IGNORECASE)
-            if m_tau:
-                try:
-                    nag_tau = float(m_tau.group(1))
-                except ValueError:
-                    pass
 
-        # Resolution check
-        m_res = re.search(r"\b([0-9]{3,5})\s*x\s*([0-9]{3,5})\s*(?:px)?\b", full_text, re.IGNORECASE)
-        if m_res:
-            try:
-                res_w, res_h = int(m_res.group(1)), int(m_res.group(2))
-            except ValueError:
-                pass
+        # VAE channels check: isolated strictly to ARCHITECTURE & POST_PROCESSING
+        for vae_candidate in buckets["ARCHITECTURE"] + buckets["POST_PROCESSING"]:
+            if "VAE" in vae_candidate.upper():
+                m_vae = re.search(r"(?:Latent Channels|Channels)[:\s]+(\d+)\b", vae_candidate, re.IGNORECASE)
+                if m_vae:
+                    try:
+                        vae_channels = int(m_vae.group(1))
+                        break
+                    except ValueError:
+                        pass
+                elif "WAN2.1" in vae_candidate.upper() or "16CH" in vae_candidate.upper():
+                    vae_channels = 16
+                    break
 
-        # VAE channels check
-        m_vae = re.search(r"(\d+)\s*(?:ch|channels)\b", full_text, re.IGNORECASE)
-        if m_vae:
-            try:
-                vae_channels = int(m_vae.group(1))
-            except ValueError:
-                pass
-        elif "WAN2.1" in full_text.upper():
-            vae_channels = 16
+        # llm_adapter check: check conditioning streams
+        for cond_item in buckets["CONDITIONING"]:
+            if any(x in cond_item.upper() for x in ["STRIPPED", "PROTECTED", "DIRTY LLM_ADAPTER KEYS STRIPPED", "BRIDGE: STRIPPED"]):
+                llm_adapter_safe = True
+                break
 
-        # llm_adapter check
-        if any(x in full_text.upper() for x in ["STRIPPED", "PROTECTED", "DIRTY LLM_ADAPTER KEYS STRIPPED", "BRIDGE: STRIPPED"]):
-            llm_adapter_safe = True
-
-        # Corner shield check
+        # Corner shield & VAE decode checks
         for post_item in buckets["POST_PROCESSING"]:
             if "CORNER SCRIBBLE SHIELD" in post_item.upper() or "CORNER SHIELD" in post_item.upper():
                 m_cs = re.search(r"Detected:\s*([^|\n]+)", post_item, re.IGNORECASE)
@@ -1443,7 +1454,11 @@ class HaDeSAnimaSuiteTelemetry:
             else:
                 issues.append(("ERROR", f"Incompatible VAE ({vae_channels} channels). Anima architecture strictly requires Wan2.1 16-channel VAE."))
 
-        if buckets["CONDITIONING"]:
+        has_loras = any(
+            any(k in s.upper() for k in ["MULTI-LORA", "LORA REMAPPER", "STANDALONE LORA MERGER"])
+            for s in buckets["CONDITIONING"]
+        )
+        if has_loras:
             if llm_adapter_safe:
                 checks.append("Anima 6-layer text conditioner bridge protected (dirty lr=0 llm_adapter keys stripped).")
             else:
@@ -1476,6 +1491,9 @@ class HaDeSAnimaSuiteTelemetry:
         elif any(lvl == "WARNING" for lvl, _ in issues):
             status_text = "DEGRADED (WARNINGS DETECTED)"
             status_icon = "⚠️"
+        elif len(checks) == 0:
+            status_text = "UNVERIFIED (NO APPLICABLE RULES TRIGGERED)"
+            status_icon = "ℹ️"
         else:
             status_text = "100% NOMINAL"
             status_icon = "✅"
@@ -1612,4 +1630,11 @@ class HaDeSAnimaSuiteTelemetry:
 
             report_out = "\n".join(md_lines)
 
-        return (report_out, json_str, diagnostics_one_line)
+        return {
+            "ui": {
+                "report": [report_out],
+                "json_telemetry": [json_str],
+                "diagnostics": [diagnostics_one_line],
+            },
+            "result": (report_out, json_str, diagnostics_one_line),
+        }
