@@ -1,12 +1,12 @@
-# HaDeS Anima Suite v0.1.5 — Complete 17-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.6 — Complete 18-Node Anima Ecosystem for ComfyUI
 
-**HaDeS Anima Suite** is a specialized **17-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
+**HaDeS Anima Suite** is a specialized **18-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
-It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, and the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
+It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
 
 ---
 
-## Key Architectural Innovations in v0.1.5
+## Key Architectural Innovations in v0.1.6
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -20,14 +20,16 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
    - **Prompt Studio & Aesthetic Guard:** Prevents *Anima-Aesthetic* / *2.9B* latent saturation (*slop*) by auto-stripping `score_*` & `masterpiece` tags when appropriate, normalizing Booru grammar while protecting kaomojis (`^_^`) and whitelisted tokens (`safe_for_work`), extracting embedded dataset triggers (`ye-pop`, `deviantart`) into canonical Line 1 headers, preserving natural language sentences with grammatical colons intact, and scaling `T5XXL` query-token emphasis weights independently of `Qwen3`.
    - **NAG Attention Guidance (`CFG = 1.0` Negative Enabler & Anti-Burn):** Enables real negative guidance on **Anima-Turbo / Lightning** at `CFG = 1.0` and prevents high-CFG edge frying on Base/Aesthetic via L1-norm-bounded attention extrapolation (`nag_tau`) inside an exact sigma window (safely gated to Anima models via `only_anima = True`).
    - **16-Channel Latent & Pipeline Guard:** Blocks the common **64-channel Qwen-Image 2.1 VAE trap**, enforces `32px` grid alignment across 11 native Anima aspect ratios (up to `1:4` and `4:1`), and prevents the **Anima-2.9B `1280×1280` white-background dataset bias**.
-   - **Corner Scribble Shield:** Detects and heals (or masks for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with core ambient texture safeguards (peak-aware HF detection differentiating fine 1px strokes from uniform grain $\sigma=0.03$), telemetry sync, and adaptive expansion capped strictly at 50% for large marks.
+   - **Corner Scribble Shield:** Detects and heals (or masks with `mask` output for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with core ambient texture safeguards (peak-aware HF detection differentiating fine 1px strokes from uniform grain $\sigma=0.03$), telemetry sync, and adaptive expansion capped strictly at 50% for large marks.
+5. **Centralized Suite Telemetry & Diagnostics Flight Auditor:**
+   - Connects up to 8+ `info` streams across all HaDeS Suite nodes in the workflow, auto-classifies them into logical pipeline phases, and runs an automated **Diagnostics & Health Engine** (Flow Shift synchronization check, Turbo/CFG=1 NAG guidance validation, 32px macroblock alignment check, 16ch Wan2.1 VAE verification, and `llm_adapter` text bridge lock). Outputs an audit-grade Markdown report, a structured JSON telemetry payload, and a compact single-line status summary with one-click clipboard copying.
 
 ---
 
-## Overview of the 17 Nodes
+## Overview of the 18 Nodes
 
 ```
-HaDeS Anima Suite v0.1.5
+HaDeS Anima Suite v0.1.6
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader
@@ -39,12 +41,13 @@ HaDeS Anima Suite v0.1.5
 │   ├── 3. Anima Predictive Multi-LoRA
 │   ├── 4. Anima LoRA Merger
 │   └── 5. Anima CLIP Block Merger
-├── HaDeS/Anima Pipeline (5 Nodes)
+├── HaDeS/Anima Pipeline (6 Nodes)
 │   ├── 6. Anima Prompt Studio
 │   ├── 7. Anima Attention Guidance (NAG)
 │   ├── 8. Anima Latent
 │   ├── 9. Anima Universal LoRA Remapper
-│   └── 10. Anima Corner Shield
+│   ├── 10. Anima Corner Shield
+│   └── 18. Anima Suite Telemetry
 └── HaDeS_Anima_Suite/Samplers (3 Nodes)
     ├── 11. Anima KSampler
     ├── 12. Anima Dual-Pass KSampler
