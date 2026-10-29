@@ -317,7 +317,7 @@ export function setupAttentionGuidanceUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "NAG ATTENTION WINDOW & L1 GUARD",
+            title: "",
             accentColor: HADES_THEME.amber,
             customHeight: 66,
             drawCustomHUD(ctx, rect) {
@@ -350,11 +350,19 @@ export function setupAttentionGuidanceUI(node) {
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "left";
                 ctx.fillStyle = HADES_THEME.amber;
-                ctx.fillText(`WINDOW: ${Math.round(startP * 100)}% → ${Math.round(endP * 100)}%`, trackX, rect.y + 9);
+                const leftTxt = `WINDOW: ${Math.round(startP * 100)}% → ${Math.round(endP * 100)}%`;
+                const leftW = ctx.measureText(leftTxt).width;
+                ctx.fillText(leftTxt, trackX, rect.y + 9);
 
-                ctx.textAlign = "right";
-                ctx.fillStyle = HADES_THEME.cyan;
-                ctx.fillText(`SCALE ${scale.toFixed(1)}x | L1 TAU ≤ ${tau.toFixed(1)}`, trackX + trackW, rect.y + 9);
+                let rightTxt = `SCALE ${scale.toFixed(1)}x | L1 TAU ≤ ${tau.toFixed(1)}`;
+                if (trackW - leftW - 12 < ctx.measureText(rightTxt).width) {
+                    rightTxt = `S ${scale.toFixed(1)}x | τ ≤ ${tau.toFixed(1)}`;
+                }
+                if (trackW - leftW - 12 >= ctx.measureText(rightTxt).width) {
+                    ctx.textAlign = "right";
+                    ctx.fillStyle = HADES_THEME.cyan;
+                    ctx.fillText(rightTxt, trackX + trackW, rect.y + 9);
+                }
             },
             actions: [
                 {
@@ -840,7 +848,7 @@ export function setupCornerScribbleShieldUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "CORNER SIGNATURE SCRIBBLE SHIELD",
+            title: "",
             accentColor: HADES_THEME.rose,
             customHeight: 66,
             drawCustomHUD(ctx, rect) {
@@ -876,10 +884,18 @@ export function setupCornerScribbleShieldUI(node) {
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
-                ctx.fillText(`INSPECTION BOX: ${boxPct}% PERIMETER`, fx + fw + 10, rect.y + 11);
+                let boxTxt = `INSPECTION BOX: ${boxPct}% PERIMETER`;
+                if (ctx.measureText(boxTxt).width > rect.w - fw - 24) {
+                    boxTxt = `BOX: ${boxPct}% PERIMETER`;
+                }
+                ctx.fillText(boxTxt, fx + fw + 10, rect.y + 11);
 
                 ctx.fillStyle = mode.includes("Mask Only") ? HADES_THEME.cyan : HADES_THEME.emerald;
-                ctx.fillText(`ACTION: ${mode.toUpperCase()}`, fx + fw + 10, rect.y + 24);
+                let actTxt = `ACTION: ${mode.toUpperCase()}`;
+                if (ctx.measureText(actTxt).width > rect.w - fw - 24) {
+                    actTxt = mode.includes("Mask Only") ? "ACTION: MASK ONLY" : (mode.includes("Auto-Heal") ? "ACTION: AUTO-HEAL" : "ACTION: FORCED");
+                }
+                ctx.fillText(actTxt, fx + fw + 10, rect.y + 24);
             },
             actions: [
                 {
