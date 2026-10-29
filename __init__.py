@@ -18,7 +18,7 @@ except ImportError:
     def _convert_lora_fn(sd):
         return sd
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
@@ -1636,23 +1636,23 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "HaDeSAnimaModelBlockMerger": "HaDeS Anima Model Block Merger (Manual)",
-    "HaDeSAnimaPredictiveModelMerger": "HaDeS Anima Predictive Merger (Auto Spectral)",
-    "HaDeSAnimaPredictiveMultiLoraLoader": "HaDeS Anima Predictive Multi-LoRA Loader",
-    "HaDeSAnimaStandaloneLoraMerger": "HaDeS Anima Standalone LoRA Merger (SVD Exporter)",
-    "HaDeSAnimaCLIPBlockMerger": "HaDeS Anima CLIP Block Merger",
-    "HaDeSAnimaPromptStudio": "HaDeS Anima Prompt Studio & Aesthetic Guard",
-    "HaDeSAnimaAttentionGuidance": "HaDeS Anima Attention Guidance (NAG / CFG-1.0)",
-    "HaDeSAnimaLatentPipelineGuard": "HaDeS Anima Latent & Pipeline Guard",
-    "HaDeSAnimaUniversalLoraLoader": "HaDeS Anima Universal LoRA Remapper & Sanitizer",
-    "HaDeSAnimaCornerScribbleShield": "HaDeS Anima Corner Scribble Shield",
-    "HaDeSAnimaKSampler": "HaDeS Anima KSampler (Single-Pass Master)",
-    "HaDeSAnimaDualPassKSampler": "HaDeS Anima Dual-Pass KSampler (HiRes & Refiner)",
-    "HaDeSAnimaTriplePassKSampler": "HaDeS Anima Triple-Pass KSampler (Progressive Studio)",
-    "HaDeSAnimaModelLoader": "HaDeS Anima Diffusion Model Loader",
-    "HaDeSAnimaCLIPLoader": "HaDeS Anima Qwen3 Text Encoder Loader",
-    "HaDeSAnimaVAELoader": "HaDeS Anima 16ch Wan21 VAE Loader",
-    "HaDeSAnimaVAEDecode": "HaDeS Anima Smart Tiled VAE Decode & Scribble Shield",
+    "HaDeSAnimaModelBlockMerger": "Anima Model Block Merger",
+    "HaDeSAnimaPredictiveModelMerger": "Anima Predictive Model Merger",
+    "HaDeSAnimaPredictiveMultiLoraLoader": "Anima Predictive Multi-LoRA",
+    "HaDeSAnimaStandaloneLoraMerger": "Anima LoRA Merger",
+    "HaDeSAnimaCLIPBlockMerger": "Anima CLIP Block Merger",
+    "HaDeSAnimaPromptStudio": "Anima Prompt Studio",
+    "HaDeSAnimaAttentionGuidance": "Anima Attention Guidance (NAG)",
+    "HaDeSAnimaLatentPipelineGuard": "Anima Latent",
+    "HaDeSAnimaUniversalLoraLoader": "Anima Universal LoRA Remapper",
+    "HaDeSAnimaCornerScribbleShield": "Anima Corner Shield",
+    "HaDeSAnimaKSampler": "Anima KSampler (Single-Pass)",
+    "HaDeSAnimaDualPassKSampler": "Anima Dual-Pass KSampler",
+    "HaDeSAnimaTriplePassKSampler": "Anima Triple-Pass KSampler",
+    "HaDeSAnimaModelLoader": "Anima Diffusion Model Loader",
+    "HaDeSAnimaCLIPLoader": "Anima Text Encoder Loader",
+    "HaDeSAnimaVAELoader": "Anima VAE Loader",
+    "HaDeSAnimaVAEDecode": "Anima VAE Decode",
 }
 
 WEB_DIRECTORY = "./web"

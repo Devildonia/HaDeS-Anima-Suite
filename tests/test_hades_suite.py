@@ -1353,4 +1353,4 @@ if __name__ == "__main__":
     test_17_anima_smart_vae_decode_and_scribble_shield()
     test_18_nag_only_anima_gate()
     test_19_prompt_header_canonical_and_dual_legacy()
-    print("\nALL 19 HADES ANIMA SUITE v0.1.3 TEST SUITES PASSED!")
+    print("\nALL 19 HADES ANIMA SUITE v0.1.4 TEST SUITES PASSED!")

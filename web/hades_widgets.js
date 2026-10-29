@@ -83,9 +83,111 @@ export function hideBackingWidget(widget) {
     widget.draw = () => {};
 }
 
+const HADES_ICON_IMG = new Image();
+HADES_ICON_IMG.src = new URL("./icon.png", import.meta.url).href;
+HADES_ICON_IMG.onload = () => {
+    app?.canvas?.setDirty?.(true, true);
+};
+
+export function enableNodeHeaderIcon(node, options = {}) {
+    if (!node) return;
+    if (!node._default_hades_title) {
+        node._default_hades_title = node.title || node.constructor?.title || "";
+    }
+    const stripPrefix = options.stripPrefix ?? true;
+
+    // 1. Right-click context menu option to show/hide icon on demand
+    const origGetExtraMenuOptions = node.getExtraMenuOptions;
+    node.getExtraMenuOptions = function (canvas, menuOptions) {
+        if (typeof origGetExtraMenuOptions === "function") {
+            origGetExtraMenuOptions.call(this, canvas, menuOptions);
+        }
+        const currentFlags = this.flags || {};
+        const defTitle = this._default_hades_title || this.constructor?.title || "";
+        const curTitle = this.getTitle?.() ?? this.title ?? "";
+        const isDefault = (
+            curTitle.replace(/^HaDeS\s+/i, "").trim() === defTitle.replace(/^HaDeS\s+/i, "").trim()
+        );
+        const isVisible = currentFlags.show_hades_icon !== undefined
+            ? Boolean(currentFlags.show_hades_icon)
+            : isDefault;
+
+        if (Array.isArray(menuOptions)) {
+            menuOptions.push({
+                content: isVisible ? "Hide HaDeS Icon" : "Show HaDeS Icon",
+                callback: () => {
+                    this.flags = this.flags || {};
+                    this.flags.show_hades_icon = !isVisible;
+                    this.setDirtyCanvas?.(true, true);
+                },
+            });
+        }
+    };
+
+    // 2. Custom header text & icon rendering
+    const origOnDrawTitleText = node.onDrawTitleText;
+    node.onDrawTitleText = function (ctx, title_height, size, scale, titleFontStyle, selected) {
+        if (typeof origOnDrawTitleText === "function") {
+            origOnDrawTitleText.call(this, ctx, title_height, size, scale, titleFontStyle, selected);
+            return;
+        }
+
+        ctx.font = titleFontStyle || this.titleFontStyle || "bold 12px sans-serif";
+        let rawTitle = this.getTitle?.() ?? this.title ?? `❌ ${this.type}`;
+        if (stripPrefix) {
+            rawTitle = String(rawTitle).replace(/^HaDeS\s+/i, "");
+        }
+        if (this.pinned) rawTitle += " 📌";
+
+        const defTitle = this._default_hades_title || this.constructor?.title || "";
+        const isDefaultName = (
+            rawTitle.trim() === defTitle.replace(/^HaDeS\s+/i, "").trim()
+            || rawTitle.trim() === defTitle.trim()
+        );
+
+        const currentFlags = this.flags || {};
+        const showIcon = currentFlags.show_hades_icon !== undefined
+            ? Boolean(currentFlags.show_hades_icon)
+            : isDefaultName;
+
+        const h = title_height || 30;
+        const iconSize = Math.max(14, Math.min(20, Math.round(h * 0.6)));
+        const iconY = Math.round(-h + (h - iconSize) * 0.5);
+        const iconX = Math.round(h * 0.75);
+
+        let textX = iconX;
+        if (showIcon) {
+            if (HADES_ICON_IMG.complete && HADES_ICON_IMG.naturalWidth > 0) {
+                ctx.drawImage(HADES_ICON_IMG, iconX, iconY, iconSize, iconSize);
+            }
+            textX = iconX + iconSize + 6;
+        }
+
+        const maxTextW = size[0] - textX - 10;
+        let displayTitle = rawTitle;
+
+        if (this.collapsed) {
+            displayTitle = rawTitle.substring(0, 18);
+        } else if (maxTextW > 20 && ctx.measureText(displayTitle).width > maxTextW) {
+            while (displayTitle.length > 2 && ctx.measureText(displayTitle + "…").width > maxTextW) {
+                displayTitle = displayTitle.slice(0, -1);
+            }
+            displayTitle += "…";
+        }
+
+        ctx.fillStyle = selected
+            ? "#ffffff"
+            : (this.constructor.title_text_color || "#e5e7eb");
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(displayTitle, textX, Math.round(-h * 0.5));
+    };
+}
+
 export function applyNodeFrameStyle(node) {
     node.color = "#1b2028";
     node.bgcolor = "#12151a";
+    enableNodeHeaderIcon(node);
 }
 
 export function parseClientRecipePreview(recipeStr) {

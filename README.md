@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.1.3 — Complete 17-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.4 — Complete 17-Node Anima Ecosystem for ComfyUI
 
 **HaDeS Anima Suite** is a specialized **17-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
@@ -6,7 +6,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 
 ---
 
-## Key Architectural Innovations in v0.1.3
+## Key Architectural Innovations in v0.1.4
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -27,28 +27,28 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 ## Overview of the 17 Nodes
 
 ```
-HaDeS Anima Suite v0.1.3
+HaDeS Anima Suite v0.1.4
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
-│   ├── 14. HaDeS Anima Diffusion Model Loader
-│   ├── 15. HaDeS Anima Qwen3 Text Encoder Loader
-│   ├── 16. HaDeS Anima 16ch Wan21 VAE Loader
-│   └── 17. HaDeS Anima Smart Tiled VAE Decode & Scribble Shield
+│   ├── 14. Anima Diffusion Model Loader
+│   ├── 15. Anima Text Encoder Loader
+│   ├── 16. Anima VAE Loader
+│   └── 17. Anima VAE Decode
 ├── HaDeS/Anima Mergers (5 Nodes)
-│   ├── 1. HaDeS Anima Model Block Merger (Manual)
-│   ├── 2. HaDeS Anima Predictive Merger (Auto Spectral)
-│   ├── 3. HaDeS Anima Predictive Multi-LoRA Loader
-│   ├── 4. HaDeS Anima Standalone LoRA Merger (SVD Exporter)
-│   └── 5. HaDeS Anima CLIP Block Merger
+│   ├── 1. Anima Model Block Merger
+│   ├── 2. Anima Predictive Model Merger
+│   ├── 3. Anima Predictive Multi-LoRA
+│   ├── 4. Anima LoRA Merger
+│   └── 5. Anima CLIP Block Merger
 ├── HaDeS/Anima Pipeline (5 Nodes)
-│   ├── 6. HaDeS Anima Prompt Studio & Aesthetic Guard
-│   ├── 7. HaDeS Anima Attention Guidance (NAG / CFG-1.0)
-│   ├── 8. HaDeS Anima Latent & Pipeline Guard
-│   ├── 9. HaDeS Anima Universal LoRA Remapper & Sanitizer
-│   └── 10. HaDeS Anima Corner Scribble Shield
+│   ├── 6. Anima Prompt Studio
+│   ├── 7. Anima Attention Guidance (NAG)
+│   ├── 8. Anima Latent
+│   ├── 9. Anima Universal LoRA Remapper
+│   └── 10. Anima Corner Shield
 └── HaDeS_Anima_Suite/Samplers (3 Nodes)
-    ├── 11. HaDeS Anima KSampler (Single-Pass Master)
-    ├── 12. HaDeS Anima Dual-Pass KSampler (HiRes & Refiner)
-    └── 13. HaDeS Anima Triple-Pass KSampler (Progressive Studio)
+    ├── 11. Anima KSampler (Single-Pass)
+    ├── 12. Anima Dual-Pass KSampler
+    └── 13. Anima Triple-Pass KSampler
 ```
 
 ---
@@ -71,7 +71,7 @@ HaDeS Anima Suite v0.1.3
 
 ### Part A — Mergers & LoRA Subspace Engine (`HaDeS/Anima Mergers`)
 
-#### 1. `HaDeS Anima Model Block Merger (Manual)`
+#### 1. `Anima Model Block Merger`
 - **Class:** `HaDeSAnimaModelBlockMerger`
 - **Purpose:** Merges two Anima `MODEL` checkpoints across the 7 functional block groups with baked-patch awareness (`get_baked_weight`) and zero-RAM-overhead skipping for identical tensors.
 - **Inputs:**
@@ -81,7 +81,7 @@ HaDeS Anima Suite v0.1.3
   - `ADAPTER_Text_Alignment` (`FLOAT`, default **`0.00`**): Keeps Model 1's `llm_adapter` intact by default.
   - `recipe_override` (`STRING`, optional): Accepts a 34-float CSV string or full JSON export from the Predictive Merger.
 
-#### 2. `HaDeS Anima Predictive Merger (Auto Spectral)`
+#### 2. `Anima Predictive Model Merger`
 - **Class:** `HaDeSAnimaPredictiveModelMerger`
 - **Purpose:** Analyzes per-block angular similarity and Z-normalized inter-block Frobenius divergence (or exact Task Vectors $\Delta W_1 = W_1 - W_{\text{base}}$, $\Delta W_2 = W_2 - W_{\text{base}}$ when `base_model` is connected) to compute an optimal 34-block merge curve automatically.
 - **Inputs:**
@@ -90,7 +90,7 @@ HaDeS Anima Suite v0.1.3
   - `target_influence` (`0.0..1.0`, default `0.50`), `aggressiveness` (`0.1..2.5`, default `1.00`).
   - `protect_llm_adapter` (`BOOLEAN`, default `True`): Locks blocks `28..33` (`llm_adapter`) to `0.0` so Model 1's semantic bridge is never degraded.
 
-#### 3. `HaDeS Anima Predictive Multi-LoRA Loader`
+#### 3. `Anima Predictive Multi-LoRA`
 - **Class:** `HaDeSAnimaPredictiveMultiLoraLoader`
 - **Purpose:** Simultaneously loads up to 4 Anima LoRAs (`PRI`, `S2`, `S3`, `S4`), automatically remapping Diffusers/Kohya keys and computing **exact low-rank factor-space Grassmann overlap** (via reduced QR decomposition) between each secondary LoRA and the primary LoRA to prevent overcooking.
 - **Key Features:**
@@ -98,14 +98,14 @@ HaDeS Anima Suite v0.1.3
   - Automatically strips dirty `llm_adapter` keys when `protect_llm_adapter = True`.
   - Applies square-root overlap damping ($1 / \sqrt{N}$) to shared `CLIP` layers.
 
-#### 4. `HaDeS Anima Standalone LoRA Merger (SVD Exporter)`
+#### 4. `Anima LoRA Merger`
 - **Class:** `HaDeSAnimaStandaloneLoraMerger`
 - **Purpose:** Merges two Anima LoRAs (`lora_a` and `lora_b`—even if one is in **Diffusers** format and the other is in **Kohya/ComfyUI** format) into a single `.safetensors` file using **Reduced QR-SVD Factorization**:
   $$\Delta W = U_{\text{cat}} D_{\text{cat}} = Q_U (R_U R_D^T) Q_D^T$$
   running SVD on the tiny $2r \times 2r$ core matrix in milliseconds instead of a full $M \times N$ matrix.
 - **Modes:** `Additive (A + B, Multi-LoRA match)` (default) or `Interpolated (Lerp (1-r)A + rB)`, plus optional DARE pruning and automatic donor-file overwrite protection.
 
-#### 5. `HaDeS Anima CLIP Block Merger`
+#### 5. `Anima CLIP Block Merger`
 - **Class:** `HaDeSAnimaCLIPBlockMerger`
 - **Purpose:** Merges two Anima text encoders (`Qwen3-0.6B` 28 layers or `Qwen3.5-4B` 36 layers) across 5 linguistic bands (`vocab_embeddings`, `syntax_rigidity` `[0–35%]`, `semantic_focus` `[35–72%]`, `style_abstraction` `[72%+]`, `final_projections`) using dynamic proportional layer depth detection.
 
@@ -113,7 +113,7 @@ HaDeS Anima Suite v0.1.3
 
 ### Part B — Anima Pipeline & Guard Nodes (`HaDeS/Anima Pipeline`)
 
-#### 6. `HaDeS Anima Prompt Studio & Aesthetic Guard`
+#### 6. `Anima Prompt Studio`
 - **Class:** `HaDeSAnimaPromptStudio`
 - **Purpose:** Automates CircleStone Labs' Booru/NL prompt rules and gives direct control over Anima's internal `T5XXL` query-token weight multiplier.
 - **How it works:**
@@ -122,7 +122,7 @@ HaDeS Anima Suite v0.1.3
   - **Style Header Injection & Preservation:** In `Flat Vector / Graphic` mode, injects the canonical non-anime dataset header: a single trigger (`ye-pop` or `deviantart`, selectable) on Line 1, an optional artwork title on Line 2 (`artwork_title`), and the prompt body on Line 3, `\n`-separated (CircleStone Labs 3-line format). The legacy dual-trigger header (`ye-pop\ndeviantart\n…`) is preserved via `header_mode = "Dual Legacy"`. If the user inputs a prompt that already starts with `ye-pop` or `deviantart`, manual 2-line or 3-line headers are preserved verbatim (title casing and punctuation intact) and descriptive natural language sentences are kept intact without improper comma-splitting.
   - **`t5_weight_multiplier`:** In ComfyUI's Anima implementation (`comfy/text_encoders/anima.py`), `Qwen3-0.6B` token weights are forced to `1.0` while `(tag:weight)` multipliers are passed through `T5XXLTokenizer` to multiply the output of `llm_adapter`. This slider scales those `T5XXL` emphasis weights directly!
 
-#### 7. `HaDeS Anima Attention Guidance (NAG / CFG-1.0)`
+#### 7. `Anima Attention Guidance (NAG)`
 - **Class:** `HaDeSAnimaAttentionGuidance`
 - **Purpose:** Implements **Normalized Attention Guidance (NAG)** via `optimized_attention_override` within a precise denoising window (`start_percent` $\to$ `end_percent` converted via `percent_to_sigma`).
 - **Why you need it:**
@@ -130,7 +130,7 @@ HaDeS Anima Suite v0.1.3
   - **Prevents High-CFG Contrast Burn** on `Anima-Base` and `Anima-Aesthetic` by bounding the L1-norm ratio of extrapolated attention features to `nag_tau` ($\tau \le 2.5$).
   - **Anima Family Gate:** `only_anima = True` (default) safely bypasses non-Anima models by checking `unet_config.image_model`, matching the canonical NAG reference pattern.
 
-#### 8. `HaDeS Anima Latent & Pipeline Guard`
+#### 8. `Anima Latent`
 - **Class:** `HaDeSAnimaLatentPipelineGuard`
 - **Purpose:** Generates 16-channel Wan21-format latents (`[B, 16, H // 8, W // 8]`) while validating your connected `model` and `vae`.
 - **Protections:**
@@ -138,11 +138,11 @@ HaDeS Anima Suite v0.1.3
   - **Anima-2.9B `1280×1280` White-BG Guard:** Automatically shifts `1280×1280` to `1216×1216` (`1.48 MP`, 32px-aligned) when `prevent_29b_white_bg_bias` is enabled, avoiding the white-background dataset bucket artifact in Anima-2.9B (`Preview 3`).
   - **11 Native Aspect Ratios:** Includes extreme `1:4` (`512×2048`) and `4:1` (`2048×512`) panoramas supported natively by Anima.
 
-#### 9. `HaDeS Anima Universal LoRA Remapper & Sanitizer`
+#### 9. `Anima Universal LoRA Remapper`
 - **Class:** `HaDeSAnimaUniversalLoraLoader`
 - **Purpose:** Loads any third-party Anima LoRA (Diffusers `transformer_blocks.*`, `ai-toolkit`, Kohya, OneTrainer, Musubi), applies the 24-rule `DIFFUSERS_TO_COMFY` key conversion, strips accidental `llm_adapter` weights (`strip_llm_adapter = True`), optionally scrubs `NaN`/`Inf` & $>10\sigma$ spectral outliers, and optionally exports a clean ComfyUI-native `.safetensors` copy to `models/loras/`.
 
-#### 10. `HaDeS Anima Corner Scribble Shield`
+#### 10. `Anima Corner Shield`
 - **Class:** `HaDeSAnimaCornerScribbleShield`
 - **Purpose:** Mitigates Anima's chronic **~20% corner signature scribble artifact** (which negative prompts like `signature, watermark` cannot suppress because training images had unlabeled corner signatures).
 - **Tuning:** Detection sensitivity defaults to `0.75` (threshold auto-derives from it), and the inspection box defaults to `10%` of the shorter side (`0.03`–`0.50` allowed, with adaptive expansion capped strictly at 50% for large watermarks). The shield only touches corner pixels: clean corners are left 100% untouched in Smart mode.
@@ -156,7 +156,7 @@ HaDeS Anima Suite v0.1.3
 
 ### Part C — Anima Rectified Flow KSampler Trilogy (`HaDeS_Anima_Suite/Samplers`)
 
-#### 11. `HaDeS Anima KSampler (Single-Pass Master)`
+#### 11. `Anima KSampler (Single-Pass)`
 - **Class:** `HaDeSAnimaKSampler`
 - **Purpose:** Single-pass Rectified Flow sampling engine tailored to Anima's `MiniTrainDIT` (`multiplier = 1.0` Flow Shift with deepcopy buffer isolation, unlike `ModelSamplingSD3` which injects `multiplier = 1000` and breaks Anima's timestep scaling).
 - **Key Features:**
@@ -164,14 +164,14 @@ HaDeS Anima Suite v0.1.3
   - **1-Click Variant Profiles:** Pre-calibrated profiles for `Anima Base / Raehoshi`, `Anima Aesthetic Crisp`, `Anima Aesthetic Painterly (beta57)`, `Anima Turbo`, `Anima Lightning TDM`, and `Anima 2.9B / 3.8B`.
   - **Optional 16ch VAE Decode:** Automatically validates `vae.latent_channels == 16` when a VAE is connected and outputs both `latent` and `decoded_image`.
 
-#### 12. `HaDeS Anima Dual-Pass KSampler (HiRes & Refiner)`
+#### 12. `Anima Dual-Pass KSampler`
 - **Class:** `HaDeSAnimaDualPassKSampler`
 - **Purpose:** Two-stage `Composition (1.0 MP) → HiRes/Style Refiner (1.25x–2.0x)` KSampler with a **16-channel Variance-Preserving Latent Bridge** snapped strictly to the **32px pixel grid**.
 - **Key Features:**
   - **16-Channel Variance Restoration:** Standard bicubic upscaling on `Wan21` 16-channel latents dampens high-frequency per-channel variance ($\text{Var}(z') < \text{Var}(z)$), causing soft/washed-out lineart at `denoise < 0.50`. HaDeS restores per-channel $(\mu_c, \sigma_c)$ across all 16 channels (or performs a `Pixel-Space VAE Round-Trip (Lanczos 32px)` when selected).
   - **Hybrid Model Handoff (`model_pass2_optional`):** Run Pass 1 with `Raehoshi` or `Anima-Base + Character LoRA` for exact character anatomy, and hand off Pass 2 to `Anima-Aesthetic` or `Anima-Turbo` (8 steps, `CFG 1.0`) for high-resolution rendering.
 
-#### 13. `HaDeS Anima Triple-Pass KSampler (Progressive Studio)`
+#### 13. `Anima Triple-Pass KSampler`
 - **Class:** `HaDeSAnimaTriplePassKSampler`
 - **Purpose:** Three-stage progressive studio pipeline (`Stage 1: Anatomy & Layout Lock 1.0x` $\to$ `Stage 2: Structural & Aesthetic Bridge ~1.35x` $\to$ `Stage 3: Micro-Lineart & Surface Polish ~1.75x–2.0x`).
 - **Why 3 Stages:** Jumping directly from `1.0x` (`1024×1024`) to `2.0x` (`2048×2048`) in a single step forces a trade-off between patch-hallucination (duplicated fingers/locks of hair at `denoise >= 0.45`) and blurriness (`denoise <= 0.28`). Stepping through an intermediate 32px-aligned structural bridge (`1.35x–1.50x` at `denoise ~0.48`) followed by a low-denoise `anima_beta57` micro-polish (`denoise ~0.26`) achieves 3–4 MP studio posters with zero anatomical drift.
@@ -180,19 +180,19 @@ HaDeS Anima Suite v0.1.3
 
 ### Part D — Native Anima Loaders & Smart VAE Decode (`HaDeS_Anima_Suite/Loaders`)
 
-#### 14. `HaDeS Anima Diffusion Model Loader`
+#### 14. `Anima Diffusion Model Loader`
 - **Class:** `HaDeSAnimaModelLoader`
 - **Purpose:** Loads Anima checkpoints in either native ComfyUI format or raw **Diffusers** format (`transformer_blocks.*`, `patch_embed.proj.*`, `time_embed.t_embedder.*`, `text_conditioner.*`) by applying the 24-rule deterministic key converter in memory, optionally injects an external `llm_adapter` (`Anima-3.8B-expanded_adapter.safetensors`), auto-detects `28L / 40L / 52L` topology, and pre-configures Rectified Flow `flow_shift` (`multiplier = 1.0`).
 
-#### 15. `HaDeS Anima Qwen3 Text Encoder Loader`
+#### 15. `Anima Text Encoder Loader`
 - **Class:** `HaDeSAnimaCLIPLoader`
 - **Purpose:** Dedicated loader for `qwen_3_06b_base.safetensors` (`AnimaTokenizer` + `AnimaTEModel`) with pre-load `1024d Qwen3-0.6B` architecture verification (blocking accidental `T5-XXL`, `CLIP-L`, or `3584d Qwen2.5-7B` loads) and a `cpu (Low-VRAM 6GB Safe)` placement mode.
 
-#### 16. `HaDeS Anima 16ch Wan21 VAE Loader`
+#### 16. `Anima VAE Loader`
 - **Class:** `HaDeSAnimaVAELoader`
 - **Purpose:** Inspects the VAE `state_dict` header *before* instantiation to block the **64-channel Qwen-Image 2.1 VAE trap** (which shares the filename `qwen_image_vae.safetensors`) and enforces `bfloat16` precision for `WanVAE` RMSNorm stability.
 
-#### 17. `HaDeS Anima Smart Tiled VAE Decode & Scribble Shield`
+#### 17. `Anima VAE Decode`
 - **Class:** `HaDeSAnimaVAEDecode`
 - **Purpose:** Decodes 16-channel Anima latents with proactive **Auto Smart-Tile** switching when resolution exceeds `auto_tile_mp_threshold` (default `1.35 MP`) or free VRAM is tight—avoiding `WanVAE` untiled OOM spikes on 6GB–12GB GPUs—and integrates an optional post-decode **Corner Scribble Shield** in a single node, with full user control over the shield: `corner_box_percent` (default `0.10`), `corner_sensitivity` (default `0.75`), `shield_heal_mode` (Smart Auto-Heal / Aggressive Forced Fill / Soft Blur) and `shield_feather_radius`.
 
