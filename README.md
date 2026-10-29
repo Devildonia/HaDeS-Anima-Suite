@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.1.4 — Complete 17-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.5 — Complete 17-Node Anima Ecosystem for ComfyUI
 
 **HaDeS Anima Suite** is a specialized **17-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
@@ -6,7 +6,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 
 ---
 
-## Key Architectural Innovations in v0.1.4
+## Key Architectural Innovations in v0.1.5
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -27,7 +27,7 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
 ## Overview of the 17 Nodes
 
 ```
-HaDeS Anima Suite v0.1.4
+HaDeS Anima Suite v0.1.5
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader

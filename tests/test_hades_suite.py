@@ -1437,4 +1437,4 @@ if __name__ == "__main__":
     test_19_prompt_header_canonical_and_dual_legacy()
     test_20_corner_shield_batch_isolation()
     test_21_nag_dynamic_shift_propagation()
-    print("\nALL 21 HADES ANIMA SUITE v0.1.4 TEST SUITES PASSED!")
+    print("\nALL 21 HADES ANIMA SUITE v0.1.5 TEST SUITES PASSED!")
