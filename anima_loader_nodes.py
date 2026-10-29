@@ -6,7 +6,6 @@ import comfy.utils
 import comfy.model_management
 
 from . import detect_anima_topology
-from .anima_pipeline_nodes import HaDeSAnimaCornerScribbleShield
 from .anima_ksampler_nodes import (
     clone_model_with_anima_shift,
     _validate_anima_16ch_vae_optional,

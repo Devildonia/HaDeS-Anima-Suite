@@ -412,8 +412,8 @@ def compute_subspace_metrics(up1, down1, scale1, up2, down2, scale2):
 
     ru1, ru2 = qu1.shape[1], qu2.shape[1]
     rd1, rd2 = qd1.shape[1], qd2.shape[1]
-    ru_min, ru_max = max(1, min(ru1, ru2)), max(1, max(ru1, ru2))
-    rd_min, rd_max = max(1, min(rd1, rd2)), max(1, max(rd1, rd2))
+    ru_min, ru_max = max(1, min(ru1, ru2)), max(1, ru1, ru2)
+    rd_min, rd_max = max(1, min(rd1, rd2)), max(1, rd1, rd2)
 
     raw_ov_u = torch.norm(torch.matmul(qu1.T, qu2)).item() / math.sqrt(ru_min)
     raw_ov_d = torch.norm(torch.matmul(qd1.T, qd2)).item() / math.sqrt(rd_min)

@@ -1,6 +1,5 @@
 import os
 import re
-import math
 import torch
 import torch.nn.functional as F
 import folder_paths
@@ -394,7 +393,12 @@ def format_anima_prompt_text(raw_prompt, model_variant, style_mode, booru_saniti
                 b_quality.append(cleaned)
             elif _BUCKET_SUBJECT_COUNT_RE.match(raw_clean):
                 b_subject.append(cleaned)
-            elif raw_clean.startswith("@") or any(raw_clean.endswith(st) or raw_clean == st for st in _BUILTIN_STYLE_TRIGGERS) or "style" in raw_clean:
+            elif (
+                raw_clean.startswith("@")
+                or any(raw_clean.endswith(st) or raw_clean == st for st in _BUILTIN_STYLE_TRIGGERS)
+                or (bool(re.search(r"\bstyle\b", raw_clean, re.IGNORECASE)) and "hair" not in raw_clean.lower())
+                or bool(re.search(r"\b(?:art|anime|manga|retro|vintage)\s*style\b|\b(?:drawn|art|illustration)\s*by\b", raw_clean, re.IGNORECASE))
+            ):
                 b_artist.append(cleaned)
             else:
                 b_general.append(cleaned)
@@ -727,7 +731,7 @@ class HaDeSAnimaAttentionGuidance:
             return z_final.to(orig_dtype)
 
         def hades_nag_attention_override(func, *args, **kwargs):
-            q, k, v, heads = args[0], args[1], args[2], args[3]
+            q, k, v = args[0], args[1], args[2]
             mask = kwargs.get("mask", None)
 
             if mask is not None:
@@ -736,7 +740,12 @@ class HaDeSAnimaAttentionGuidance:
             t_opts = kwargs.get("transformer_options", {})
             sigmas = t_opts.get("sigmas", None)
             if sigmas is not None:
-                active_state = m.model_options.get("_hades_nag_state", nag_state)
+                active_state = (
+                    t_opts.get("_hades_nag_state")
+                    or t_opts.get("model_options", {}).get("_hades_nag_state")
+                    or (m.model_options.get("_hades_nag_state") if hasattr(m, "model_options") else None)
+                    or nag_state
+                )
                 s_start = active_state["sigma_start"]
                 s_end = active_state["sigma_end"]
                 curr_sigma = float(sigmas[0].item()) if isinstance(sigmas, torch.Tensor) else float(sigmas)
@@ -773,6 +782,8 @@ class HaDeSAnimaAttentionGuidance:
             m.model_options["transformer_options"] = {}
         else:
             m.model_options["transformer_options"] = m.model_options["transformer_options"].copy()
+        m.model_options["_hades_nag_state"] = nag_state
+        m.model_options["transformer_options"]["_hades_nag_state"] = nag_state
         m.model_options["transformer_options"]["optimized_attention_override"] = hades_nag_attention_override
         m.model_options["disable_cfg1_optimization"] = True
 
@@ -1113,113 +1124,118 @@ class HaDeSAnimaCornerScribbleShield:
 
         corners = self._get_corner_slices(h, w, bh, bw, active_corners)
         triggered_corners = []
-
-        ambient_mean, ambient_max = self._ambient_hf(image)
-        has_ambient_texture = (ambient_mean >= 0.005)
+        actually_expanded = []
 
         # Threshold scales inversely with sensitivity (higher sensitivity -> lower threshold).
         # Calibrated against real Anima watermark signatures (hf_score ~0.03-0.04).
         thresh = max(0.008, 0.06 - 0.05 * float(detection_sensitivity))
 
-        actually_expanded = []
-        for name, y0, y1, x0, x1 in corners:
-            # Large-logo support: auto-grow the box while logo content is still
-            # detected at its inner edge (capped at 50%, no-op on clean/texture).
-            y0e, y1e, x0e, x1e = self._expand_corner_box(
-                name, y0, y1, x0, x1, image, thresh, h, w, ambient_mean=ambient_mean, ambient_max=ambient_max
-            )
-            was_expanded = (y0e, y1e, x0e, x1e) != (y0, y1, x0, x1)
-            y0, y1, x0, x1 = y0e, y1e, x0e, x1e
+        # Process each image in batch independently to prevent cross-batch watermark bleeding
+        for b in range(b_sz):
+            img_b = image[b : b + 1]
+            ambient_mean_b, ambient_max_b = self._ambient_hf(img_b)
+            has_ambient_texture_b = (ambient_mean_b >= 0.005)
 
-            curr_bh = y1 - y0
-            curr_bw = x1 - x0
-            patch = image[:, y0:y1, x0:x1, :3]  # [B, curr_bh, curr_bw, 3]
-            patch_chw = patch.permute(0, 3, 1, 2)
-            high_freq = self._high_freq_map(image, y0, y1, x0, x1)  # [B, curr_bh, curr_bw]
+            for corner_tuple in corners:
+                c_name, cy0, cy1, cx0, cx1 = corner_tuple
+                # Large-logo support: auto-grow the box while logo content is still
+                # detected at its inner edge (capped at 50%, no-op on clean/texture).
+                y0e, y1e, x0e, x1e = self._expand_corner_box(
+                    c_name, cy0, cy1, cx0, cx1, img_b, thresh, h, w, ambient_mean=ambient_mean_b, ambient_max=ambient_max_b
+                )
+                was_expanded = (y0e, y1e, x0e, x1e) != (cy0, cy1, cx0, cx1)
+                y0, y1, x0, x1 = y0e, y1e, x0e, x1e
 
-            # Build spatial falloff weight so the outer corner softly feathers inward
-            vy = torch.linspace(1.0, 0.0, curr_bh, device=image.device, dtype=image.dtype) if y0 == 0 else torch.linspace(0.0, 1.0, curr_bh, device=image.device, dtype=image.dtype)
-            vx = torch.linspace(1.0, 0.0, curr_bw, device=image.device, dtype=image.dtype) if x0 == 0 else torch.linspace(0.0, 1.0, curr_bw, device=image.device, dtype=image.dtype)
-            spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, curr_bh, curr_bw]
+                curr_bh = y1 - y0
+                curr_bw = x1 - x0
+                patch = img_b[:, y0:y1, x0:x1, :3]  # [1, curr_bh, curr_bw, 3]
+                patch_chw = patch.permute(0, 3, 1, 2)
+                high_freq = self._high_freq_map(img_b, y0, y1, x0, x1)  # [1, curr_bh, curr_bw]
 
-            hf_score = float(high_freq.mean().item())
-            hf_max = float(high_freq.max().item())
+                # Build spatial falloff weight so the outer corner softly feathers inward
+                vy = torch.linspace(1.0, 0.0, curr_bh, device=image.device, dtype=image.dtype) if y0 == 0 else torch.linspace(0.0, 1.0, curr_bh, device=image.device, dtype=image.dtype)
+                vx = torch.linspace(1.0, 0.0, curr_bw, device=image.device, dtype=image.dtype) if x0 == 0 else torch.linspace(0.0, 1.0, curr_bw, device=image.device, dtype=image.dtype)
+                spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, curr_bh, curr_bw]
 
-            # Anti-Texture Guard: If ambient texture is detected AND neither the mean nor the local peak
-            # exceeds the ambient texture level, this corner is uniform canvas/grain/hatching.
-            is_uniform_texture = (
-                has_ambient_texture
-                and (hf_score <= ambient_mean * 1.45 + 0.01)
-                and (hf_max <= ambient_max * 1.40 + 0.02)
-                and heal_mode != "Aggressive Corner Fill (Forced)"
-            )
+                hf_score = float(high_freq.mean().item())
+                hf_max = float(high_freq.max().item())
 
-            if is_uniform_texture or (hf_max < thresh and heal_mode != "Aggressive Corner Fill (Forced)"):
-                stroke_mask = torch.zeros_like(high_freq)
-                full_fill = False
-            else:
-                eff_thresh = max(thresh, ambient_max * 0.85) if has_ambient_texture else thresh
-                stroke_mask = ((high_freq - eff_thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
-                full_fill = (hf_score >= eff_thresh * 0.8)
+                # Anti-Texture Guard: If ambient texture is detected AND neither the mean nor the local peak
+                # exceeds the ambient texture level, this corner is uniform canvas/grain/hatching.
+                is_uniform_texture = (
+                    has_ambient_texture_b
+                    and (hf_score <= ambient_mean_b * 1.45 + 0.01)
+                    and (hf_max <= ambient_max_b * 1.40 + 0.02)
+                    and heal_mode != "Aggressive Corner Fill (Forced)"
+                )
 
-            if heal_mode == "Aggressive Corner Fill (Forced)":
-                corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env)
-            else:
-                corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if full_fill else 0.0))
-
-            if int(feather_radius) > 1:
-                k_sz = max(3, (int(feather_radius) // 2) * 2 + 1)
-                pad_sz = k_sz // 2
-                corner_mask = F.avg_pool2d(corner_mask.unsqueeze(1), kernel_size=k_sz, stride=1, padding=pad_sz).squeeze(1)
-
-            is_active_corner = (full_fill or float(corner_mask.max().item()) > 0.05) and not is_uniform_texture
-            if is_active_corner:
-                triggered_corners.append(f"{name} (HF={hf_score:.3f})")
-                if was_expanded:
-                    actually_expanded.append(name)
-
-            mask_out[:, y0:y1, x0:x1] = torch.maximum(mask_out[:, y0:y1, x0:x1], corner_mask)
-
-            if heal_mode in ("Smart Edge-Inward Blend (Auto-Heal)", "Aggressive Corner Fill (Forced)"):
-                # Robust reference: sample the guaranteed-clean outer ring (8-16px)
-                # just OUTSIDE the corner box and continue its content inward
-                # (edge continuation), instead of the old 2px inner strips.
-                ring = max(8, min(16, max(curr_bh, curr_bw) // 2))
-                if y0 > 0:
-                    v_rows = y0 - 1 - torch.arange(curr_bh, device=image.device).flip(0).clamp(max=ring - 1)
+                if is_uniform_texture or (hf_max < thresh and heal_mode != "Aggressive Corner Fill (Forced)"):
+                    stroke_mask = torch.zeros_like(high_freq)
+                    full_fill = False
                 else:
-                    v_rows = y1 + torch.arange(curr_bh, device=image.device).clamp(max=ring - 1)
-                if x0 > 0:
-                    h_cols = x0 - 1 - torch.arange(curr_bw, device=image.device).flip(0).clamp(max=ring - 1)
-                else:
-                    h_cols = x1 + torch.arange(curr_bw, device=image.device).clamp(max=ring - 1)
-                ref_v = image[:, v_rows, x0:x1, :3]  # vertical edge continuation [B, curr_bh, curr_bw, 3]
-                ref_h = image[:, y0:y1, h_cols, :3]  # horizontal edge continuation [B, curr_bh, curr_bw, 3]
-                clean_fill = 0.5 * (ref_v + ref_h)
-
-                def _blur4(t):
-                    k = max(3, (int(feather_radius) // 2) * 2 + 1)
-                    return F.avg_pool2d(t.permute(0, -1, 1, 2), kernel_size=k, stride=1, padding=k // 2).permute(0, 2, 3, 1)
-
-                clean_fill = _blur4(clean_fill)
+                    eff_thresh = max(thresh, ambient_max_b * 0.85) if has_ambient_texture_b else thresh
+                    stroke_mask = ((high_freq - eff_thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
+                    full_fill = (hf_score >= eff_thresh * 0.8)
 
                 if heal_mode == "Aggressive Corner Fill (Forced)":
-                    alpha = spatial_env.unsqueeze(-1)
-                    if int(feather_radius) > 1:
-                        k = max(3, (int(feather_radius) // 4) * 2 + 1)
-                        alpha = F.avg_pool2d(alpha.permute(0, -1, 1, 2), kernel_size=k, stride=1, padding=k // 2).permute(0, 2, 3, 1)
-                    alpha = alpha.clamp(min=0.0, max=1.0)
+                    corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env)
                 else:
-                    alpha = corner_mask.unsqueeze(-1)
-                    if not full_fill and float(corner_mask.max().item()) < 0.05:
-                        alpha = torch.zeros_like(alpha)  # nothing detected: leave pixels untouched
+                    corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if full_fill else 0.0))
 
-                out_img[:, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + clean_fill * alpha
-            elif heal_mode == "Soft Corner Blur":
-                blur_k = max(5, (int(feather_radius) // 2) * 2 + 1)
-                blurred = F.avg_pool2d(patch_chw, kernel_size=blur_k, stride=1, padding=blur_k // 2).permute(0, 2, 3, 1)
-                alpha = corner_mask.unsqueeze(-1)
-                out_img[:, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + blurred * alpha
+                if int(feather_radius) > 1:
+                    k_sz = max(3, (int(feather_radius) // 2) * 2 + 1)
+                    pad_sz = k_sz // 2
+                    corner_mask = F.avg_pool2d(corner_mask.unsqueeze(1), kernel_size=k_sz, stride=1, padding=pad_sz).squeeze(1)
+
+                is_active_corner = (full_fill or float(corner_mask.max().item()) > 0.05) and not is_uniform_texture
+                if is_active_corner:
+                    item_note = f"#{b}:{c_name}" if b_sz > 1 else c_name
+                    triggered_corners.append(f"{item_note} (HF={hf_score:.3f})")
+                    if was_expanded and c_name not in actually_expanded:
+                        actually_expanded.append(c_name)
+
+                mask_out[b : b + 1, y0:y1, x0:x1] = torch.maximum(mask_out[b : b + 1, y0:y1, x0:x1], corner_mask)
+
+                if heal_mode in ("Smart Edge-Inward Blend (Auto-Heal)", "Aggressive Corner Fill (Forced)"):
+                    # Robust reference: sample the guaranteed-clean outer ring (8-16px)
+                    # just OUTSIDE the corner box and continue its content inward
+                    # (edge continuation), instead of the old 2px inner strips.
+                    ring = max(8, min(16, max(curr_bh, curr_bw) // 2))
+                    if y0 > 0:
+                        v_rows = y0 - 1 - torch.arange(curr_bh, device=image.device).flip(0).clamp(max=ring - 1)
+                    else:
+                        v_rows = y1 + torch.arange(curr_bh, device=image.device).clamp(max=ring - 1)
+                    if x0 > 0:
+                        h_cols = x0 - 1 - torch.arange(curr_bw, device=image.device).flip(0).clamp(max=ring - 1)
+                    else:
+                        h_cols = x1 + torch.arange(curr_bw, device=image.device).clamp(max=ring - 1)
+                    ref_v = img_b[:, v_rows, x0:x1, :3]  # vertical edge continuation [1, curr_bh, curr_bw, 3]
+                    ref_h = img_b[:, y0:y1, h_cols, :3]  # horizontal edge continuation [1, curr_bh, curr_bw, 3]
+                    clean_fill = 0.5 * (ref_v + ref_h)
+
+                    def _blur4(t):
+                        k = max(3, (int(feather_radius) // 2) * 2 + 1)
+                        return F.avg_pool2d(t.permute(0, -1, 1, 2), kernel_size=k, stride=1, padding=k // 2).permute(0, 2, 3, 1)
+
+                    clean_fill = _blur4(clean_fill)
+
+                    if heal_mode == "Aggressive Corner Fill (Forced)":
+                        alpha = spatial_env.unsqueeze(-1)
+                        if int(feather_radius) > 1:
+                            k = max(3, (int(feather_radius) // 4) * 2 + 1)
+                            alpha = F.avg_pool2d(alpha.permute(0, -1, 1, 2), kernel_size=k, stride=1, padding=k // 2).permute(0, 2, 3, 1)
+                        alpha = alpha.clamp(min=0.0, max=1.0)
+                    else:
+                        alpha = corner_mask.unsqueeze(-1)
+                        if not full_fill and float(corner_mask.max().item()) < 0.05:
+                            alpha = torch.zeros_like(alpha)  # nothing detected: leave pixels untouched
+
+                    out_img[b : b + 1, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + clean_fill * alpha
+                elif heal_mode == "Soft Corner Blur":
+                    blur_k = max(5, (int(feather_radius) // 2) * 2 + 1)
+                    blurred = F.avg_pool2d(patch_chw, kernel_size=blur_k, stride=1, padding=blur_k // 2).permute(0, 2, 3, 1)
+                    alpha = corner_mask.unsqueeze(-1)
+                    out_img[b : b + 1, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + blurred * alpha
 
         det_str = ", ".join(triggered_corners) if triggered_corners else "Clean (Low HF Energy)"
         expanded_note = f" | Auto-Expanded (large mark): {', '.join(actually_expanded)}" if actually_expanded else ""

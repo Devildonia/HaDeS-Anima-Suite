@@ -145,6 +145,9 @@ def clone_model_with_anima_shift(model, flow_shift: float):
             nag_state["sigma_start"] = float(active_ms.percent_to_sigma(nag_state["start_percent"]))
             nag_state["sigma_end"] = float(active_ms.percent_to_sigma(nag_state["end_percent"]))
             m.model_options["_hades_nag_state"] = nag_state
+            if "transformer_options" in m.model_options:
+                m.model_options["transformer_options"] = m.model_options["transformer_options"].copy()
+                m.model_options["transformer_options"]["_hades_nag_state"] = nag_state
 
     return m
 

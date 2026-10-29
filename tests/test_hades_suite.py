@@ -160,7 +160,8 @@ class DummyModelSampling:
         self.multiplier = multiplier
 
     def percent_to_sigma(self, pct):
-        return max(0.0, 10.0 * (1.0 - float(pct)))
+        u = 1.0 - float(pct)
+        return float(self.shift * u / (1.0 + (self.shift - 1.0) * u))
 
 
 class DummyModelPatcher:
@@ -182,9 +183,7 @@ class DummyModelPatcher:
         c.patches = {k: list(v) for k, v in self.patches.items()}
         c.backup = dict(self.backup)
         c.object_patches = dict(self.object_patches)
-        c.model_options = {
-            "transformer_options": dict(self.model_options.get("transformer_options", {}))
-        }
+        c.model_options = {k: (v.copy() if hasattr(v, "copy") else v) for k, v in self.model_options.items()}
         return c
 
     def add_object_patch(self, name, obj):
@@ -500,7 +499,7 @@ def test_4_subspace_multi_lora_per_secondary_slot():
     s3_vec = [float(x) for x in info.split("SECONDARY SLOT S3")[1].split("\n")[1].split(",")]
     assert s2_vec[2] < s3_vec[2]
     assert all(x == 0.0 for x in s2_vec[28:])
-    print(f"[OK] Test 4: Subspace Multi-LoRA per-slot curves + Bridge protection verified")
+    print("[OK] Test 4: Subspace Multi-LoRA per-slot curves + Bridge protection verified")
 
 
 def test_5_cross_format_diffusers_kohya_lora_svd_merge():
@@ -718,7 +717,7 @@ def test_8_nag_attention_guidance():
         k,
         v,
         8,
-        transformer_options={"sigmas": torch.tensor([6.0]), "cond_or_uncond": [1, 0]},
+        transformer_options={"sigmas": torch.tensor([0.8]), "cond_or_uncond": [1, 0]},
     )
     assert out_active.dtype == torch.float16 and out_active.shape == q.shape
     # Uncond branch (index 0) must remain unchanged while cond branch (index 1) is extrapolated
@@ -741,13 +740,13 @@ def test_8_nag_attention_guidance():
         v4,
         8,
         skip_reshape=True,
-        transformer_options={"sigmas": torch.tensor([6.0]), "cond_or_uncond": [0]},
+        transformer_options={"sigmas": torch.tensor([0.8]), "cond_or_uncond": [0]},
     )
     assert out_4d.shape == (1, 16, 64) and out_4d.dtype == torch.float16
 
     # When mask is present, must bypass cleanly
     out_masked = override_fn(
-        dummy_attn, q, k, v, 8, mask=torch.ones(2, 16, 16), transformer_options={"sigmas": torch.tensor([6.0])}
+        dummy_attn, q, k, v, 8, mask=torch.ones(2, 16, 16), transformer_options={"sigmas": torch.tensor([0.8])}
     )
     assert torch.allclose(out_masked, dummy_attn(q, k, v, 8))
 
@@ -883,7 +882,7 @@ def test_10_corner_scribble_shield():
     stroke_healed_diff = (gs_healed[:, 118:122, 118:126, :] - base[:, 118:122, 118:126, :].repeat(1, 1, 1, 3)).abs().mean().item()
     assert stroke_healed_diff < stroke_orig_diff, f"Expected stroke to be healed towards baseline ({stroke_healed_diff} vs {stroke_orig_diff})"
 
-    print(f"[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, peak HF vs grain, Aggressive mode, clean-corner safety, large-logo auto-expansion, telemetry sync) verified")
+    print("[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, peak HF vs grain, Aggressive mode, clean-corner safety, large-logo auto-expansion, telemetry sync) verified")
 
 
 def test_11_anima_single_pass_ksampler_and_schedulers():
@@ -1341,6 +1340,81 @@ def test_19_prompt_header_canonical_and_dual_legacy():
     print("[OK] Test 19: Prompt header (canonical 3-line, title omit, dual legacy, dedup, non-header passthrough, manual 3-line preservation, embedded trigger extraction) verified")
 
 
+def test_20_corner_shield_batch_isolation():
+    shield = hades.HaDeSAnimaCornerScribbleShield()
+    # Batch with 2 images: Image 0 is clean; Image 1 has high-frequency watermark in top-left
+    img0 = torch.full((1, 128, 128, 3), 0.5, dtype=torch.float32)
+    img1 = torch.full((1, 128, 128, 3), 0.5, dtype=torch.float32)
+    # Add high-frequency stroke to img1
+    img1[0, 2:8, 2:8, :] = 0.0
+
+    batch = torch.cat([img0, img1], dim=0)
+    out_img, mask_out, info = shield.shield_corners(
+        batch,
+        corner_box_percent=0.10,
+        detection_sensitivity=0.75,
+        active_corners="All 4 Corners",
+        heal_mode="Smart Edge-Inward Blend (Auto-Heal)",
+        feather_radius=12,
+    )
+
+    # Batch isolation: Image 0 must be 100% untouched
+    clean_diff = torch.max(torch.abs(out_img[0] - img0[0])).item()
+    clean_mask_max = mask_out[0].max().item()
+    assert clean_diff == 0.0, f"Expected 0.0 difference on clean batch item, got {clean_diff}"
+    assert clean_mask_max == 0.0, f"Expected 0.0 mask on clean batch item, got {clean_mask_max}"
+
+    # Image 1 should be healed
+    dirty_mask_max = mask_out[1].max().item()
+    assert dirty_mask_max > 0.0, f"Expected non-zero mask on dirty batch item, got {dirty_mask_max}"
+    print("[OK] Test 20: Corner Scribble Shield batch independence & zero cross-talk verified")
+
+
+def test_21_nag_dynamic_shift_propagation():
+    nag_node = hades.HaDeSAnimaAttentionGuidance()
+    m = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
+    m.add_object_patch("model_sampling", DummyModelSampling(shift=3.0, multiplier=1.0))
+
+    # Apply NAG with 3.0 initial shift
+    m_nag, info = nag_node.apply_nag(
+        m,
+        guidance_preset="Custom",
+        nag_scale=3.0,
+        nag_alpha=0.35,
+        nag_tau=2.5,
+        start_percent=0.0,
+        end_percent=0.65,
+        only_anima=False,
+    )
+    initial_sigma_end = m_nag.model_options["_hades_nag_state"]["sigma_end"]
+
+    # Clone model with shifted flow (4.5) as done in KSampler
+    m_shifted = hades.clone_model_with_anima_shift(m_nag, 4.5)
+    shifted_sigma_end = m_shifted.model_options["_hades_nag_state"]["sigma_end"]
+    assert shifted_sigma_end > initial_sigma_end, (
+        f"Expected shifted sigma_end ({shifted_sigma_end}) > initial ({initial_sigma_end})"
+    )
+
+    # Verify override reads dynamically from transformer_options
+    override = m_shifted.model_options["transformer_options"]["optimized_attention_override"]
+    called = []
+    def dummy_func(*args, **kwargs):
+        called.append(True)
+        return torch.zeros(1, 10, 64)
+
+    # Within shifted window
+    q = torch.zeros(1, 10, 64)
+    k = torch.zeros(1, 10, 64)
+    v = torch.zeros(1, 10, 64)
+    t_opts = {
+        "sigmas": torch.tensor([shifted_sigma_end + 0.05]),
+        "_hades_nag_state": m_shifted.model_options["_hades_nag_state"],
+    }
+    override(dummy_func, q, k, v, 1, transformer_options=t_opts)
+    assert len(called) > 0, "Expected attention override to execute within shifted sigma window"
+    print("[OK] Test 21: NAG dynamic sigma shift propagation across cloned patchers verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1361,4 +1435,6 @@ if __name__ == "__main__":
     test_17_anima_smart_vae_decode_and_scribble_shield()
     test_18_nag_only_anima_gate()
     test_19_prompt_header_canonical_and_dual_legacy()
-    print("\nALL 19 HADES ANIMA SUITE v0.1.4 TEST SUITES PASSED!")
+    test_20_corner_shield_batch_isolation()
+    test_21_nag_dynamic_shift_propagation()
+    print("\nALL 21 HADES ANIMA SUITE v0.1.4 TEST SUITES PASSED!")

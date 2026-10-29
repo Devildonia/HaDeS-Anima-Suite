@@ -373,12 +373,14 @@ export function setupAnimaKSamplerUI(node) {
         }
     }
 
+    const minW = 440;
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         sanitizeSinglePassValues();
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
+            this.size = [Math.max(minW, info.size[0]), info.size[1]];
         }
         this.setDirtyCanvas(true, true);
     };
@@ -392,7 +394,23 @@ export function setupAnimaKSamplerUI(node) {
         this.setDirtyCanvas(true, true);
     };
 
-    const minW = 440;
+    const origComputeSize = node.computeSize;
+    node.computeSize = function (out) {
+        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
+        const res = out || [0, 0];
+        res[0] = Math.max(sz[0], minW);
+        res[1] = sz[1];
+        return res;
+    };
+
+    const origOnResize = node.onResize;
+    node.onResize = function (size) {
+        if (origOnResize) origOnResize.apply(this, arguments);
+        if (size && Array.isArray(size)) {
+            size[0] = Math.max(size[0], minW);
+        }
+    };
+
     const sz = node.computeSize();
     const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
     const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
@@ -771,13 +789,15 @@ export function setupAnimaDualPassKSamplerUI(node) {
         }
     }
 
+    const minW = 460;
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateDualPassSlots(this);
         sanitizeDualPassValues();
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
+            this.size = [Math.max(minW, info.size[0]), info.size[1]];
         }
         this.setDirtyCanvas(true, true);
     };
@@ -786,6 +806,9 @@ export function setupAnimaDualPassKSamplerUI(node) {
     node.onConfigure = function () {
         if (origOnConfigure) origOnConfigure.apply(this, arguments);
         migrateDualPassSlots(this);
+        if (this.size && Array.isArray(this.size)) {
+            this.size[0] = Math.max(minW, this.size[0]);
+        }
         this.setDirtyCanvas?.(true, true);
     };
     sanitizeDualPassValues();
@@ -798,7 +821,23 @@ export function setupAnimaDualPassKSamplerUI(node) {
         this.setDirtyCanvas(true, true);
     };
 
-    const minW = 460;
+    const origComputeSize = node.computeSize;
+    node.computeSize = function (out) {
+        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
+        const res = out || [0, 0];
+        res[0] = Math.max(sz[0], minW);
+        res[1] = sz[1];
+        return res;
+    };
+
+    const origOnResize = node.onResize;
+    node.onResize = function (size) {
+        if (origOnResize) origOnResize.apply(this, arguments);
+        if (size && Array.isArray(size)) {
+            size[0] = Math.max(size[0], minW);
+        }
+    };
+
     const sz = node.computeSize();
     const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
     const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
@@ -1217,13 +1256,15 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         }
     }
 
+    const minW = 470;
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateTriplePassSlots(this);
         sanitizeTriplePassValues();
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
+            this.size = [Math.max(minW, info.size[0]), info.size[1]];
         }
         this.setDirtyCanvas(true, true);
     };
@@ -1232,6 +1273,9 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     node.onConfigure = function () {
         if (origOnConfigure) origOnConfigure.apply(this, arguments);
         migrateTriplePassSlots(this);
+        if (this.size && Array.isArray(this.size)) {
+            this.size[0] = Math.max(minW, this.size[0]);
+        }
         this.setDirtyCanvas?.(true, true);
     };
     sanitizeTriplePassValues();
@@ -1244,7 +1288,23 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         this.setDirtyCanvas(true, true);
     };
 
-    const minW = 470;
+    const origComputeSize = node.computeSize;
+    node.computeSize = function (out) {
+        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
+        const res = out || [0, 0];
+        res[0] = Math.max(sz[0], minW);
+        res[1] = sz[1];
+        return res;
+    };
+
+    const origOnResize = node.onResize;
+    node.onResize = function (size) {
+        if (origOnResize) origOnResize.apply(this, arguments);
+        if (size && Array.isArray(size)) {
+            size[0] = Math.max(size[0], minW);
+        }
+    };
+
     const sz = node.computeSize();
     const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
     const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
