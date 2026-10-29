@@ -322,6 +322,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   tagColor: HADES_THEME.emerald,
                   tagWidth: TAG_W,
                   label: "",
+                  tooltip: `<strong>Decode Mode (Strategy)</strong><br>• <strong>Auto Smart-Tile:</strong> Automatically enables seamless tiling only when image exceeds AUTO-MP threshold.<br>• <strong>6GB Safe:</strong> Forces tiling on all resolutions to prevent VRAM spikes.<br>• <strong>Direct Full Decode:</strong> Decodes in a single un-tiled pass for maximum speed.`,
               })
           )
         : null;
@@ -342,6 +343,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   defaultVal: 512,
                   decimals: 0,
                   isInt: true,
+                  tooltip: `<strong>Spatial Tile Size (px)</strong><br>Pixel dimension of each square patch decoded independently.<br><span style="color:#38bdf8">• Smaller (256–512px):</span> Drastically reduces VRAM usage (safe for 6GB–8GB GPUs).<br><span style="color:#38bdf8">• Larger (768–1024px):</span> Faster decoding and fewer tile boundaries if VRAM permits.`,
               })
           )
         : null;
@@ -362,6 +364,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   defaultVal: 64,
                   decimals: 0,
                   isInt: true,
+                  tooltip: `<strong>Tile Blend Overlap (px)</strong><br>Margin of overlapping pixels between adjacent tiles.<br><span style="color:#60a5fa">• Edge Feathering:</span> Blends boundaries with smooth cosine/linear weighting.<br>Prevents visible seams, grid artifacts, or luminance lines across tile borders.`,
               })
           )
         : null;
@@ -380,6 +383,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   visMax: 4.0,
                   step: 0.05,
                   defaultVal: 1.35,
+                  tooltip: `<strong>Auto-Tile Resolution Threshold (Megapixels)</strong><br>Resolution cutoff (W × H / 1M) triggering tiled decoding in Auto mode.<br><span style="color:#34d399">• Below threshold (e.g. 1024×1024 = 1.05 MP):</span> Direct fast decode.<br><span style="color:#34d399">• Above threshold (e.g. 1536×1536 = 2.36 MP):</span> Activates seamless tiling to prevent VRAM OOM.`,
               })
           )
         : null;

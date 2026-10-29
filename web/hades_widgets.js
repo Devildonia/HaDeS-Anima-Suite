@@ -712,15 +712,20 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
         tagWidth = null,
         label = "",
         cleanFileNames = false,
+        tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
+
+    const plainTooltip = typeof tooltip === "string" ? tooltip.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
     return {
         name: `hades_combo_${backingWidget?.name || label}`,
         type: "custom",
         value: "",
-        options: { serialize: false },
+        tooltip: plainTooltip,
+        options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _bounds: null,
+        _isHovered: false,
 
         computeSize(width) {
             return [width, 28];
@@ -789,12 +794,35 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
         },
 
         mouse(event, pos, n) {
-            if ((event.type !== "pointerdown" && event.type !== "mousedown") || !this._bounds || !backingWidget) {
+            if (!this._bounds || !backingWidget) {
                 return false;
             }
             const [mx, my] = pos;
             const b = this._bounds;
-            if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+            const isInside = mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h;
+
+            if (event.type === "pointermove" || event.type === "mousemove") {
+                if (isInside && tooltip) {
+                    this._isHovered = true;
+                    showHadesTooltip(tooltip, event.clientX, event.clientY, tagColor);
+                } else if (this._isHovered) {
+                    this._isHovered = false;
+                    hideHadesTooltip();
+                }
+                return false;
+            }
+
+            if (event.type === "pointerleave" || event.type === "mouseleave") {
+                if (this._isHovered) {
+                    this._isHovered = false;
+                    hideHadesTooltip();
+                }
+                return false;
+            }
+
+            if ((event.type === "pointerdown" || event.type === "mousedown") && isInside) {
+                hideHadesTooltip();
+                this._isHovered = false;
                 const values = backingWidget.options?.values || [];
                 new LiteGraph.ContextMenu(values, {
                     event,
@@ -828,15 +856,21 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
         defaultVal = config.defVal ?? 0.5,
         decimals = 2,
         isInt = false,
+        tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
+
+    const plainTooltip = typeof tooltip === "string" ? tooltip.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
     return {
         name: `hades_slider_${backingWidget?.name || label}`,
         type: "custom",
         value: "",
-        options: { serialize: false },
+        tooltip: plainTooltip,
+        options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _zones: null,
+        _rowBounds: null,
+        _isHovered: false,
         _dragStartX: null,
         _dragStartVal: null,
         _didDrag: false,
@@ -982,6 +1016,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                 }
             }
 
+            this._rowBounds = { x, y: rowY, w, h };
             this._zones = {
                 rowY,
                 h,
@@ -1000,8 +1035,12 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
             if (!this._zones || !backingWidget) return false;
             const [mx, my] = pos;
             const z = this._zones;
+            const rb = this._rowBounds;
+            const isInside = rb ? (mx >= rb.x && mx <= rb.x + rb.w && my >= rb.y && my <= rb.y + rb.h) : false;
 
             if (event.type === "pointerdown" || event.type === "mousedown") {
+                hideHadesTooltip();
+                this._isHovered = false;
                 if (my < z.rowY || my > z.rowY + z.h) return false;
 
                 if (event.button === 2) {
@@ -1038,6 +1077,14 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                     return true;
                 }
             } else if (event.type === "pointermove" || event.type === "mousemove") {
+                if (isInside && tooltip && !this._dragStartX && !this._dragRail) {
+                    this._isHovered = true;
+                    showHadesTooltip(tooltip, event.clientX, event.clientY, color);
+                } else if (this._isHovered && (!isInside || this._dragStartX || this._dragRail)) {
+                    this._isHovered = false;
+                    hideHadesTooltip();
+                }
+
                 if (this._dragRail && z?.rail) {
                     const ratio = Math.max(0, Math.min(1, (mx - z.rail.x) / z.rail.w));
                     const rawVal = visMin + ratio * (visMax - visMin);
@@ -1059,6 +1106,12 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                     }
                     return true;
                 }
+            } else if (event.type === "pointerleave" || event.type === "mouseleave") {
+                if (this._isHovered) {
+                    this._isHovered = false;
+                    hideHadesTooltip();
+                }
+                return false;
             } else if (event.type === "pointerup" || event.type === "mouseup") {
                 this._dragRail = false;
                 if (this._dragStartX !== null) {

@@ -236,13 +236,28 @@ export function setupAnimaKSamplerUI(node) {
     const K_TAG_WIDTH = 66;
 
     const profileWidget = node.addCustomWidget(
-        createStyledComboWidget(node, wProfile, { tag: "PROFILE", tagColor: HADES_THEME.blue, tagWidth: K_TAG_WIDTH })
+        createStyledComboWidget(node, wProfile, {
+            tag: "PROFILE",
+            tagColor: HADES_THEME.blue,
+            tagWidth: K_TAG_WIDTH,
+            tooltip: `<strong>Variant Calibration Profile</strong><br>Instantly applies the officially recommended Sampler, Scheduler, Steps, CFG, and Flow Shift for each Anima architecture variant.`,
+        })
     );
     const samplerWidget = node.addCustomWidget(
-        createStyledComboWidget(node, wSampler, { tag: "SAMPLER", tagColor: HADES_THEME.cyan, tagWidth: K_TAG_WIDTH })
+        createStyledComboWidget(node, wSampler, {
+            tag: "SAMPLER",
+            tagColor: HADES_THEME.cyan,
+            tagWidth: K_TAG_WIDTH,
+            tooltip: `<strong>ODE / SDE Solver</strong><br>Numerical solver for Anima's continuous-time Rectified Flow equations.<br><span style="color:#38bdf8">• er_sde:</span> Recommended stochastic SDE solver for Anima.<br><span style="color:#38bdf8">• euler / euler_ancestral:</span> Fast deterministic or ancestral solvers.`,
+        })
     );
     const schedWidget = node.addCustomWidget(
-        createStyledComboWidget(node, wSched, { tag: "SCHEDULER", tagColor: HADES_THEME.purple, tagWidth: K_TAG_WIDTH })
+        createStyledComboWidget(node, wSched, {
+            tag: "SCHEDULER",
+            tagColor: HADES_THEME.purple,
+            tagWidth: K_TAG_WIDTH,
+            tooltip: `<strong>Sigma Noise Schedule</strong><br>Defines noise distribution curve across steps.<br><span style="color:#a855f7">• normal:</span> Linear Rectified Flow schedule.<br><span style="color:#a855f7">• anima_beta57:</span> Custom schedule (α=0.50, β=0.70) giving denser steps to fine texture & lineart.<br><span style="color:#a855f7">• anima_lightning_tdm:</span> Exact 4-step Trajectory Distribution Matching schedule.`,
+        })
     );
 
     const stepsWidget = node.addCustomWidget(
@@ -259,6 +274,7 @@ export function setupAnimaKSamplerUI(node) {
             step: 1,
             defaultVal: 32,
             isInt: true,
+            tooltip: `<strong>Sampling Steps</strong><br>Total iterative steps along the trajectory.<br><span style="color:#60a5fa">• Base / Aesthetic:</span> 30–36 steps.<br><span style="color:#60a5fa">• Turbo:</span> 8–10 steps.<br><span style="color:#60a5fa">• Lightning TDM:</span> Exactly 4 steps.`,
         })
     );
     const cfgWidget = node.addCustomWidget(
@@ -274,6 +290,7 @@ export function setupAnimaKSamplerUI(node) {
             visMax: 8.0,
             step: 0.1,
             defaultVal: 4.5,
+            tooltip: `<strong>Classifier-Free Guidance (CFG Scale)</strong><br>Adherence strength to positive prompt vs unconditional trajectory.<br><span style="color:#34d399">• Standard Anima:</span> 4.0 – 4.5.<br><span style="color:#34d399">• Distilled (Turbo / Lightning):</span> Fixed at 1.0.`,
         })
     );
     const denoiseWidget = node.addCustomWidget(
@@ -289,6 +306,7 @@ export function setupAnimaKSamplerUI(node) {
             visMax: 1.0,
             step: 0.01,
             defaultVal: 1.0,
+            tooltip: `<strong>Denoising Strength (0.0 – 1.0)</strong><br>Fraction of total noise trajectory to denoise.<br><span style="color:#38bdf8">• 1.0:</span> Full txt2img generation from pure random noise.<br><span style="color:#38bdf8">• 0.25 – 0.60:</span> img2img / HiRes latent refinement.`,
         })
     );
     const shiftWidget = node.addCustomWidget(
@@ -304,6 +322,7 @@ export function setupAnimaKSamplerUI(node) {
             visMax: 6.0,
             step: 0.05,
             defaultVal: 3.0,
+            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br>Time-step density warping for Anima's Rectified Flow architecture.<br><span style="color:#fbbf24">• Calibrated default (3.0):</span> Native balance for optimal contrast & anatomy.<br><span style="color:#fbbf24">• Higher (3.5–5.0):</span> Allocates more steps to early high-noise structural formation (ideal for high-res).<br><span style="color:#fbbf24">• Lower (1.5–2.5):</span> Allocates more steps to late-stage fine detail refinement.`,
         })
     );
 
@@ -358,6 +377,9 @@ export function setupAnimaKSamplerUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         sanitizeSinglePassValues();
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
         this.setDirtyCanvas(true, true);
     };
     sanitizeSinglePassValues();
@@ -367,13 +389,14 @@ export function setupAnimaKSamplerUI(node) {
         if (origOnConnectionsChange) {
             origOnConnectionsChange.apply(this, arguments);
         }
-        const sz = this.computeSize();
-        this.setSize([Math.max(440, sz[0]), sz[1] + 8]);
         this.setDirtyCanvas(true, true);
     };
 
+    const minW = 440;
     const sz = node.computeSize();
-    node.setSize([Math.max(440, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupAnimaDualPassKSamplerUI(node) {
@@ -606,6 +629,9 @@ export function setupAnimaDualPassKSamplerUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         sanitizeDualPassValues();
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
         this.setDirtyCanvas(true, true);
     };
     sanitizeDualPassValues();
@@ -615,13 +641,14 @@ export function setupAnimaDualPassKSamplerUI(node) {
         if (origOnConnectionsChange) {
             origOnConnectionsChange.apply(this, arguments);
         }
-        const sz = this.computeSize();
-        this.setSize([Math.max(460, sz[0]), sz[1] + 8]);
         this.setDirtyCanvas(true, true);
     };
 
+    const minW = 460;
     const sz = node.computeSize();
-    node.setSize([Math.max(460, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupAnimaTriplePassKSamplerUI(node) {
@@ -889,6 +916,9 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         sanitizeTriplePassValues();
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
         this.setDirtyCanvas(true, true);
     };
     sanitizeTriplePassValues();
@@ -898,13 +928,14 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         if (origOnConnectionsChange) {
             origOnConnectionsChange.apply(this, arguments);
         }
-        const sz = this.computeSize();
-        this.setSize([Math.max(470, sz[0]), sz[1] + 8]);
         this.setDirtyCanvas(true, true);
     };
 
+    const minW = 470;
     const sz = node.computeSize();
-    node.setSize([Math.max(470, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export const KSAMPLER_NODE_DISPATCH = {
