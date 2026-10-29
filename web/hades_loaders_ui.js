@@ -15,7 +15,7 @@ import {
 // HADES ANIMA LOADERS & SMART VAE DECODE UI (NODES 14 - 17)
 // =============================================================================
 
-function drawPill(ctx, x, y, text, color) {
+function drawPill(ctx, x, y, text, color, tooltip = "", pillBounds = null) {
     ctx.font = "bold 9px monospace";
     const tw = ctx.measureText(text).width + 12;
     drawRoundedRect(ctx, x, y, tw, 16, 4);
@@ -28,6 +28,9 @@ function drawPill(ctx, x, y, text, color) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, x + tw * 0.5, y + 8.5);
+    if (pillBounds && tooltip) {
+        pillBounds.push({ x, y, w: tw, h: 16, tooltip, color });
+    }
     return tw + 5;
 }
 
@@ -51,6 +54,7 @@ export function setupAnimaModelLoaderUI(node) {
             actions: [
                 {
                     label: "Reset 3.0",
+                    tooltip: `<strong>Reset Model Parameters</strong><br>Restores default Flow Shift (3.00), Weight Precision (default), and enables 24-Rule Auto-Remap.`,
                     onClick: (n) => {
                         setWidgetValue(wShift, 3.0, n);
                         setWidgetValue(wDtype, "default", n);
@@ -59,34 +63,63 @@ export function setupAnimaModelLoaderUI(node) {
                 },
                 {
                     label: "Default",
+                    tooltip: `<strong>Native Checkpoint Precision</strong><br>Loads model weights with their original precision (bfloat16, fp16, or fp8).`,
                     onClick: (n) => setWidgetValue(wDtype, "default", n),
                 },
                 {
                     label: "BF16",
+                    tooltip: `<strong>Bfloat16 Precision</strong><br>16-bit brain float for high dynamic range and numerical stability.`,
                     onClick: (n) => setWidgetValue(wDtype, "bfloat16", n),
                 },
                 {
                     label: "FP8",
+                    tooltip: `<strong>FP8 e4m3fn Quantization</strong><br>8-bit floating point format for ultra-low VRAM GPUs.`,
                     onClick: (n) => setWidgetValue(wDtype, "fp8_e4m3fn", n),
                 },
             ],
-            drawCustomHUD: (ctx, rect) => {
+            drawCustomHUD: (ctx, rect, n, pillBounds) => {
                 const isNarrow = rect.w < 270;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
                 const dtypeVal = String(wDtype?.value || "default").toUpperCase();
                 const shiftVal = Number(wShift?.value ?? 3.0).toFixed(2);
-                cx += drawPill(ctx, cx, cy, isNarrow ? dtypeVal : `DTYPE: ${dtypeVal}`, HADES_THEME.cyan);
-                cx += drawPill(ctx, cx, cy, isNarrow ? `S: ${shiftVal}` : `SHIFT: ${shiftVal} (m=1.0)`, HADES_THEME.blue);
+                cx += drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    isNarrow ? dtypeVal : `DTYPE: ${dtypeVal}`,
+                    HADES_THEME.cyan,
+                    `<strong>Active Weight Precision</strong><br>Current precision format for the loaded DiT weights in VRAM.`,
+                    pillBounds
+                );
+                cx += drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    isNarrow ? `S: ${shiftVal}` : `SHIFT: ${shiftVal} (m=1.0)`,
+                    HADES_THEME.blue,
+                    `<strong>Active Flow Shift</strong><br>Time-step density warping multiplier (calibrated native = 3.00).`,
+                    pillBounds
+                );
                 cx += drawPill(
                     ctx,
                     cx,
                     cy,
                     wRemap?.value ? (isNarrow ? "24-REMAP" : "24-RULE REMAP") : "RAW KEYS",
-                    wRemap?.value ? HADES_THEME.emerald : HADES_THEME.amber
+                    wRemap?.value ? HADES_THEME.emerald : HADES_THEME.amber,
+                    `<strong>Diffusers Key Converter</strong><br>Active: on-the-fly 24-rule key translation for official Diffusers checkpoints.`,
+                    pillBounds
                 );
                 if (wAdapter?.value && wAdapter.value !== "None") {
-                    drawPill(ctx, cx, cy, isNarrow ? "ADPT" : "EXT ADAPTER", HADES_THEME.purple);
+                    drawPill(
+                        ctx,
+                        cx,
+                        cy,
+                        isNarrow ? "ADPT" : "EXT ADAPTER",
+                        HADES_THEME.purple,
+                        `<strong>External llm_adapter</strong><br>Conditioner layer injection for Anima 3.8B or hybrid text conditioning.`,
+                        pillBounds
+                    );
                 }
             },
         })
@@ -209,22 +242,26 @@ export function setupAnimaCLIPLoaderUI(node) {
             actions: [
                 {
                     label: "GPU Dyn",
+                    tooltip: `<strong>GPU Dynamic Offload</strong><br>Loads Qwen3 into GPU VRAM for conditioning and offloads when idle.`,
                     onClick: (n) => setWidgetValue(wDevice, "default (GPU Dynamic)", n),
                 },
                 {
                     label: "CPU Safe",
+                    tooltip: `<strong>CPU Low-VRAM Safe</strong><br>Keeps Qwen3 in system RAM to preserve maximum GPU memory for generation.`,
                     onClick: (n) => setWidgetValue(wDevice, "cpu (Low-VRAM Safe)", n),
                 },
                 {
                     label: "Auto Prec",
+                    tooltip: `<strong>Auto Precision</strong><br>Automatically matches text encoder precision to GPU hardware capability.`,
                     onClick: (n) => setWidgetValue(wPrec, "auto", n),
                 },
                 {
                     label: "BF16",
+                    tooltip: `<strong>Bfloat16 Precision</strong><br>Computes embeddings in 16-bit brain float.`,
                     onClick: (n) => setWidgetValue(wPrec, "bfloat16", n),
                 },
             ],
-            drawCustomHUD: (ctx, rect) => {
+            drawCustomHUD: (ctx, rect, n, pillBounds) => {
                 const isNarrow = rect.w < 270;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
@@ -235,10 +272,28 @@ export function setupAnimaCLIPLoaderUI(node) {
                     cx,
                     cy,
                     wGuard?.value ? (isNarrow ? "1024d GUARD" : "QWEN3 (1024d) GUARD") : "GUARD OFF",
-                    wGuard?.value ? HADES_THEME.emerald : HADES_THEME.amber
+                    wGuard?.value ? HADES_THEME.emerald : HADES_THEME.amber,
+                    `<strong>Qwen3-0.6B Dimension Guard</strong><br>Active: validates 1024-dim hidden size to prevent mismatch crashes.`,
+                    pillBounds
                 );
-                cx += drawPill(ctx, cx, cy, isCpu ? "CPU SAFE" : (isNarrow ? "GPU DYN" : "GPU DYNAMIC"), isCpu ? HADES_THEME.purple : HADES_THEME.blue);
-                drawPill(ctx, cx, cy, isNarrow ? precVal : `PREC: ${precVal}`, HADES_THEME.cyan);
+                cx += drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    isCpu ? "CPU SAFE" : (isNarrow ? "GPU DYN" : "GPU DYNAMIC"),
+                    isCpu ? HADES_THEME.purple : HADES_THEME.blue,
+                    `<strong>Active Execution Device</strong><br>Device where prompt embeddings are currently calculated.`,
+                    pillBounds
+                );
+                drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    isNarrow ? precVal : `PREC: ${precVal}`,
+                    HADES_THEME.cyan,
+                    `<strong>Text Encoder Precision</strong><br>Numerical precision for text encoder inference.`,
+                    pillBounds
+                );
             },
         })
     );
@@ -337,25 +392,57 @@ export function setupAnimaVAELoaderUI(node) {
             actions: [
                 {
                     label: "BF16 (Rec)",
+                    tooltip: `<strong>Bfloat16 Native Precision</strong><br>Officially recommended native precision for 16-channel Wan2.1 VAE.`,
                     onClick: (n) => setWidgetValue(wPrec, "bfloat16 (Recommended Wan21)", n),
                 },
                 {
                     label: "FP32 HiPrec",
+                    tooltip: `<strong>Float32 High Precision</strong><br>Forces 32-bit floating point to eliminate potential rounding artifacts.`,
                     onClick: (n) => setWidgetValue(wPrec, "float32 (High Precision)", n),
                 },
                 {
                     label: "FP16",
+                    tooltip: `<strong>Float16 Precision</strong><br>Standard 16-bit half precision.`,
                     onClick: (n) => setWidgetValue(wPrec, "float16", n),
                 },
             ],
-            drawCustomHUD: (ctx, rect) => {
+            drawCustomHUD: (ctx, rect, n, pillBounds) => {
                 const isNarrow = rect.w < 270;
+                const isTiny = rect.w < 240;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
-                cx += drawPill(ctx, cx, cy, isNarrow ? "16CH WAN21" : "16CH WAN2.1 ONLY", HADES_THEME.emerald);
-                cx += drawPill(ctx, cx, cy, "8x SPATIAL", HADES_THEME.cyan);
-                const precShort = String(wPrec?.value || "bfloat16").split(" ")[0].toUpperCase();
-                drawPill(ctx, cx, cy, precShort, HADES_THEME.blue);
+                const rawPrec = String(wPrec?.value || "bfloat16").split(" ")[0].toUpperCase();
+                const precPill =
+                    rawPrec === "BFLOAT16" ? "BF16" : rawPrec === "FLOAT32" ? "FP32" : rawPrec === "FLOAT16" ? "FP16" : rawPrec;
+                const wanPill = isTiny ? "16CH" : isNarrow ? "16CH WAN21" : "16CH WAN2.1 ONLY";
+                const spPill = isTiny ? "8x" : "8x SPATIAL";
+                cx += drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    wanPill,
+                    HADES_THEME.emerald,
+                    `<strong>16-Channel Wan2.1 Architecture</strong><br>Anima requires 16-channel latents. Prevents 64-channel Qwen-Image 2.1 mismatch crashes.`,
+                    pillBounds
+                );
+                cx += drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    spPill,
+                    HADES_THEME.cyan,
+                    `<strong>8x Spatial Downsampling</strong><br>Wan2.1 VAE downsamples latents by 8x spatially (e.g. 1024px -> 128px latent).`,
+                    pillBounds
+                );
+                drawPill(
+                    ctx,
+                    cx,
+                    cy,
+                    precPill,
+                    HADES_THEME.blue,
+                    `<strong>Active RMSNorm Precision</strong><br>Current precision used for VAE decoding operations.`,
+                    pillBounds
+                );
             },
         })
     );

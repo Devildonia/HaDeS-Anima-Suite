@@ -85,6 +85,76 @@ if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
     window._hadesTooltipGlobalInit = true;
     window.addEventListener("pointerdown", () => hideHadesTooltip(), { passive: true });
     window.addEventListener("wheel", () => hideHadesTooltip(), { passive: true });
+
+    window.addEventListener(
+        "pointermove",
+        (e) => {
+            const canvas = app?.canvas;
+            if (!canvas) return;
+            const node = canvas.node_over;
+            if (!node || !node.widgets) {
+                hideHadesTooltip();
+                return;
+            }
+
+            const graphMouse = canvas.graph_mouse;
+            if (!graphMouse) {
+                hideHadesTooltip();
+                return;
+            }
+
+            const localX = graphMouse[0] - node.pos[0];
+            const localY = graphMouse[1] - node.pos[1];
+
+            for (const w of node.widgets) {
+                if (w.hidden) continue;
+
+                // 1. Check banner action buttons
+                if (Array.isArray(w._btnBounds)) {
+                    for (const btn of w._btnBounds) {
+                        if (
+                            btn.tooltip &&
+                            localX >= btn.x &&
+                            localX <= btn.x + btn.w &&
+                            localY >= btn.y &&
+                            localY <= btn.y + btn.h
+                        ) {
+                            showHadesTooltip(btn.tooltip, e.clientX, e.clientY, btn.color || HADES_THEME.emerald);
+                            return;
+                        }
+                    }
+                }
+
+                // 2. Check banner HUD pills
+                if (Array.isArray(w._pillBounds)) {
+                    for (const pill of w._pillBounds) {
+                        if (
+                            pill.tooltip &&
+                            localX >= pill.x &&
+                            localX <= pill.x + pill.w &&
+                            localY >= pill.y &&
+                            localY <= pill.y + pill.h
+                        ) {
+                            showHadesTooltip(pill.tooltip, e.clientX, e.clientY, pill.color || HADES_THEME.cyan);
+                            return;
+                        }
+                    }
+                }
+
+                // 3. Check custom widgets (combos, sliders, toggles)
+                const b = w._rowBounds || w._bounds;
+                if (b && w.tooltip) {
+                    if (localX >= b.x && localX <= b.x + b.w && localY >= b.y && localY <= b.y + b.h) {
+                        showHadesTooltip(w.tooltip, e.clientX, e.clientY, w.tagColor || w.color || HADES_THEME.emerald);
+                        return;
+                    }
+                }
+            }
+
+            hideHadesTooltip();
+        },
+        { passive: true }
+    );
 }
 
 export function showHadesTooltip(htmlContent, clientX, clientY, accentColor = HADES_THEME.emerald) {
@@ -622,7 +692,7 @@ export function createSpectralBannerWidget(node, config) {
                     ctx.fillStyle = "#9da5b4";
                     ctx.fillText(lbl, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
 
-                    this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick });
+                    this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick, tooltip: act.tooltip, color: act.color });
                     cursorLeft = bx + btnW + btnGap;
                 }
             } else {
@@ -641,7 +711,7 @@ export function createSpectralBannerWidget(node, config) {
                     ctx.fillStyle = "#9da5b4";
                     ctx.fillText(act.label, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
 
-                    this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick });
+                    this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick, tooltip: act.tooltip, color: act.color });
                     cursorRight = bx - btnGap;
                 }
             }
@@ -657,8 +727,9 @@ export function createSpectralBannerWidget(node, config) {
                 ctx.fillStyle = "#101217";
                 ctx.fill();
 
+                this._pillBounds = [];
                 if (typeof drawCustomHUD === "function") {
-                    drawCustomHUD(ctx, { x: graphX, y: graphY, w: graphW, h: graphH }, n);
+                    drawCustomHUD(ctx, { x: graphX, y: graphY, w: graphW, h: graphH }, n, this._pillBounds);
                 } else if (typeof getBars === "function") {
                     const bars = getBars() || [];
                     const midY = graphY + graphH * 0.5;
