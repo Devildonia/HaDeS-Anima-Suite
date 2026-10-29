@@ -31,6 +31,8 @@ function drawPill(ctx, x, y, text, color) {
     return tw + 5;
 }
 
+const TAG_W = 66;
+
 export function setupAnimaModelLoaderUI(node) {
     applyNodeFrameStyle(node);
     const wUnet = node.widgets?.find((w) => w.name === "unet_name");
@@ -41,13 +43,11 @@ export function setupAnimaModelLoaderUI(node) {
 
     [wUnet, wDtype, wShift, wRemap, wAdapter].forEach(hideBackingWidget);
 
-    node.addCustomWidget(
+    const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "ANIMA DIFFUSION MODEL LOADER",
+            title: "",
             accentColor: HADES_THEME.blue,
-            customHeight: 58,
-            getStatusText: () => `ANIMA DIT LOADER • ${formatCleanLabel(wUnet?.value, "Select Checkpoint")}`,
-            getStatusColor: () => (wRemap?.value ? HADES_THEME.emerald : HADES_THEME.blue),
+            customHeight: 52,
             actions: [
                 {
                     label: "Reset 3.0",
@@ -57,85 +57,139 @@ export function setupAnimaModelLoaderUI(node) {
                         setWidgetValue(wRemap, true, n);
                     },
                 },
+                {
+                    label: "Default",
+                    onClick: (n) => setWidgetValue(wDtype, "default", n),
+                },
+                {
+                    label: "BF16",
+                    onClick: (n) => setWidgetValue(wDtype, "bfloat16", n),
+                },
+                {
+                    label: "FP8",
+                    onClick: (n) => setWidgetValue(wDtype, "fp8_e4m3fn", n),
+                },
             ],
             drawCustomHUD: (ctx, rect) => {
+                const isNarrow = rect.w < 270;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
-                cx += drawPill(ctx, cx, cy, `DTYPE: ${String(wDtype?.value || "default").toUpperCase()}`, HADES_THEME.cyan);
-                cx += drawPill(ctx, cx, cy, `SHIFT: ${Number(wShift?.value ?? 3.0).toFixed(2)} (mult=1.0)`, HADES_THEME.blue);
+                const dtypeVal = String(wDtype?.value || "default").toUpperCase();
+                const shiftVal = Number(wShift?.value ?? 3.0).toFixed(2);
+                cx += drawPill(ctx, cx, cy, isNarrow ? dtypeVal : `DTYPE: ${dtypeVal}`, HADES_THEME.cyan);
+                cx += drawPill(ctx, cx, cy, isNarrow ? `S: ${shiftVal}` : `SHIFT: ${shiftVal} (m=1.0)`, HADES_THEME.blue);
                 cx += drawPill(
                     ctx,
                     cx,
                     cy,
-                    wRemap?.value ? "24-RULE DIFFUSERS AUTO-REMAP" : "RAW KEYS",
+                    wRemap?.value ? (isNarrow ? "24-REMAP" : "24-RULE REMAP") : "RAW KEYS",
                     wRemap?.value ? HADES_THEME.emerald : HADES_THEME.amber
                 );
                 if (wAdapter?.value && wAdapter.value !== "None") {
-                    drawPill(ctx, cx, cy, "EXT ADAPTER INJECT", HADES_THEME.purple);
+                    drawPill(ctx, cx, cy, isNarrow ? "ADPT" : "EXT ADAPTER", HADES_THEME.purple);
                 }
             },
         })
     );
 
-    if (wUnet) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wUnet, {
-                tag: "MODEL",
-                tagColor: HADES_THEME.blue,
-                label: "Anima Checkpoint",
-                cleanFileNames: true,
-            })
-        );
-    }
-    if (wDtype) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wDtype, {
-                tag: "DTYPE",
-                tagColor: HADES_THEME.cyan,
-                label: "Weight Precision",
-            })
-        );
-    }
-    if (wShift) {
-        node.addCustomWidget(
-            createSpectralSliderWidget(node, wShift, {
-                tag: "SHFT",
-                rangeTag: "M=1.0",
-                label: "Rectified Flow Shift (multiplier=1.0)",
-                color: HADES_THEME.blue,
-                min: 0.5,
-                max: 10.0,
-                visMin: 1.0,
-                visMax: 6.0,
-                step: 0.05,
-                defaultVal: 3.0,
-            })
-        );
-    }
-    if (wRemap) {
-        node.addCustomWidget(
-            createStyledToggleWidget(node, wRemap, {
-                tag: "CONV",
-                color: HADES_THEME.emerald,
-                label: "Auto-Convert Diffusers Keys (24 Rules)",
-                onText: "AUTO REMAP",
-                offText: "PASS-THROUGH",
-            })
-        );
-    }
-    if (wAdapter) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wAdapter, {
-                tag: "ADPT",
-                tagColor: HADES_THEME.purple,
-                label: "External llm_adapter (Optional / 3.8B)",
-                cleanFileNames: true,
-            })
-        );
-    }
+    const unetWidget = wUnet
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wUnet, {
+                  tag: "MODEL",
+                  tagColor: HADES_THEME.blue,
+                  tagWidth: TAG_W,
+                  label: "",
+                  cleanFileNames: true,
+                  tooltip: `<strong>Anima Diffusion Transformer</strong><br>Select an Anima DiT model checkpoint (Base 2B, Aesthetic, Turbo, Lightning, 2.9B, or 3.8B).`,
+              })
+          )
+        : null;
 
+    const dtypeWidget = wDtype
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wDtype, {
+                  tag: "DTYPE",
+                  tagColor: HADES_THEME.cyan,
+                  tagWidth: TAG_W,
+                  label: "",
+                  tooltip: `<strong>Weight Precision</strong><br>Precision for loading the DiT weights into VRAM.<br><span style="color:#38bdf8">• default:</span> Preserves checkpoint native precision.<br><span style="color:#38bdf8">• bfloat16:</span> Native 16-bit brain float.<br><span style="color:#38bdf8">• fp8_e4m3fn:</span> Low-VRAM 8-bit quantization.`,
+              })
+          )
+        : null;
+
+    const shiftWidget = wShift
+        ? node.addCustomWidget(
+              createSpectralSliderWidget(node, wShift, {
+                  tag: "SHIFT",
+                  color: HADES_THEME.amber,
+                  tagWidth: TAG_W,
+                  label: "",
+                  min: 0.5,
+                  max: 10.0,
+                  visMin: 1.0,
+                  visMax: 6.0,
+                  step: 0.05,
+                  defaultVal: 3.0,
+                  tooltip: `<strong>Rectified Flow Shift (multiplier=1.0)</strong><br>Time-step density warping for Anima's continuous flow formulation.<br><span style="color:#fbbf24">• Default: 3.00</span> calibrated baseline for optimal contrast and anatomy.`,
+              })
+          )
+        : null;
+
+    const remapWidget = wRemap
+        ? node.addCustomWidget(
+              createStyledToggleWidget(node, wRemap, {
+                  tag: "CONV",
+                  color: HADES_THEME.emerald,
+                  tagWidth: TAG_W,
+                  label: "",
+                  onText: "AUTO REMAP",
+                  offText: "BYPASS",
+                  tooltip: `<strong>24-Rule Diffusers Auto-Remap</strong><br>Automatically converts official Diffusers DiT key format to ComfyUI native format on-the-fly, preventing missing block errors.`,
+              })
+          )
+        : null;
+
+    const adapterWidget = wAdapter
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wAdapter, {
+                  tag: "ADPT",
+                  tagColor: HADES_THEME.purple,
+                  tagWidth: TAG_W,
+                  label: "",
+                  cleanFileNames: true,
+                  tooltip: `<strong>External llm_adapter Injection</strong><br>Optional llm_adapter layer injection for Anima 3.8B or hybrid text conditioning architectures.`,
+              })
+          )
+        : null;
+
+    node.widgets = [
+        bannerWidget,
+        unetWidget,
+        dtypeWidget,
+        shiftWidget,
+        remapWidget,
+        adapterWidget,
+        wUnet,
+        wDtype,
+        wShift,
+        wRemap,
+        wAdapter,
+    ].filter(Boolean);
+
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 420;
     const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupAnimaCLIPLoaderUI(node) {
@@ -147,72 +201,125 @@ export function setupAnimaCLIPLoaderUI(node) {
 
     [wClip, wDevice, wPrec, wGuard].forEach(hideBackingWidget);
 
-    node.addCustomWidget(
+    const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "ANIMA QWEN3 TEXT ENCODER LOADER",
+            title: "",
             accentColor: HADES_THEME.cyan,
-            customHeight: 56,
-            getStatusText: () => `ANIMA QWEN3 TE • ${formatCleanLabel(wClip?.value, "qwen_3_06b_base")}`,
-            getStatusColor: () => (wGuard?.value ? HADES_THEME.emerald : HADES_THEME.amber),
+            customHeight: 52,
+            actions: [
+                {
+                    label: "GPU Dyn",
+                    onClick: (n) => setWidgetValue(wDevice, "default (GPU Dynamic)", n),
+                },
+                {
+                    label: "CPU Safe",
+                    onClick: (n) => setWidgetValue(wDevice, "cpu (Low-VRAM Safe)", n),
+                },
+                {
+                    label: "Auto Prec",
+                    onClick: (n) => setWidgetValue(wPrec, "auto", n),
+                },
+                {
+                    label: "BF16",
+                    onClick: (n) => setWidgetValue(wPrec, "bfloat16", n),
+                },
+            ],
             drawCustomHUD: (ctx, rect) => {
+                const isNarrow = rect.w < 270;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
                 const isCpu = String(wDevice?.value || "").startsWith("cpu");
+                const precVal = String(wPrec?.value || "auto").toUpperCase();
                 cx += drawPill(
                     ctx,
                     cx,
                     cy,
-                    wGuard?.value ? "QWEN3-0.6B (1024d) GUARD" : "GUARD BYPASSED",
+                    wGuard?.value ? (isNarrow ? "1024d GUARD" : "QWEN3 (1024d) GUARD") : "GUARD OFF",
                     wGuard?.value ? HADES_THEME.emerald : HADES_THEME.amber
                 );
-                cx += drawPill(ctx, cx, cy, isCpu ? "CPU LOW-VRAM SAFE" : "GPU DYNAMIC", isCpu ? HADES_THEME.purple : HADES_THEME.blue);
-                drawPill(ctx, cx, cy, `PREC: ${String(wPrec?.value || "auto").toUpperCase()}`, HADES_THEME.cyan);
+                cx += drawPill(ctx, cx, cy, isCpu ? "CPU SAFE" : (isNarrow ? "GPU DYN" : "GPU DYNAMIC"), isCpu ? HADES_THEME.purple : HADES_THEME.blue);
+                drawPill(ctx, cx, cy, isNarrow ? precVal : `PREC: ${precVal}`, HADES_THEME.cyan);
             },
         })
     );
 
-    if (wClip) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wClip, {
-                tag: "QWEN",
-                tagColor: HADES_THEME.cyan,
-                label: "Text Encoder File",
-                cleanFileNames: true,
-            })
-        );
-    }
-    if (wDevice) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wDevice, {
-                tag: "DEV",
-                tagColor: HADES_THEME.blue,
-                label: "Execution Device",
-            })
-        );
-    }
-    if (wPrec) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wPrec, {
-                tag: "PREC",
-                tagColor: HADES_THEME.purple,
-                label: "Compute Precision",
-            })
-        );
-    }
-    if (wGuard) {
-        node.addCustomWidget(
-            createStyledToggleWidget(node, wGuard, {
-                tag: "SHLD",
-                color: HADES_THEME.emerald,
-                label: "Block Incompatible CLIP / T5 / 7B",
-                onText: "1024d LOCKED",
-                offText: "UNCHECKED",
-            })
-        );
-    }
+    const clipWidget = wClip
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wClip, {
+                  tag: "QWEN",
+                  tagColor: HADES_THEME.cyan,
+                  tagWidth: TAG_W,
+                  label: "",
+                  cleanFileNames: true,
+                  tooltip: `<strong>Qwen3-0.6B Text Encoder</strong><br>Anima's native 1024-dim text encoder model file.`,
+              })
+          )
+        : null;
 
+    const deviceWidget = wDevice
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wDevice, {
+                  tag: "DEV",
+                  tagColor: HADES_THEME.blue,
+                  tagWidth: TAG_W,
+                  label: "",
+                  tooltip: `<strong>Execution Device Mode</strong><br><span style="color:#38bdf8">• default (GPU Dynamic):</span> Moves text encoder to GPU during prompt conditioning, then offloads when idle.<br><span style="color:#a855f7">• cpu:</span> Keeps text encoder in system RAM to preserve maximum GPU VRAM.`,
+              })
+          )
+        : null;
+
+    const precWidget = wPrec
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wPrec, {
+                  tag: "PREC",
+                  tagColor: HADES_THEME.purple,
+                  tagWidth: TAG_W,
+                  label: "",
+                  tooltip: `<strong>Compute Precision</strong><br>Calculation precision for prompt conditioning embeddings (auto, bfloat16, fp16, fp32).`,
+              })
+          )
+        : null;
+
+    const guardWidget = wGuard
+        ? node.addCustomWidget(
+              createStyledToggleWidget(node, wGuard, {
+                  tag: "SHLD",
+                  color: HADES_THEME.emerald,
+                  tagWidth: TAG_W,
+                  label: "",
+                  onText: "1024d LOCKED",
+                  offText: "UNCHECKED",
+                  tooltip: `<strong>Strict Qwen3-0.6B (1024d) Guard</strong><br>Blocks incompatible CLIP, T5, or Qwen2.5-7B models that would cause shape mismatch crashes in Anima.`,
+              })
+          )
+        : null;
+
+    node.widgets = [
+        bannerWidget,
+        clipWidget,
+        deviceWidget,
+        precWidget,
+        guardWidget,
+        wClip,
+        wDevice,
+        wPrec,
+        wGuard,
+    ].filter(Boolean);
+
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 420;
     const sz = node.computeSize();
-    node.setSize([Math.max(420, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupAnimaVAELoaderUI(node) {
@@ -222,17 +329,30 @@ export function setupAnimaVAELoaderUI(node) {
 
     [wVae, wPrec].forEach(hideBackingWidget);
 
-    node.addCustomWidget(
+    const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "ANIMA 16CH WAN21 VAE LOADER",
+            title: "",
             accentColor: HADES_THEME.emerald,
-            customHeight: 56,
-            getStatusText: () => `ANIMA 16CH VAE • ${formatCleanLabel(wVae?.value, "qwen_image_vae")}`,
-            getStatusColor: () => HADES_THEME.emerald,
+            customHeight: 52,
+            actions: [
+                {
+                    label: "BF16 (Rec)",
+                    onClick: (n) => setWidgetValue(wPrec, "bfloat16 (Recommended Wan21)", n),
+                },
+                {
+                    label: "FP32 HiPrec",
+                    onClick: (n) => setWidgetValue(wPrec, "float32 (High Precision)", n),
+                },
+                {
+                    label: "FP16",
+                    onClick: (n) => setWidgetValue(wPrec, "float16", n),
+                },
+            ],
             drawCustomHUD: (ctx, rect) => {
+                const isNarrow = rect.w < 270;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
-                cx += drawPill(ctx, cx, cy, "16CH WAN2.1 ONLY (BLOCKS 64CH TRAP)", HADES_THEME.emerald);
+                cx += drawPill(ctx, cx, cy, isNarrow ? "16CH WAN21" : "16CH WAN2.1 ONLY", HADES_THEME.emerald);
                 cx += drawPill(ctx, cx, cy, "8x SPATIAL", HADES_THEME.cyan);
                 const precShort = String(wPrec?.value || "bfloat16").split(" ")[0].toUpperCase();
                 drawPill(ctx, cx, cy, precShort, HADES_THEME.blue);
@@ -240,28 +360,53 @@ export function setupAnimaVAELoaderUI(node) {
         })
     );
 
-    if (wVae) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wVae, {
-                tag: "VAE",
-                tagColor: HADES_THEME.emerald,
-                label: "16ch Wan21 VAE File",
-                cleanFileNames: true,
-            })
-        );
-    }
-    if (wPrec) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wPrec, {
-                tag: "PREC",
-                tagColor: HADES_THEME.blue,
-                label: "Wan21 RMSNorm Precision",
-            })
-        );
-    }
+    const vaeWidget = wVae
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wVae, {
+                  tag: "VAE",
+                  tagColor: HADES_THEME.emerald,
+                  tagWidth: TAG_W,
+                  label: "",
+                  cleanFileNames: true,
+                  tooltip: `<strong>16-Channel Wan2.1 VAE Checkpoint</strong><br>Anima requires the Wan2.1 16-channel VAE. Incompatible 64-channel Qwen2.1 VAEs are blocked automatically.`,
+              })
+          )
+        : null;
 
+    const precWidget = wPrec
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wPrec, {
+                  tag: "PREC",
+                  tagColor: HADES_THEME.blue,
+                  tagWidth: TAG_W,
+                  label: "",
+                  tooltip: `<strong>Wan2.1 RMSNorm Precision</strong><br>Precision for VAE RMSNorm and convolutional layers.<br><span style="color:#38bdf8">• bfloat16:</span> Officially recommended native precision for Wan2.1 VAE.`,
+              })
+          )
+        : null;
+
+    node.widgets = [
+        bannerWidget,
+        vaeWidget,
+        precWidget,
+        wVae,
+        wPrec,
+    ].filter(Boolean);
+
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 420;
     const sz = node.computeSize();
-    node.setSize([Math.max(420, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export function setupAnimaVAEDecodeUI(node) {
@@ -400,8 +545,20 @@ export function setupAnimaVAEDecodeUI(node) {
         wThresh,
     ].filter(Boolean);
 
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 420;
     const sz = node.computeSize();
-    node.setSize([Math.max(420, sz[0]), sz[1] + 8]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
+    node.setSize([initW, initH]);
 }
 
 export const LOADER_NODE_DISPATCH = {

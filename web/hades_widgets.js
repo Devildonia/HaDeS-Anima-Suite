@@ -646,11 +646,12 @@ export function createSpectralBannerWidget(node, config) {
                 }
             }
 
+            const hasTopRow = Boolean(labelText) || actions.length > 0;
             if (hasGraph) {
                 const graphX = x + 6;
-                const graphY = topY + 24;
+                const graphY = hasTopRow ? topY + 24 : topY + 4;
                 const graphW = w - 12;
-                const graphH = h - 28;
+                const graphH = hasTopRow ? h - 28 : h - 8;
 
                 drawRoundedRect(ctx, graphX, graphY, graphW, graphH, 4);
                 ctx.fillStyle = "#101217";
