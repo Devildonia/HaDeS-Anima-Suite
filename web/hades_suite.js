@@ -6,7 +6,7 @@ import { KSAMPLER_NODE_DISPATCH } from "./hades_ksampler_ui.js";
 import { LOADER_NODE_DISPATCH } from "./hades_loaders_ui.js";
 
 // =============================================================================
-// HADES ANIMA SPECTRAL SUITE UI - EXTENSION ORCHESTRATOR (17 NODES)
+// HADES ANIMA SPECTRAL SUITE UI - EXTENSION ORCHESTRATOR (18 NODES)
 // =============================================================================
 const NODE_SETUP_DISPATCH = {
     ...MERGER_NODE_DISPATCH,
@@ -24,7 +24,7 @@ app.registerExtension({
                 name: "HaDeS Suite: Force Classic ComfyUI Theme (Vanilla)",
                 type: "boolean",
                 defaultValue: false,
-                tooltip: "When enabled, hides HaDeS spectral neon widgets and shows standard ComfyUI controls across all 17 nodes",
+                tooltip: "When enabled, hides HaDeS spectral neon widgets and shows standard ComfyUI controls across all 18 nodes",
                 onChange(value) {
                     setGlobalClassicUI(Boolean(value));
                 },

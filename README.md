@@ -196,6 +196,10 @@ HaDeS Anima Suite v0.1.5
 - **Class:** `HaDeSAnimaVAEDecode`
 - **Purpose:** Decodes 16-channel Anima latents with proactive **Auto Smart-Tile** switching when resolution exceeds `auto_tile_mp_threshold` (default `1.35 MP`) or free VRAM is tight—avoiding `WanVAE` untiled OOM spikes on 6GB–12GB GPUs—and integrates an optional post-decode **Corner Scribble Shield** in a single node, with full user control over the shield: `corner_box_percent` (default `0.10`), `corner_sensitivity` (default `0.75`), `shield_heal_mode` (Smart Auto-Heal / Aggressive Forced Fill / Soft Blur) and `shield_feather_radius`.
 
+#### 18. `Anima Suite Telemetry`
+- **Class:** `HaDeSAnimaSuiteTelemetry`
+- **Purpose:** Centralized **Flight Recorder & Pipeline Telemetry Auditor**. Aggregates up to 8+ `info` streams across all HaDeS Suite nodes in the workflow, semantically classifies them into pipeline phases (*Architecture, Conditioning & LoRAs, Sampling & Guidance, Post-Processing*), and executes an automated **Diagnostics & Health Engine** (validating Flow Shift synchronization, Turbo/CFG=1 NAG negative steering, 32px macroblock alignment, Wan2.1 16-channel integrity, and `llm_adapter` text bridge locks). Outputs an audit-grade Markdown report, a structured JSON telemetry payload, and a compact single-line status summary, with one-click clipboard copying.
+
 ---
 
 ## Modular Project Structure
@@ -206,19 +210,19 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   └── workflows/
 │       └── ci.yml            # Multi-version CI (Python 3.10-3.12 + Node.js JS syntax checks)
 ├── __init__.py               # Core 34-block topology, 24-rule Diffusers remapper & 5 Merger nodes
-├── anima_pipeline_nodes.py   # 5 Anima Pipeline & Guard nodes (Prompt, NAG, Latent, Remapper, Shield)
+├── anima_pipeline_nodes.py   # 6 Anima Pipeline, Guard & Telemetry nodes (Prompt, NAG, Latent, Remapper, Shield, Telemetry)
 ├── anima_ksampler_nodes.py   # 3 Anima Rectified Flow KSampler nodes (Single, Dual-Pass, Triple-Pass)
 ├── anima_loader_nodes.py     # 4 Native Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode
 ├── web/
 │   ├── icon.png              # 128x128 32-bit RGBA genuine PNG extension icon
-│   ├── hades_suite.js        # Lightweight ComfyUI extension orchestrator (17 nodes)
+│   ├── hades_suite.js        # Lightweight ComfyUI extension orchestrator (18 nodes)
 │   ├── hades_widgets.js      # Reusable HaDeS Spectral Canvas UI components & theme tokens
 │   ├── hades_mergers_ui.js   # UI installers for the 5 Merger & LoRA nodes
-│   ├── hades_pipeline_ui.js  # UI installers & custom telemetry HUDs for the 5 Pipeline nodes
+│   ├── hades_pipeline_ui.js  # UI installers & custom telemetry HUDs for the 6 Pipeline nodes
 │   ├── hades_ksampler_ui.js  # UI installers & flow/staircase HUDs for the 3 Anima KSamplers
 │   └── hades_loaders_ui.js   # UI installers & diagnostic badges for the 4 Loader/Decode nodes
 ├── tests/
-│   └── test_hades_suite.py   # 19 automated unit & integration test suites
+│   └── test_hades_suite.py   # 22 automated unit & integration test suites
 ├── pyproject.toml
 ├── LICENSE
 └── README.md

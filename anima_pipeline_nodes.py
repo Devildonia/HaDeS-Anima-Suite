@@ -1,5 +1,7 @@
 import os
 import re
+import json
+import datetime
 import torch
 import torch.nn.functional as F
 import folder_paths
@@ -1244,3 +1246,370 @@ class HaDeSAnimaCornerScribbleShield:
             f"Mode: {heal_mode} | Active: {active_corners} | Detected: {det_str}"
         )
         return (out_img, mask_out, info)
+
+
+# ==============================================================================
+# 11. HADES ANIMA SUITE TELEMETRY & FLIGHT RECORDER
+# ==============================================================================
+class HaDeSAnimaSuiteTelemetry:
+    """
+    HaDeS Anima Suite Telemetry & Flight Recorder.
+    Collects, aggregates, semantically classifies, and performs automated diagnostic health
+    checks across all connected 'info' telemetry streams from HaDeS Suite nodes in the workflow.
+    Diagnoses configuration mismatches (Flow Shift, CFG, NAG, 32px resolution alignment,
+    llm_adapter locks, and VAE channel verification), and outputs human-readable flight reports
+    and structured JSON telemetry.
+    """
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "report_format": ([
+                    "Full Audit Report (Markdown)",
+                    "Compact Flight Summary",
+                    "Diagnostics Only",
+                    "JSON Raw Data",
+                ], {"default": "Full Audit Report (Markdown)"}),
+                "report_title": ("STRING", {"default": "HaDeS Anima Suite Telemetry & Flight Audit"}),
+            },
+            "optional": {
+                "info_1": ("STRING", {"forceInput": True}),
+                "info_2": ("STRING", {"forceInput": True}),
+                "info_3": ("STRING", {"forceInput": True}),
+                "info_4": ("STRING", {"forceInput": True}),
+                "info_5": ("STRING", {"forceInput": True}),
+                "info_6": ("STRING", {"forceInput": True}),
+                "info_7": ("STRING", {"forceInput": True}),
+                "info_8": ("STRING", {"forceInput": True}),
+                "user_notes": ("STRING", {"multiline": True, "default": ""}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("report", "json_telemetry", "diagnostics")
+    FUNCTION = "audit_telemetry"
+    CATEGORY = "HaDeS/Anima Pipeline"
+
+    def _classify_stream(self, text: str) -> str:
+        t = text.upper()
+        if any(k in t for k in ["MODEL LOADER", "CLIP LOADER", "VAE LOADER", "BLOCK MERGER", "CLIP BLOCK MERGER", "PREDICTIVE MODEL MERGER"]):
+            return "ARCHITECTURE"
+        if any(k in t for k in ["MULTI-LORA", "LORA REMAPPER", "STANDALONE LORA MERGER", "PROMPT STUDIO"]):
+            return "CONDITIONING"
+        if any(k in t for k in ["KSAMPLER", "ATTENTION GUIDANCE", "NAG", "LATENT PIPELINE GUARD"]):
+            return "SAMPLING"
+        if any(k in t for k in ["CORNER SCRIBBLE SHIELD", "CORNER SHIELD", "VAE DECODE"]):
+            return "POST_PROCESSING"
+        return "EXTERNAL"
+
+    def audit_telemetry(self, report_format, report_title, user_notes="", **kwargs):
+        # 1. Gather all incoming non-empty info strings
+        raw_inputs = []
+        for i in range(1, 9):
+            val = kwargs.get(f"info_{i}")
+            if val is not None and str(val).strip():
+                raw_inputs.append(str(val).strip())
+
+        for k, v in kwargs.items():
+            if not k.startswith("info_") and v is not None and str(v).strip():
+                raw_inputs.append(str(v).strip())
+
+        # 2. Group into semantic pipeline buckets
+        buckets = {
+            "ARCHITECTURE": [],
+            "CONDITIONING": [],
+            "SAMPLING": [],
+            "POST_PROCESSING": [],
+            "EXTERNAL": [],
+        }
+
+        for item in raw_inputs:
+            cat = self._classify_stream(item)
+            buckets[cat].append(item)
+
+        # 3. Extract key telemetry telemetry points for diagnostics
+        model_shift = None
+        sampler_shift = None
+        sampler_cfg = None
+        nag_active = False
+        nag_scale = None
+        nag_tau = None
+        res_w, res_h = None, None
+        vae_channels = None
+        llm_adapter_safe = False
+        corner_status = None
+        vae_strategy = None
+
+        full_text = "\n\n".join(raw_inputs)
+
+        # Shift checks
+        for arch_item in buckets["ARCHITECTURE"]:
+            m_s = re.search(r"(?:Flow Shift|Shift)[:\s=]+([0-9]+(?:\.[0-9]+)?)", arch_item, re.IGNORECASE)
+            if m_s:
+                try:
+                    model_shift = float(m_s.group(1))
+                except ValueError:
+                    pass
+
+        for samp_item in buckets["SAMPLING"]:
+            m_ss = re.search(r"Flow Shift(?:\s*\([^)]*\))?[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
+            if m_ss:
+                try:
+                    sampler_shift = float(m_ss.group(1))
+                except ValueError:
+                    pass
+            m_cfg = re.search(r"\bCFG[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
+            if m_cfg:
+                try:
+                    sampler_cfg = float(m_cfg.group(1))
+                except ValueError:
+                    pass
+
+        # NAG check
+        if any("ATTENTION GUIDANCE" in s.upper() or "NAG" in s.upper() for s in buckets["SAMPLING"]):
+            nag_active = True
+            m_sc = re.search(r"Scale[:\s=]+([0-9]+(?:\.[0-9]+)?)", full_text, re.IGNORECASE)
+            if m_sc:
+                try:
+                    nag_scale = float(m_sc.group(1))
+                except ValueError:
+                    pass
+            m_tau = re.search(r"Tau[:\s=]+([0-9]+(?:\.[0-9]+)?)", full_text, re.IGNORECASE)
+            if m_tau:
+                try:
+                    nag_tau = float(m_tau.group(1))
+                except ValueError:
+                    pass
+
+        # Resolution check
+        m_res = re.search(r"\b([0-9]{3,5})\s*x\s*([0-9]{3,5})\s*(?:px)?\b", full_text, re.IGNORECASE)
+        if m_res:
+            try:
+                res_w, res_h = int(m_res.group(1)), int(m_res.group(2))
+            except ValueError:
+                pass
+
+        # VAE channels check
+        m_vae = re.search(r"(\d+)\s*(?:ch|channels)\b", full_text, re.IGNORECASE)
+        if m_vae:
+            try:
+                vae_channels = int(m_vae.group(1))
+            except ValueError:
+                pass
+        elif "WAN2.1" in full_text.upper():
+            vae_channels = 16
+
+        # llm_adapter check
+        if any(x in full_text.upper() for x in ["STRIPPED", "PROTECTED", "DIRTY LLM_ADAPTER KEYS STRIPPED", "BRIDGE: STRIPPED"]):
+            llm_adapter_safe = True
+
+        # Corner shield check
+        for post_item in buckets["POST_PROCESSING"]:
+            if "CORNER SCRIBBLE SHIELD" in post_item.upper() or "CORNER SHIELD" in post_item.upper():
+                m_cs = re.search(r"Detected:\s*([^|\n]+)", post_item, re.IGNORECASE)
+                corner_status = m_cs.group(1).strip() if m_cs else "Active"
+            if "VAE DECODE" in post_item.upper():
+                m_strat = re.search(r"Strategy:\s*([^|\n]+)", post_item, re.IGNORECASE)
+                vae_strategy = m_strat.group(1).strip() if m_strat else "Direct Pass"
+
+        # 4. Run automated diagnostic checks
+        checks = []
+        issues = []
+
+        if model_shift is not None and sampler_shift is not None:
+            if abs(model_shift - sampler_shift) > 0.05:
+                issues.append(("WARNING", f"Flow Shift Divergence: Model Loader configured Shift={model_shift:.2f}, while KSampler executed with Shift={sampler_shift:.2f}. Verify if this difference is intentional."))
+            else:
+                checks.append(f"Flow Shift Synchronized: {model_shift:.2f} across Model Loader and KSampler.")
+        elif sampler_shift is not None:
+            checks.append(f"Flow Shift Applied: {sampler_shift:.2f} in KSampler execution.")
+
+        if sampler_cfg is not None and sampler_cfg <= 1.5:
+            if nag_active and (nag_scale is None or nag_scale > 1.0):
+                extra = f" (Scale {nag_scale:.1f}, Tau {nag_tau:.1f})" if nag_scale else ""
+                checks.append(f"Turbo/Lightning CFG={sampler_cfg:.2f} paired with active NAG Attention Guidance{extra}. Negative prompt steering enabled.")
+            else:
+                issues.append(("TIP", f"Low CFG ({sampler_cfg:.2f}) used without Anima Attention Guidance (NAG). Negative prompt terms have negligible steering on Anima Turbo/Lightning without NAG extrapolation."))
+
+        if res_w is not None and res_h is not None:
+            if (res_w % 32 != 0) or (res_h % 32 != 0):
+                issues.append(("WARNING", f"Canvas resolution ({res_w}x{res_h}px) is not 32px macroblock aligned (mod 32: {res_w % 32}, {res_h % 32}). Wan2.1 VAE 8x spatial downsampling requires 32px grid alignment to prevent edge artifacting."))
+            else:
+                checks.append(f"Canvas resolution ({res_w}x{res_h}px) strictly aligned to 32px macroblock grid.")
+
+        if vae_channels is not None:
+            if vae_channels == 16:
+                checks.append("Wan2.1 native 16-channel latent representation verified.")
+            else:
+                issues.append(("ERROR", f"Incompatible VAE ({vae_channels} channels). Anima architecture strictly requires Wan2.1 16-channel VAE."))
+
+        if buckets["CONDITIONING"]:
+            if llm_adapter_safe:
+                checks.append("Anima 6-layer text conditioner bridge protected (dirty lr=0 llm_adapter keys stripped).")
+            else:
+                issues.append(("TIP", "External LoRAs detected: Ensure 'strip_llm_adapter' is active to prevent text bridge degradation."))
+
+        if corner_status is not None:
+            if "CLEAN" in corner_status.upper():
+                checks.append("Corner Scribble Shield: Perimeter clean (zero false positives).")
+            else:
+                checks.append(f"Corner Scribble Shield: Detected signature artifacts mitigated ({corner_status}).")
+
+        if vae_strategy is not None:
+            checks.append(f"VAE Decode Strategy: {vae_strategy}.")
+
+        # 5. Compute overall Health Score
+        score = 100
+        for level, _ in issues:
+            if level == "ERROR":
+                score -= 25
+            elif level == "WARNING":
+                score -= 10
+        score = max(0, min(100, score))
+
+        if not raw_inputs:
+            status_text = "STANDBY (NO TELEMETRY CONNECTED)"
+            status_icon = "⏸️"
+        elif any(lvl == "ERROR" for lvl, _ in issues):
+            status_text = "CRITICAL ISSUES DETECTED"
+            status_icon = "❌"
+        elif any(lvl == "WARNING" for lvl, _ in issues):
+            status_text = "DEGRADED (WARNINGS DETECTED)"
+            status_icon = "⚠️"
+        else:
+            status_text = "100% NOMINAL"
+            status_icon = "✅"
+
+        now_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        # 6. Build structured JSON payload
+        json_payload = {
+            "timestamp": now_utc,
+            "report_title": report_title,
+            "status": status_text,
+            "health_score": score,
+            "streams_detected": len(raw_inputs),
+            "diagnostics": {
+                "passed_checks": checks,
+                "issues": [{"level": lvl, "message": msg} for lvl, msg in issues],
+            },
+            "streams_by_category": buckets,
+            "extracted_telemetry": {
+                "model_shift": model_shift,
+                "sampler_shift": sampler_shift,
+                "sampler_cfg": sampler_cfg,
+                "nag_active": nag_active,
+                "nag_scale": nag_scale,
+                "nag_tau": nag_tau,
+                "resolution": f"{res_w}x{res_h}px" if res_w and res_h else None,
+                "vae_channels": vae_channels,
+                "llm_adapter_safe": llm_adapter_safe,
+                "corner_status": corner_status,
+                "vae_strategy": vae_strategy,
+            },
+            "user_notes": user_notes.strip() if user_notes else None,
+        }
+        json_str = json.dumps(json_payload, indent=2)
+
+        # 7. Build one-line diagnostics string
+        warn_count = len([i for i in issues if i[0] == "WARNING"])
+        err_count = len([i for i in issues if i[0] == "ERROR"])
+        diagnostics_one_line = (
+            f"STATUS: {status_text} (Health: {score}/100) | "
+            f"{len(checks)} checks passed | {warn_count} warnings | {err_count} errors | "
+            f"{len(raw_inputs)} telemetry streams active"
+        )
+
+        # 8. Render user-requested report format
+        if report_format == "JSON Raw Data":
+            report_out = json_str
+        elif report_format == "Diagnostics Only":
+            diag_lines = [
+                f"# 🩺 {report_title} - Health & Diagnostics",
+                f"**Timestamp:** {now_utc} | **System Status:** {status_icon} {status_text} (Health: {score}/100)",
+                "",
+                "### ✅ Passed Validations:",
+            ]
+            if checks:
+                for c in checks:
+                    diag_lines.append(f"- {c}")
+            else:
+                diag_lines.append("- *(No automated checks triggered)*")
+
+            if issues:
+                diag_lines.append("\n### ⚠️ Issues & Recommendations:")
+                for lvl, msg in issues:
+                    icon = "❌" if lvl == "ERROR" else ("⚠️" if lvl == "WARNING" else "💡")
+                    diag_lines.append(f"- **{icon} [{lvl}]:** {msg}")
+
+            report_out = "\n".join(diag_lines)
+        elif report_format == "Compact Flight Summary":
+            sum_lines = [
+                f"🛰️ {report_title} [{status_icon} {score}/100]",
+                f"• Time: {now_utc}",
+                f"• Health: {status_text} ({len(checks)} passed, {warn_count} warn, {err_count} err)",
+            ]
+            if model_shift or sampler_shift:
+                sum_lines.append(f"• Shift: Model={model_shift} | Sampler={sampler_shift}")
+            if sampler_cfg:
+                nag_str = f"NAG Active (s={nag_scale})" if nag_active else "NAG Off"
+                sum_lines.append(f"• Sampling: CFG={sampler_cfg} | {nag_str}")
+            if res_w and res_h:
+                sum_lines.append(f"• Canvas: {res_w}x{res_h}px (32px aligned: {(res_w%32==0 and res_h%32==0)})")
+            if corner_status:
+                sum_lines.append(f"• Corner Shield: {corner_status}")
+            if vae_strategy:
+                sum_lines.append(f"• VAE: {vae_strategy}")
+            if user_notes.strip():
+                sum_lines.append(f"• Notes: {user_notes.strip()}")
+            report_out = "\n".join(sum_lines)
+        else:
+            # Full Audit Report (Markdown)
+            md_lines = [
+                f"# 🛰️ {report_title}",
+                f"**Generated:** {now_utc} | **Status:** {status_icon} {status_text} | **Health Score:** {score}/100",
+                f"**Streams Inspected:** {len(raw_inputs)} connected node(s)",
+                "",
+                "---",
+                "",
+                "### 🩺 Automated Health & Diagnostic Validations",
+            ]
+            if checks:
+                for c in checks:
+                    md_lines.append(f"- ✅ {c}")
+            else:
+                md_lines.append("- *(No telemetry connected for health verification)*")
+
+            if issues:
+                md_lines.append("")
+                md_lines.append("### ⚠️ Pipeline Warnings & Recommendations")
+                for lvl, msg in issues:
+                    icon = "❌" if lvl == "ERROR" else ("⚠️" if lvl == "WARNING" else "💡")
+                    md_lines.append(f"- **{icon} [{lvl}]:** {msg}")
+
+            def _append_bucket(title, icon, items):
+                if not items:
+                    return
+                md_lines.append("")
+                md_lines.append(f"### {icon} {title}")
+                for it in items:
+                    sub = it.strip().split("\n")
+                    if len(sub) == 1:
+                        md_lines.append(f"- {sub[0]}")
+                    else:
+                        md_lines.append(f"```text\n{it.strip()}\n```")
+
+            _append_bucket("Core Architecture & Model Loaders", "🏗️", buckets["ARCHITECTURE"])
+            _append_bucket("Conditioning & Subspace LoRAs", "🎨", buckets["CONDITIONING"])
+            _append_bucket("Latents, Sampling Trajectory & Guidance", "⚡", buckets["SAMPLING"])
+            _append_bucket("Post-Processing, Healers & VAE Decode", "🛡️", buckets["POST_PROCESSING"])
+            _append_bucket("Additional Streams & Telemetry", "📦", buckets["EXTERNAL"])
+
+            if user_notes.strip():
+                md_lines.append("")
+                md_lines.append("### 📝 Flight Notes & Metadata")
+                md_lines.append(f"> {user_notes.strip()}")
+
+            report_out = "\n".join(md_lines)
+
+        return (report_out, json_str, diagnostics_one_line)

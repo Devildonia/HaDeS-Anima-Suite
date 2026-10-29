@@ -1593,6 +1593,7 @@ from .anima_pipeline_nodes import (
     HaDeSAnimaLatentPipelineGuard,
     HaDeSAnimaUniversalLoraLoader,
     HaDeSAnimaCornerScribbleShield,
+    HaDeSAnimaSuiteTelemetry,
     format_anima_prompt_text,
 )
 from .anima_ksampler_nodes import (
@@ -1633,6 +1634,7 @@ NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaCLIPLoader": HaDeSAnimaCLIPLoader,
     "HaDeSAnimaVAELoader": HaDeSAnimaVAELoader,
     "HaDeSAnimaVAEDecode": HaDeSAnimaVAEDecode,
+    "HaDeSAnimaSuiteTelemetry": HaDeSAnimaSuiteTelemetry,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1653,6 +1655,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaCLIPLoader": "Anima Text Encoder Loader",
     "HaDeSAnimaVAELoader": "Anima VAE Loader",
     "HaDeSAnimaVAEDecode": "Anima VAE Decode",
+    "HaDeSAnimaSuiteTelemetry": "Anima Suite Telemetry",
 }
 
 WEB_DIRECTORY = "./web"
@@ -1677,4 +1680,5 @@ __all__ = [
     "validate_anima_te_state_dict",
     "_inspect_and_validate_anima_vae_sd",
     "format_anima_prompt_text",
+    "HaDeSAnimaSuiteTelemetry",
 ]

@@ -1043,10 +1043,127 @@ export function setupCornerScribbleShieldUI(node) {
     node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
 }
 
+export function setupSuiteTelemetryUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wFormat = findW("report_format");
+    const wTitle = findW("report_title");
+
+    [wFormat, wTitle].forEach(hideBackingWidget);
+
+    node._latestReport = "";
+    node._latestJson = "";
+    node._latestDiag = "";
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.cyan,
+            customHeight: 58,
+            tooltip: `<strong>Anima Suite Telemetry & Flight Auditor</strong><br>Aggregates, semantically classifies, and performs automated diagnostic health checks across all HaDeS Suite nodes in the active workflow.<br><span style="color:#38bdf8">• Health Checks:</span> Flow Shift sync, 32px grid alignment, 16ch Wan2.1 VAE, and llm_adapter locks.<br><span style="color:#34d399">• Clipboard Export:</span> Quick-copy full audit reports or structured JSON payload directly to clipboard.`,
+            drawCustomHUD(ctx, rect) {
+                const diag = node._latestDiag || "STATUS: READY / STANDBY (CONNECT INFO SLOTS)";
+                const isWarning = diag.includes("WARNING") || diag.includes("DEGRADED");
+                const isError = diag.includes("ERROR") || diag.includes("CRITICAL");
+                const statusColor = isError ? HADES_THEME.rose : (isWarning ? HADES_THEME.amber : HADES_THEME.cyan);
+
+                ctx.font = "bold 9px monospace";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+
+                // Top line
+                ctx.fillStyle = statusColor;
+                ctx.fillText("HA-DES FLIGHT RECORDER // TELEMETRY AUDITOR", rect.x + 8, rect.y + 10);
+
+                // Bottom status
+                ctx.fillStyle = HADES_THEME.textPrimary;
+                let statusTxt = diag;
+                if (ctx.measureText(statusTxt).width > rect.w - 16) {
+                    statusTxt = statusTxt.slice(0, 48) + "...";
+                }
+                ctx.fillText(statusTxt, rect.x + 8, rect.y + 24);
+            },
+            actions: [
+                {
+                    label: "Copy Report",
+                    tooltip: `<strong>Copy Audit Report</strong><br>Copies the latest formatted audit report to system clipboard.`,
+                    onClick: () => {
+                        const txt = node._latestReport || "No report generated yet. Run the workflow to produce telemetry.";
+                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                            navigator.clipboard.writeText(txt);
+                        }
+                    },
+                },
+                {
+                    label: "Copy JSON",
+                    tooltip: `<strong>Copy JSON Raw Telemetry</strong><br>Copies the structured JSON telemetry payload to system clipboard.`,
+                    onClick: () => {
+                        const txt = node._latestJson || "{}";
+                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                            navigator.clipboard.writeText(txt);
+                        }
+                    },
+                },
+                {
+                    label: "Full / Short",
+                    tooltip: `<strong>Toggle Report Detail</strong><br>Switches between Full Audit Report (Markdown) and Compact Flight Summary.`,
+                    onClick: () => {
+                        if (!wFormat) return;
+                        const curr = String(wFormat.value || "");
+                        const next = curr.includes("Compact") ? "Full Audit Report (Markdown)" : "Compact Flight Summary";
+                        setWidgetValue(wFormat, next, node);
+                    },
+                },
+            ],
+        })
+    );
+
+    node.addCustomWidget(
+        createStyledComboWidget(node, wFormat, {
+            tag: "FORMAT",
+            tagColor: HADES_THEME.cyan,
+            tooltip: `<strong>Report Presentation Mode</strong><br>Selects the output style: Full Markdown, Compact Terminal Summary, Diagnostics Only, or Raw JSON.`,
+        })
+    );
+
+    node.addCustomWidget(
+        createStyledTextRowWidget(node, wTitle, {
+            tag: "TITLE",
+            color: HADES_THEME.emerald,
+            promptTitle: "Enter Telemetry Report Title",
+            emptyPlaceholder: "HaDeS Anima Suite Telemetry & Flight Audit",
+            tooltip: `<strong>Report Document Title</strong><br>Header title embedded at the top of the generated flight telemetry report.`,
+        })
+    );
+
+    const origOnExecuted = node.onExecuted;
+    node.onExecuted = function (output) {
+        if (typeof origOnExecuted === "function") origOnExecuted.apply(this, arguments);
+        if (output) {
+            if (Array.isArray(output.report) && output.report[0]) {
+                this._latestReport = output.report[0];
+            } else if (typeof output.report === "string") {
+                this._latestReport = output.report;
+            }
+            if (Array.isArray(output.json_telemetry) && output.json_telemetry[0]) {
+                this._latestJson = output.json_telemetry[0];
+            }
+            if (Array.isArray(output.diagnostics) && output.diagnostics[0]) {
+                this._latestDiag = output.diagnostics[0];
+            }
+        }
+    };
+
+    const sz = node.computeSize();
+    node.setSize([Math.max(440, sz[0]), sz[1] + 8]);
+}
+
 export const PIPELINE_NODE_DISPATCH = {
     HaDeSAnimaPromptStudio: setupPromptStudioUI,
     HaDeSAnimaAttentionGuidance: setupAttentionGuidanceUI,
     HaDeSAnimaLatentPipelineGuard: setupLatentPipelineGuardUI,
     HaDeSAnimaUniversalLoraLoader: setupUniversalLoraLoaderUI,
     HaDeSAnimaCornerScribbleShield: setupCornerScribbleShieldUI,
+    HaDeSAnimaSuiteTelemetry: setupSuiteTelemetryUI,
 };

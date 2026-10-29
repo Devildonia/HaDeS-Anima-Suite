@@ -1419,6 +1419,82 @@ def test_21_nag_dynamic_shift_propagation():
     print("[OK] Test 21: NAG dynamic sigma shift propagation across cloned patchers verified")
 
 
+def test_22_anima_suite_telemetry():
+    telemetry_node = hades.HaDeSAnimaSuiteTelemetry()
+    assert telemetry_node.RETURN_NAMES == ("report", "json_telemetry", "diagnostics"), \
+        f"Expected RETURN_NAMES ('report', 'json_telemetry', 'diagnostics'), got {telemetry_node.RETURN_NAMES}"
+
+    # 1. Idle state check
+    rep_idle, json_idle, diag_idle = telemetry_node.audit_telemetry(
+        "Full Audit Report (Markdown)", "Idle Report"
+    )
+    import json
+    data_idle = json.loads(json_idle)
+    assert data_idle["health_score"] == 100
+    assert "STANDBY" in data_idle["status"]
+    assert "STANDBY" in diag_idle
+
+    # 2. Complete nominal pipeline telemetry
+    t_model = "HaDeS Anima Model Loader | Model: Anima HaDeS v2.0 | Dtype: default | Precision: auto | Flow Shift: 3.00 | Remap: 24-Rule Active"
+    t_clip = "HaDeS Anima CLIP Loader | CLIP: qwen3508b | Device: default (GPU Dynamic) | Precision: auto | Qwen3-0.6B: 1024d Guard Locked"
+    t_vae = "HaDeS Anima VAE Loader | VAE: Wan2_1_VAE_bf16 | Precision: bfloat16 | Latent Channels: 16 (Wan2.1)"
+    t_lora = "=== HADES ANIMA UNIVERSAL LORA REMAPPER ===\nSource LoRA: test_style.safetensors\nStrengths: Model +1.00 | CLIP +0.50\nDirty llm_adapter Keys Stripped: 6 | Outliers Clamped: 0"
+    t_ksamp = "HaDeS Anima KSampler | Profile: Anima Lightning TDM | Resolution: 1024x1024px | Sampler: euler | Scheduler: anima_lightning_tdm | Steps: 4 | CFG: 1.00 | Denoise: 1.00 | Flow Shift (multiplier=1.0): 3.00"
+    t_nag = "HaDeS Anima Attention Guidance | Preset: Turbo | Scale: 3.50 | Alpha: 0.45 | Tau: 2.50 | Window: 0.00 -> 0.70 (Active: True)"
+    t_shield = "HaDeS Corner Scribble Shield | Box: 102x102px (10% base) | Mode: Smart Edge-Inward Blend (Auto-Heal) | Active: All 4 Corners | Detected: Clean (Low HF Energy)"
+    t_decode = "HaDeS Anima VAE Decode | Output: 1024x1024px (1.05 MP) | Strategy: Direct Full Pass (Tile 512px / Overlap 64px)"
+
+    rep_full, json_full, diag_full = telemetry_node.audit_telemetry(
+        report_format="Full Audit Report (Markdown)",
+        report_title="HaDeS Flight Test Nominal",
+        user_notes="High quality anime render test",
+        info_1=t_model,
+        info_2=t_clip,
+        info_3=t_vae,
+        info_4=t_lora,
+        info_5=t_ksamp,
+        info_6=t_nag,
+        info_7=t_shield,
+        info_8=t_decode,
+    )
+
+    data_full = json.loads(json_full)
+    assert data_full["health_score"] == 100, f"Expected 100 health score on nominal test, got {data_full['health_score']}"
+    assert data_full["status"] == "100% NOMINAL"
+    assert len(data_full["diagnostics"]["passed_checks"]) >= 5
+    assert len(data_full["diagnostics"]["issues"]) == 0
+    assert "Flow Shift Synchronized: 3.00" in rep_full
+    assert "1024x1024px" in rep_full
+    assert "Wan2.1 native 16-channel" in rep_full
+    assert "text conditioner bridge protected" in rep_full
+    assert "High quality anime render test" in rep_full
+
+    # 3. Test divergence / warning detection (Mismatch shift + non-32px resolution)
+    t_model_div = "HaDeS Anima Model Loader | Model: Anima HaDeS v2.0 | Flow Shift: 3.00"
+    t_ksamp_div = "HaDeS Anima KSampler | Resolution: 1000x1000px | Steps: 20 | CFG: 4.50 | Flow Shift (multiplier=1.0): 1.00"
+    rep_div, json_div, diag_div = telemetry_node.audit_telemetry(
+        report_format="Compact Flight Summary",
+        report_title="HaDeS Flight Test Warning",
+        info_1=t_model_div,
+        info_2=t_ksamp_div,
+    )
+    data_div = json.loads(json_div)
+    assert data_div["health_score"] < 100, f"Expected degraded score on mismatch test, got {data_div['health_score']}"
+    assert any("Flow Shift Divergence" in iss["message"] for iss in data_div["diagnostics"]["issues"])
+    assert any("not 32px macroblock aligned" in iss["message"] for iss in data_div["diagnostics"]["issues"])
+    assert "Flow Shift Divergence" in diag_div or "warnings" in diag_div
+
+    # 4. Test format variations
+    rep_diag, _, _ = telemetry_node.audit_telemetry("Diagnostics Only", "Diag Mode", info_1=t_model)
+    assert "Passed Validations" in rep_diag
+
+    rep_raw_json, _, _ = telemetry_node.audit_telemetry("JSON Raw Data", "JSON Mode", info_1=t_model)
+    data_raw = json.loads(rep_raw_json)
+    assert data_raw["report_title"] == "JSON Mode"
+
+    print("[OK] Test 22: HaDeS Anima Suite Telemetry (Multi-Stream Aggregation, Diagnostics & Health Scoring, JSON & Formats) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1441,4 +1517,5 @@ if __name__ == "__main__":
     test_19_prompt_header_canonical_and_dual_legacy()
     test_20_corner_shield_batch_isolation()
     test_21_nag_dynamic_shift_propagation()
-    print("\nALL 21 HADES ANIMA SUITE v0.1.5 TEST SUITES PASSED!")
+    test_22_anima_suite_telemetry()
+    print("\nALL 22 HADES ANIMA SUITE TEST SUITES PASSED!")
