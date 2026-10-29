@@ -46,7 +46,7 @@ HaDeS Anima Suite v0.1.4
 │   ├── 9. Anima Universal LoRA Remapper
 │   └── 10. Anima Corner Shield
 └── HaDeS_Anima_Suite/Samplers (3 Nodes)
-    ├── 11. Anima KSampler (Single-Pass)
+    ├── 11. Anima KSampler
     ├── 12. Anima Dual-Pass KSampler
     └── 13. Anima Triple-Pass KSampler
 ```
@@ -156,7 +156,7 @@ HaDeS Anima Suite v0.1.4
 
 ### Part C — Anima Rectified Flow KSampler Trilogy (`HaDeS_Anima_Suite/Samplers`)
 
-#### 11. `Anima KSampler (Single-Pass)`
+#### 11. `Anima KSampler`
 - **Class:** `HaDeSAnimaKSampler`
 - **Purpose:** Single-pass Rectified Flow sampling engine tailored to Anima's `MiniTrainDIT` (`multiplier = 1.0` Flow Shift with deepcopy buffer isolation, unlike `ModelSamplingSD3` which injects `multiplier = 1000` and breaks Anima's timestep scaling).
 - **Key Features:**

@@ -1646,7 +1646,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaLatentPipelineGuard": "Anima Latent",
     "HaDeSAnimaUniversalLoraLoader": "Anima Universal LoRA Remapper",
     "HaDeSAnimaCornerScribbleShield": "Anima Corner Shield",
-    "HaDeSAnimaKSampler": "Anima KSampler (Single-Pass)",
+    "HaDeSAnimaKSampler": "Anima KSampler",
     "HaDeSAnimaDualPassKSampler": "Anima Dual-Pass KSampler",
     "HaDeSAnimaTriplePassKSampler": "Anima Triple-Pass KSampler",
     "HaDeSAnimaModelLoader": "Anima Diffusion Model Loader",
