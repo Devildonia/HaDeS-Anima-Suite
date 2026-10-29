@@ -1381,17 +1381,48 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
             ctx.textBaseline = "middle";
             ctx.fillText(tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
-            if (label) {
-                ctx.font = "11px sans-serif";
-                ctx.fillStyle = "#d1d5db";
-                ctx.textAlign = "left";
-                ctx.fillText(label, x + tagW + 10, rowY + h * 0.5 + 0.5);
-            }
-
-            const pillW = isNarrow ? 74 : 82;
+            ctx.font = isNarrow ? "bold 9px monospace" : "bold 9.5px monospace";
+            const currentPillText = isOn ? onText : offText;
+            const naturalPillW = Math.round(ctx.measureText(currentPillText).width + (isNarrow ? 10 : 14));
+            const pillW = Math.max(isNarrow ? 66 : 76, naturalPillW);
             const pillX = x + w - pillW - 3;
             const pillY = rowY + 3;
             const pillH = h - 6;
+
+            if (label) {
+                const labelStartX = x + tagW + (isNarrow ? 6 : 10);
+                const labelMaxW = Math.max(0, pillX - labelStartX - 6);
+
+                if (labelMaxW > 8) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(labelStartX, rowY, labelMaxW, h);
+                    ctx.clip();
+
+                    ctx.font = isNarrow ? "10px sans-serif" : "11px sans-serif";
+                    ctx.fillStyle = "#d1d5db";
+                    ctx.textAlign = "left";
+                    ctx.textBaseline = "middle";
+
+                    let displayLabel = label;
+                    if (ctx.measureText(displayLabel).width > labelMaxW && displayLabel.includes(" (")) {
+                        const simplified = displayLabel.replace(/\s*\([^)]*\)/, "");
+                        if (ctx.measureText(simplified).width <= labelMaxW) {
+                            displayLabel = simplified;
+                        }
+                    }
+
+                    if (ctx.measureText(displayLabel).width > labelMaxW) {
+                        while (displayLabel.length > 2 && ctx.measureText(displayLabel + "...").width > labelMaxW) {
+                            displayLabel = displayLabel.slice(0, -1);
+                        }
+                        displayLabel += "...";
+                    }
+
+                    ctx.fillText(displayLabel, labelStartX, rowY + h * 0.5 + 0.5);
+                    ctx.restore();
+                }
+            }
 
             drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 4);
             ctx.fillStyle = isOn ? `${color}33` : "#1e222b";
@@ -1402,7 +1433,8 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
             ctx.font = isNarrow ? "bold 9px monospace" : "bold 9.5px monospace";
             ctx.fillStyle = isOn ? color : HADES_THEME.textMuted;
             ctx.textAlign = "center";
-            ctx.fillText(isOn ? onText : offText, pillX + pillW * 0.5, pillY + pillH * 0.5 + 0.5);
+            ctx.textBaseline = "middle";
+            ctx.fillText(currentPillText, pillX + pillW * 0.5, pillY + pillH * 0.5 + 0.5);
 
             this._bounds = { x, y: rowY, w, h };
             ctx.restore();
