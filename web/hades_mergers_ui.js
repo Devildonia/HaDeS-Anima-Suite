@@ -346,15 +346,18 @@ export function setupMultiLoraLoaderUI(node) {
         createSpectralBannerWidget(node, {
             title: "",
             accentColor: HADES_THEME.emerald,
+            tooltip: `<strong>Predictive Subspace Multi-LoRA</strong><br>Concurrent multi-LoRA stacking with dynamic subspace task-vector projection.<br><span style="color:#34d399">• Primary Slot (PRI):</span> Full DiT influence baseline.<br><span style="color:#60a5fa">• Secondary Slots (S2..S4):</span> Dynamically projected onto non-interfering Grassmann angle subspaces.<br><span style="color:#38bdf8">• llm_adapter Lock:</span> Golden rule protection for Anima's 6-layer text conditioner bridge.`,
             actions: [
                 {
                     label: "Master",
+                    tooltip: `<strong>Master Multi-LoRA Switch</strong><br>Enables or bypasses all 4 LoRA slots globally.`,
                     onClick: () => {
                         if (wEnableAll) setWidgetValue(wEnableAll, !wEnableAll.value, node);
                     },
                 },
                 {
                     label: "All On",
+                    tooltip: `<strong>Enable All Slots</strong><br>Activates all configured LoRA slots simultaneously.`,
                     onClick: () => {
                         if (wEnableAll) setWidgetValue(wEnableAll, true, node);
                         slotRefs.forEach((s) => {
@@ -364,6 +367,7 @@ export function setupMultiLoraLoaderUI(node) {
                 },
                 {
                     label: "Mute",
+                    tooltip: `<strong>Mute All Slots</strong><br>Turns off individual slot toggles while keeping LoRA assignments.`,
                     onClick: () => {
                         slotRefs.forEach((s) => {
                             if (s.wOn) setWidgetValue(s.wOn, false, node);
@@ -372,6 +376,7 @@ export function setupMultiLoraLoaderUI(node) {
                 },
                 {
                     label: "1.0x",
+                    tooltip: `<strong>Reset Strengths to 1.0x</strong><br>Restores standard 1.00 strength across all slots.`,
                     onClick: () => {
                         slotRefs.forEach((s) => {
                             if (s.wStrength) setWidgetValue(s.wStrength, 1.0, node);
@@ -448,6 +453,7 @@ export function setupStandaloneLoraMergerUI(node) {
         createSpectralBannerWidget(node, {
             title: "",
             accentColor: HADES_THEME.purple,
+            tooltip: `<strong>QR-SVD LoRA Subspace Exporter</strong><br>High-speed mathematical fusion of Donor A and Donor B into a standalone LoRA.<br><span style="color:#c084fc">• QR-Reduced SVD:</span> Orthogonal Grassmann projection maintaining rank fidelity under 6ms.<br><span style="color:#34d399">• Spectrum Topology:</span> Canonical 34-band allocation (0..27 DiT blocks + 28..33 Bridge blocks).<br><span style="color:#38bdf8">• llm_adapter Lock:</span> Locks text conditioner modifications to prevent prompt drift.`,
             getBars() {
                 return estimatePredictiveCurve(
                     wPreset?.value,
@@ -457,9 +463,21 @@ export function setupStandaloneLoraMergerUI(node) {
                 );
             },
             actions: [
-                { label: "R16", onClick: () => setWidgetValue(wRank, 16, node) },
-                { label: "R32", onClick: () => setWidgetValue(wRank, 32, node) },
-                { label: "R64", onClick: () => setWidgetValue(wRank, 64, node) },
+                {
+                    label: "R16",
+                    tooltip: `<strong>Target Rank 16</strong><br>Compact rank export (~150MB). Ideal for lightweight style/character LoRAs.`,
+                    onClick: () => setWidgetValue(wRank, 16, node),
+                },
+                {
+                    label: "R32",
+                    tooltip: `<strong>Target Rank 32 (Balanced)</strong><br>Standard high-fidelity export (~300MB). Optimal balance of quality and size.`,
+                    onClick: () => setWidgetValue(wRank, 32, node),
+                },
+                {
+                    label: "R64",
+                    tooltip: `<strong>Target Rank 64 (Full Depth)</strong><br>Maximum capacity export (~600MB). Captures subtle micro-textures and intricate styles.`,
+                    onClick: () => setWidgetValue(wRank, 64, node),
+                },
             ],
         })
     );

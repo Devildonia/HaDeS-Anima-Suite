@@ -141,6 +141,15 @@ if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
                     }
                 }
 
+                // 2b. Check banner HUD box / entire banner box
+                if (w.tooltip && (w._hudBounds || w._bannerBounds)) {
+                    const bb = w._hudBounds || w._bannerBounds;
+                    if (localX >= bb.x && localX <= bb.x + bb.w && localY >= bb.y && localY <= bb.y + bb.h) {
+                        showHadesTooltip(w.tooltip, e.clientX, e.clientY, w.accentColor || HADES_THEME.emerald);
+                        return;
+                    }
+                }
+
                 // 3. Check custom widgets (combos, sliders, toggles)
                 const b = w._rowBounds || w._bounds;
                 if (b && w.tooltip) {
@@ -594,6 +603,7 @@ export function createSpectralBannerWidget(node, config) {
         drawCustomHUD = null,
         customHeight = null,
         actions = [],
+        tooltip = config.tooltip || "",
     } = config;
 
     const hasGraph = typeof getBars === "function" || typeof drawCustomHUD === "function";
@@ -603,9 +613,14 @@ export function createSpectralBannerWidget(node, config) {
         name: `hades_banner_${title}`,
         type: "custom",
         value: "",
+        tooltip,
+        accentColor,
         options: { serialize: false },
         serialize: false,
         _btnBounds: [],
+        _pillBounds: [],
+        _hudBounds: null,
+        _bannerBounds: null,
 
         computeSize(width) {
             return [width, widgetHeight];
@@ -617,6 +632,8 @@ export function createSpectralBannerWidget(node, config) {
             const w = widgetWidth - margin * 2;
             const h = widgetHeight - 4;
             const topY = y + 2;
+
+            this._bannerBounds = { x, y: topY, w, h };
 
             ctx.save();
 
@@ -740,6 +757,7 @@ export function createSpectralBannerWidget(node, config) {
                 ctx.fillStyle = "#101217";
                 ctx.fill();
 
+                this._hudBounds = { x: graphX, y: graphY, w: graphW, h: graphH };
                 this._pillBounds = [];
                 if (typeof drawCustomHUD === "function") {
                     ctx.save();

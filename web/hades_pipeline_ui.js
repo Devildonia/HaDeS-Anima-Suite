@@ -320,6 +320,7 @@ export function setupAttentionGuidanceUI(node) {
             title: "",
             accentColor: HADES_THEME.amber,
             customHeight: 66,
+            tooltip: `<strong>NAG Attention Guidance & L1 Guard</strong><br>Normalized Attention Guidance providing CFG=1.0 negative prompting on Turbo/Lightning and anti-burn stabilization on Base.<br><span style="color:#fbbf24">• Guidance Window:</span> Active percentage of the diffusion trajectory.<br><span style="color:#38bdf8">• L1 Ceiling (τ):</span> Bounds guided attention to prevent oversaturation and edge frying.`,
             drawCustomHUD(ctx, rect) {
                 const startP = Math.max(0, Math.min(1, Number(wStart?.value ?? 0.0)));
                 const endP = Math.max(0, Math.min(1, Number(wEnd?.value ?? 0.65)));
@@ -713,6 +714,7 @@ export function setupUniversalLoraLoaderUI(node) {
             title: "",
             accentColor: HADES_THEME.purple,
             customHeight: 58,
+            tooltip: `<strong>Universal 24-Rule LoRA Remapper</strong><br>Translates external LoRA architectures into native ComfyUI MiniTrainDIT format on-the-fly.<br><span style="color:#c084fc">• Cross-Format Compatibility:</span> Diffusers, Kohya (lora_unet_*), Musubi, and OneTrainer.<br><span style="color:#34d399">• Strip llm_adapter:</span> Strips dirty text-conditioner keys (lr=0 golden rule) to protect prompt adherence.<br><span style="color:#fbbf24">• Outlier Clamp:</span> Cleans NaN/Inf and clamps extreme >10σ weights.`,
             drawCustomHUD(ctx, rect) {
                 const stripOn = wStrip ? Boolean(wStrip.value) : true;
                 const clampOn = wClamp ? Boolean(wClamp.value) : false;
@@ -734,6 +736,7 @@ export function setupUniversalLoraLoaderUI(node) {
             actions: [
                 {
                     label: "1.0x",
+                    tooltip: `<strong>Default Strengths</strong><br>Sets Model LoRA to 1.00 and Qwen CLIP LoRA to 0.50.`,
                     onClick: () => {
                         setWidgetValue(wStrM, 1.0, node);
                         if (wStrC) setWidgetValue(wStrC, 0.5, node);
@@ -741,6 +744,7 @@ export function setupUniversalLoraLoaderUI(node) {
                 },
                 {
                     label: "Safe Clean",
+                    tooltip: `<strong>Recommended Safe Cleaning</strong><br>Enables llm_adapter stripping and 10σ outlier clamping.`,
                     onClick: () => {
                         setWidgetValue(wStrip, true, node);
                         setWidgetValue(wClamp, true, node);
@@ -851,6 +855,7 @@ export function setupCornerScribbleShieldUI(node) {
             title: "",
             accentColor: HADES_THEME.rose,
             customHeight: 66,
+            tooltip: `<strong>Corner Scribble Shield & Watermark Healer</strong><br>Detects and heals Anima's ~20% corner signature scribbles and watermarks.<br><span style="color:#f43f5e">• Perimeter Box:</span> Inspects corner regions for high-frequency stroke energy.<br><span style="color:#34d399">• Smart Auto-Heal:</span> Inward edge continuation avoiding central pixel corruption.`,
             drawCustomHUD(ctx, rect) {
                 const act = String(wCorners?.value || "All 4 Corners");
                 const mode = String(wHeal?.value || "");
