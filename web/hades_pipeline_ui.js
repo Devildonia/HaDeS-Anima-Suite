@@ -702,7 +702,7 @@ export function setupUniversalLoraLoaderUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "24-RULE DIFFUSERS -> COMFY REMAPPER",
+            title: "",
             accentColor: HADES_THEME.purple,
             customHeight: 58,
             drawCustomHUD(ctx, rect) {

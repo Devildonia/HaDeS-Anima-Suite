@@ -344,24 +344,8 @@ export function setupMultiLoraLoaderUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "SPECTRAL MULTI-LORA",
+            title: "",
             accentColor: HADES_THEME.emerald,
-            getStatusColor() {
-                const masterOn = wEnableAll ? Boolean(wEnableAll.value) : true;
-                if (!masterOn) return HADES_THEME.rose;
-                const activeCount = slotRefs.filter(
-                    (s) => s.wOn?.value && s.wLora?.value && s.wLora.value !== "None" && Number(s.wStrength?.value) !== 0
-                ).length;
-                return activeCount > 0 ? HADES_THEME.emerald : HADES_THEME.textMuted;
-            },
-            getStatusText() {
-                const masterOn = wEnableAll ? Boolean(wEnableAll.value) : true;
-                if (!masterOn) return "SPECTRAL MULTI-LORA (BYPASSED)";
-                const activeCount = slotRefs.filter(
-                    (s) => s.wOn?.value && s.wLora?.value && s.wLora.value !== "None" && Number(s.wStrength?.value) !== 0
-                ).length;
-                return `SPECTRAL SLOTS (${activeCount}/4 ACTIVE)`;
-            },
             actions: [
                 {
                     label: "Master",
@@ -462,7 +446,7 @@ export function setupStandaloneLoraMergerUI(node) {
 
     node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "QR-SVD LORA EXPORTER",
+            title: "",
             accentColor: HADES_THEME.purple,
             getBars() {
                 return estimatePredictiveCurve(
