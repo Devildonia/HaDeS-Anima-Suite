@@ -531,9 +531,9 @@ class HaDeSAnimaPromptStudio:
             },
             "optional": {
                 "clip": ("CLIP", {"tooltip": "Optional Qwen3/Anima CLIP to encode CONDITIONING directly with T5 weight scaling."}),
-                "artist_in": ("STRING", {
+                "artist": ("STRING", {
                     "forceInput": True,
-                    "tooltip": "Optional external artist tag(s) input from future selector nodes or text nodes."
+                    "tooltip": "Optional external artist tag(s) input from selector or text nodes."
                 }),
                 "header_mode": ([
                     "Canonical (1 Trigger + Title)",
@@ -548,33 +548,40 @@ class HaDeSAnimaPromptStudio:
                     "default": "",
                     "tooltip": "Optional artwork title / alt-text for Line 2 of the canonical header. Leave empty to omit Line 2."
                 }),
-                "character_in": ("STRING", {
+                "character": ("STRING", {
                     "forceInput": True,
-                    "tooltip": "Optional external character tag(s) input from future selector nodes or text nodes."
+                    "tooltip": "Optional external character tag(s) input from selector or text nodes."
                 }),
             }
         }
 
     RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "STRING", "STRING", "STRING")
-    RETURN_NAMES = ("positive_cond", "negative_cond", "formatted_positive", "formatted_negative", "info")
+    RETURN_NAMES = ("positive", "negative", "positive_string", "negative_string", "info")
     FUNCTION = "process_prompt"
     CATEGORY = "HaDeS/Anima Pipeline"
 
     def process_prompt(self, model_variant, style_mode, booru_sanitizer, t5_weight_multiplier,
                        character_tag, artist_tag, positive_prompt, negative_prompt,
-                       clip=None, artist_in=None, character_in=None,
+                       clip=None, artist=None, character=None,
                        header_mode="Canonical (1 Trigger + Title)",
                        header_trigger="ye-pop",
-                       artwork_title=""):
+                       artwork_title="",
+                       artist_in=None, character_in=None):
+        # Backwards-compatibility fallback for legacy socket names
+        if artist is None and artist_in is not None:
+            artist = artist_in
+        if character is None and character_in is not None:
+            character = character_in
+
         # Merge external sockets with inline widgets without duplicates
         merged_chars = []
-        for src in (character_in, character_tag):
+        for src in (character, character_tag):
             if src and str(src).strip():
                 merged_chars.append(str(src).strip())
         effective_char = ", ".join(merged_chars)
 
         merged_artists = []
-        for src in (artist_in, artist_tag):
+        for src in (artist, artist_tag):
             if src and str(src).strip():
                 merged_artists.append(str(src).strip())
         effective_artist = ", ".join(merged_artists)
@@ -610,7 +617,7 @@ class HaDeSAnimaPromptStudio:
             f"Variant Profile: {model_variant}",
             f"Style Mode: {style_mode} | Booru Sanitizer: {booru_sanitizer}",
             f"Active Positive Tags: {pos_stats['tag_count']} | Stripped Slop Tags: {total_stripped} | Header Injected: {pos_stats['header_injected']} (mode: {header_mode}, trigger: {header_trigger})",
-            f"Character: {effective_char or 'None'} (Socket: {character_in is not None}) | Artist: {effective_artist or 'None'} (Socket: {artist_in is not None})",
+            f"Character: {effective_char or 'None'} (Socket: {character is not None}) | Artist: {effective_artist or 'None'} (Socket: {artist is not None})",
             f"T5 Query Emphasis Scale: {t5_weight_multiplier:.2f}x | CLIP Connected: {clip is not None}",
             "\n--- FORMATTED POSITIVE PROMPT (CANONICAL ORDER) ---",
             fmt_pos,

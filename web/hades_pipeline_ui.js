@@ -32,11 +32,38 @@ export function setupPromptStudioUI(node) {
 
     [wVariant, wStyle, wSanitize, wT5Mult, wChar, wArtist].forEach(hideBackingWidget);
 
-    node.addCustomWidget(
+    const TAG_W = 66;
+
+    const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "ANIMA PROMPT & AESTHETIC GUARD",
+            title: "",
             accentColor: HADES_THEME.emerald,
-            customHeight: 64,
+            customHeight: 52,
+            actions: [
+                {
+                    label: "Aesthetic",
+                    tooltip: `<strong>Anima Aesthetic Profile</strong><br>Enables Slop Guard to strip score_* tags and low-quality tokens for pure artistic prompt interpretation.`,
+                    onClick: () =>
+                        setWidgetValue(wVariant, "Anima Aesthetic (Strip score_* & Slop Guard)", node),
+                },
+                {
+                    label: "2.9B/3.8B",
+                    tooltip: `<strong>Anima 2.9B / 3.8B Expanded Profile</strong><br>Preserves quality tags and enables expanded vocabulary for deep DiT architectures.`,
+                    onClick: () =>
+                        setWidgetValue(wVariant, "Anima 2.9B / 3.8B Expanded (Keep Quality Tags)", node),
+                },
+                {
+                    label: "Base 2B",
+                    tooltip: `<strong>Anima Base 2B Profile</strong><br>Standard training baseline with full quality tag retention.`,
+                    onClick: () => setWidgetValue(wVariant, "Anima Base 2B (Keep Quality Tags)", node),
+                },
+                {
+                    label: "Vector",
+                    tooltip: `<strong>Flat Vector / Graphic Style</strong><br>Applies official CircleStone 3-line header format (ye-pop trigger + optional title).`,
+                    onClick: () =>
+                        setWidgetValue(wStyle, "Flat Vector / Graphic (Non-Anime Dataset Header)", node),
+                },
+            ],
             drawCustomHUD(ctx, rect) {
                 const isAesthetic = String(wVariant?.value || "").includes("Aesthetic");
                 const isVector = String(wStyle?.value || "").includes("Flat Vector");
@@ -48,7 +75,7 @@ export function setupPromptStudioUI(node) {
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
 
-                const badgeY = rect.y + 10;
+                const badgeY = rect.y + 7;
                 ctx.fillStyle = isAesthetic ? HADES_THEME.emerald : HADES_THEME.blue;
                 ctx.fillText(
                     isAesthetic ? "SLOP GUARD: STRIP score_*" : "BASE 2B: KEEP QUALITY TAGS",
@@ -68,78 +95,66 @@ export function setupPromptStudioUI(node) {
                     ctx.fillText(label, rect.x + rect.w - 8, badgeY);
                 } else {
                     ctx.fillStyle = HADES_THEME.cyan;
-                    ctx.fillText(`T5 QUERY EMPHASIS: ${t5Scale.toFixed(2)}x`, rect.x + rect.w - 8, badgeY);
+                    ctx.fillText(`T5 EMPHASIS: ${t5Scale.toFixed(2)}x`, rect.x + rect.w - 8, badgeY);
                 }
 
                 // T5 Query Weight Gauge Bar
                 const barX = rect.x + 8;
-                const barY = rect.y + 21;
+                const barY = rect.y + 16;
                 const barW = rect.w - 16;
-                const barH = 8;
-                drawRoundedRect(ctx, barX, barY, barW, barH, 3);
+                const barH = 6;
+                drawRoundedRect(ctx, barX, barY, barW, barH, 2);
                 ctx.fillStyle = "#181c24";
                 ctx.fill();
 
                 const fillNorm = Math.max(0, Math.min(1, t5Scale / 2.5));
                 if (fillNorm > 0) {
-                    drawRoundedRect(ctx, barX, barY, barW * fillNorm, barH, 3);
+                    drawRoundedRect(ctx, barX, barY, barW * fillNorm, barH, 2);
                     ctx.fillStyle = isAesthetic ? HADES_THEME.emerald : HADES_THEME.cyan;
                     ctx.fill();
                 }
             },
-            actions: [
-                {
-                    label: "Aesthetic",
-                    onClick: () =>
-                        setWidgetValue(wVariant, "Anima Aesthetic (Strip score_* & Slop Guard)", node),
-                },
-                {
-                    label: "2.9B/3.8B",
-                    onClick: () =>
-                        setWidgetValue(wVariant, "Anima 2.9B / 3.8B Expanded (Keep Quality Tags)", node),
-                },
-                {
-                    label: "Base 2B",
-                    onClick: () => setWidgetValue(wVariant, "Anima Base 2B (Keep Quality Tags)", node),
-                },
-                {
-                    label: "Vector",
-                    onClick: () =>
-                        setWidgetValue(wStyle, "Flat Vector / Graphic (Non-Anime Dataset Header)", node),
-                },
-            ],
         })
     );
 
-    node.addCustomWidget(
+    const variantWidget = node.addCustomWidget(
         createStyledComboWidget(node, wVariant, {
             tag: "VARIANT",
             tagColor: HADES_THEME.emerald,
+            tagWidth: TAG_W,
+            label: "",
+            tooltip: `<strong>Model Conditioning Variant</strong><br>• <strong>Aesthetic:</strong> Strips quality artifacts (score_9, masterpiece) for clean prompt execution.<br>• <strong>2.9B / 3.8B:</strong> Tailored for expanded deep DiT architectures.<br>• <strong>Base 2B:</strong> Preserves original Danbooru quality tags.<br>• <strong>Turbo / Lightning:</strong> High-adherence distilled mode.`,
         })
     );
 
-    node.addCustomWidget(
+    const styleWidget = node.addCustomWidget(
         createStyledComboWidget(node, wStyle, {
             tag: "STYLE",
             tagColor: HADES_THEME.purple,
+            tagWidth: TAG_W,
+            label: "",
+            tooltip: `<strong>Artwork Styling Mode</strong><br>• <strong>Standard Anime:</strong> Traditional anime/illustration conditioning.<br>• <strong>Flat Vector / Graphic:</strong> Employs CircleStone dataset header for clean flat art.<br>• <strong>Cinematic:</strong> Enhances dynamic lighting and detailed textures.<br>• <strong>Raw Pass-Through:</strong> No style injections.`,
         })
     );
 
-    node.addCustomWidget(
+    const sanitizeWidget = node.addCustomWidget(
         createStyledToggleWidget(node, wSanitize, {
             tag: "BOORU",
             color: HADES_THEME.cyan,
-            label: "Booru Grammar & Kaomoji Guard",
+            tagWidth: TAG_W,
+            label: "",
             onText: "SANITIZE",
             offText: "RAW",
+            tooltip: `<strong>Booru Grammar & Kaomoji Guard</strong><br>Normalizes Danbooru tags, converts underscores to spaces (protecting kaomojis and score tags), escapes literal parentheses, and arranges tags into canonical buckets.`,
         })
     );
 
-    node.addCustomWidget(
+    const t5Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wT5Mult, {
             tag: "T5 WGT",
             rangeTag: "T5 MULT",
-            label: "T5 Query Emphasis Scale",
+            tagWidth: TAG_W,
+            label: "",
             color: HADES_THEME.amber,
             min: 0.0,
             max: 2.5,
@@ -147,30 +162,37 @@ export function setupPromptStudioUI(node) {
             visMax: 2.5,
             step: 0.05,
             defaultVal: 1.0,
+            tooltip: `<strong>T5 Query Emphasis Multiplier</strong><br>Scales token-level attention weight scaling exiting the llm_adapter bridge.<br><span style="color:#fbbf24">• 1.00:</span> Standard balanced emphasis.<br><span style="color:#fbbf24">• > 1.00:</span> Amplifies tag weights for stronger visual feature compliance.`,
         })
     );
 
-    if (wChar) {
-        node.addCustomWidget(
-            createStyledTextRowWidget(node, wChar, {
-                tag: "CHAR",
-                color: HADES_THEME.cyan,
-                promptTitle: "Enter Character Tag(s) (e.g. frieren, sousou no frieren)",
-                emptyPlaceholder: "— Optional character & series injection —",
-                allowClearOnRightClick: true,
-            })
-        );
-    }
+    const charWidget = wChar
+        ? node.addCustomWidget(
+              createStyledTextRowWidget(node, wChar, {
+                  tag: "CHAR",
+                  color: HADES_THEME.cyan,
+                  tagWidth: TAG_W,
+                  promptTitle: "Enter Character Tag(s) (e.g. frieren, sousou no frieren)",
+                  emptyPlaceholder: "— Optional character & series injection —",
+                  allowClearOnRightClick: true,
+                  tooltip: `<strong>Character & Series Tags</strong><br>Enter character names and franchises (e.g. frieren, sousou no frieren). Automatically formatted into canonical character position.`,
+              })
+          )
+        : null;
 
-    node.addCustomWidget(
-        createStyledTextRowWidget(node, wArtist, {
-            tag: "ARTIST",
-            color: HADES_THEME.blue,
-            promptTitle: "Enter Artist Tag(s) (e.g. @zocehuy, (@zocehuy:1.2), wlop)",
-            emptyPlaceholder: "— Optional @artist / style injection —",
-            allowClearOnRightClick: true,
-        })
-    );
+    const artistWidget = wArtist
+        ? node.addCustomWidget(
+              createStyledTextRowWidget(node, wArtist, {
+                  tag: "ARTIST",
+                  color: HADES_THEME.blue,
+                  tagWidth: TAG_W,
+                  promptTitle: "Enter Artist Tag(s) (e.g. @zocehuy, (@zocehuy:1.2), wlop)",
+                  emptyPlaceholder: "— Optional @artist / style injection —",
+                  allowClearOnRightClick: true,
+                  tooltip: `<strong>Artist & Style Tags</strong><br>Enter artist handles with optional weights (e.g. @zocehuy, (@zocehuy:1.2)). Automatically prefixed with '@' and placed in canonical artist position.`,
+              })
+          )
+        : null;
 
     // Keep multiline prompt textboxes at the bottom of the node
     if (Array.isArray(node.widgets) && (wPos || wNeg)) {
@@ -178,8 +200,20 @@ export function setupPromptStudioUI(node) {
         node.widgets = node.widgets.filter((w) => !tail.includes(w)).concat(tail);
     }
 
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 440;
     const sz = node.computeSize();
-    node.setSize([Math.max(440, sz[0]), Math.max(418, sz[1] + 12)]);
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 12) : Math.max(418, sz[1] + 12);
+    node.setSize([initW, initH]);
 }
 
 export function setupAttentionGuidanceUI(node) {

@@ -1217,18 +1217,24 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
 export function createStyledTextRowWidget(node, backingWidget, config = {}) {
     const {
         tag = "FILE",
+        tagWidth = null,
         color = HADES_THEME.emerald,
         promptTitle = "Enter Value",
         suffix = "",
         emptyPlaceholder = "— None —",
         allowClearOnRightClick = false,
+        tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
+
+    const plainTooltip = typeof tooltip === "string" ? tooltip.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
     return {
         name: `hades_text_${backingWidget?.name || tag}`,
         type: "custom",
         value: "",
-        options: { serialize: false },
+        tooltip: plainTooltip,
+        tagColor: color,
+        options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _bounds: null,
 
@@ -1250,14 +1256,15 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             ctx.strokeStyle = HADES_THEME.borderSubtle;
             ctx.stroke();
 
-            const tagW = 52;
+            const isNarrow = w < 280;
+            const tagW = tagWidth || (isNarrow ? 48 : 52);
             drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
             ctx.fillStyle = `${color}22`;
             ctx.fill();
             ctx.strokeStyle = `${color}66`;
             ctx.stroke();
 
-            ctx.font = "bold 9px monospace";
+            ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
             ctx.fillStyle = color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
