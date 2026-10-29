@@ -473,17 +473,23 @@ class HaDeSAnimaKSampler:
     """
 
     VARIANT_PROFILES = {
-        "Manual (Use Widget Settings)": None,
-        "Anima Base / Raehoshi (er_sde | 32 steps | CFG 4.5 | Shift 3.0)": (32, 4.5, "er_sde", "normal", 1.0, 3.0),
-        "Anima Aesthetic Crisp (er_sde | 30 steps | CFG 4.0 | beta | Shift 3.0)": (30, 4.0, "er_sde", "beta", 1.0, 3.0),
-        "Anima Aesthetic Painterly (euler_a | 35 steps | CFG 4.2 | anima_beta57 | Shift 2.8)": (
-            35, 4.2, "euler_ancestral", "anima_beta57", 1.0, 2.8
-        ),
-        "Anima Turbo (euler | 10 steps | CFG 1.0 | Shift 3.0)": (10, 1.0, "euler", "normal", 1.0, 3.0),
-        "Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)": (
-            4, 1.0, "euler", "anima_lightning_tdm", 1.0, 3.0
-        ),
-        "Anima 2.9B / 3.8B Deep DiT (er_sde | 36 steps | CFG 4.5 | Shift 3.0)": (36, 4.5, "er_sde", "normal", 1.0, 3.0),
+        "Manual": None,
+        "Anima Base / Raehoshi": (32, 4.5, "er_sde", "normal", 1.0, 3.0),
+        "Anima Aesthetic Crisp": (30, 4.0, "er_sde", "beta", 1.0, 3.0),
+        "Anima Aesthetic Painterly": (35, 4.2, "euler_ancestral", "anima_beta57", 1.0, 2.8),
+        "Anima Turbo": (10, 1.0, "euler", "normal", 1.0, 3.0),
+        "Anima Lightning TDM": (4, 1.0, "euler", "anima_lightning_tdm", 1.0, 3.0),
+        "Anima 2.9B / 3.8B Deep DiT": (36, 4.5, "er_sde", "normal", 1.0, 3.0),
+    }
+
+    _LEGACY_PROFILE_MAP = {
+        "Manual (Use Widget Settings)": "Manual",
+        "Anima Base / Raehoshi (er_sde | 32 steps | CFG 4.5 | Shift 3.0)": "Anima Base / Raehoshi",
+        "Anima Aesthetic Crisp (er_sde | 30 steps | CFG 4.0 | beta | Shift 3.0)": "Anima Aesthetic Crisp",
+        "Anima Aesthetic Painterly (euler_a | 35 steps | CFG 4.2 | anima_beta57 | Shift 2.8)": "Anima Aesthetic Painterly",
+        "Anima Turbo (euler | 10 steps | CFG 1.0 | Shift 3.0)": "Anima Turbo",
+        "Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)": "Anima Lightning TDM",
+        "Anima 2.9B / 3.8B Deep DiT (er_sde | 36 steps | CFG 4.5 | Shift 3.0)": "Anima 2.9B / 3.8B Deep DiT",
     }
 
     @classmethod
@@ -495,7 +501,7 @@ class HaDeSAnimaKSampler:
                 "negative": ("CONDITIONING",),
                 "latent_image": ("LATENT",),
                 "variant_profile": (list(cls.VARIANT_PROFILES.keys()), {
-                    "default": "Manual (Use Widget Settings)"
+                    "default": "Manual"
                 }),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
                 "steps": ("INT", {"default": 32, "min": 1, "max": 200, "step": 1}),
@@ -534,7 +540,8 @@ class HaDeSAnimaKSampler:
         flow_shift,
         vae=None,
     ):
-        prof = self.VARIANT_PROFILES.get(variant_profile)
+        canonical_profile = self._LEGACY_PROFILE_MAP.get(variant_profile, variant_profile)
+        prof = self.VARIANT_PROFILES.get(canonical_profile)
         if prof is not None:
             steps, cfg, sampler_name, scheduler, denoise, flow_shift = prof
 
@@ -558,7 +565,7 @@ class HaDeSAnimaKSampler:
         sig_head = ", ".join(f"{float(s):.3f}" for s in sigmas[: min(5, len(sigmas))])
 
         info = (
-            f"HaDeS Anima KSampler | Profile: {variant_profile} | Resolution: {w_px}x{h_px}px | "
+            f"HaDeS Anima KSampler | Profile: {canonical_profile} | Resolution: {w_px}x{h_px}px | "
             f"Sampler: {sampler_name} | Scheduler: {scheduler} | Steps: {steps} | CFG: {cfg:.2f} | "
             f"Denoise: {denoise:.2f} | Flow Shift (multiplier=1.0): {flow_shift:.2f} | "
             f"Sigmas[0..]: [{sig_head}]"

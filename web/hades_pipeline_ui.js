@@ -445,11 +445,11 @@ export function setupLatentPipelineGuardUI(node) {
         };
     });
 
-    node.addCustomWidget(
+    const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "16CH WAN21 LATENT & 32PX GRID",
+            title: "",
             accentColor: HADES_THEME.cyan,
-            customHeight: 68,
+            customHeight: 64,
             drawCustomHUD(ctx, rect) {
                 const pVal = String(wPreset?.value || "");
                 let [w, h] = PRESET_DIMS[pVal] || [
@@ -463,11 +463,12 @@ export function setupLatentPipelineGuardUI(node) {
                 }
                 const mp = (w * h) / 1e6;
                 const isOptimal = mp >= 0.5 && mp <= 1.55;
+                const isNarrow = rect.w < 270;
 
                 // Draw aspect-ratio preview box on the left
-                const boxAreaW = 48;
+                const boxAreaW = isNarrow ? 36 : 44;
                 const maxBoxH = rect.h - 8;
-                const maxBoxW = 40;
+                const maxBoxW = isNarrow ? 28 : 36;
                 const scale = Math.min(maxBoxW / w, maxBoxH / h);
                 const pw = Math.max(8, w * scale);
                 const ph = Math.max(8, h * scale);
@@ -480,19 +481,18 @@ export function setupLatentPipelineGuardUI(node) {
                 ctx.strokeStyle = HADES_THEME.cyan;
                 ctx.stroke();
 
-                ctx.font = "bold 10px monospace";
+                ctx.font = isNarrow ? "9.5px monospace" : "bold 10px monospace";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
                 ctx.fillText(`${w} × ${h} px  (${mp.toFixed(2)} MP)`, rect.x + boxAreaW + 8, rect.y + 11);
 
-                ctx.font = "9px monospace";
+                ctx.font = isNarrow ? "8.5px monospace" : "9px monospace";
                 ctx.fillStyle = isOptimal ? HADES_THEME.emerald : HADES_THEME.amber;
-                ctx.fillText(
-                    isOptimal ? "16CH WAN21 | 32PX ALIGNED | OPTIMAL MP" : "OUTSIDE 0.5–1.5 MP OPTIMAL WINDOW",
-                    rect.x + boxAreaW + 8,
-                    rect.y + 25
-                );
+                const line2 = isOptimal
+                    ? (isNarrow ? "16CH WAN21 · 32PX · OPTIMAL" : "16CH WAN21 · 32PX ALIGNED · OPTIMAL MP")
+                    : (isNarrow ? "OUTSIDE 0.5–1.5 MP" : "OUTSIDE 0.5–1.5 MP OPTIMAL WINDOW");
+                ctx.fillText(line2, rect.x + boxAreaW + 8, rect.y + 25);
             },
             actions: [
                 {
@@ -515,18 +515,23 @@ export function setupLatentPipelineGuardUI(node) {
         })
     );
 
-    node.addCustomWidget(
+    const TAG_W = 66;
+
+    const presetWidget = node.addCustomWidget(
         createStyledComboWidget(node, wPreset, {
             tag: "ASPECT",
             tagColor: HADES_THEME.cyan,
+            tagWidth: TAG_W,
+            label: "",
         })
     );
 
-    node.addCustomWidget(
+    const widthWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wWidth, {
             tag: "WIDTH",
-            rangeTag: "CUSTOM W",
-            label: "Custom Width (32px Grid)",
+            rangeTag: "WIDTH",
+            tagWidth: TAG_W,
+            label: "",
             color: HADES_THEME.blue,
             min: 256,
             max: 4096,
@@ -538,11 +543,12 @@ export function setupLatentPipelineGuardUI(node) {
         })
     );
 
-    node.addCustomWidget(
+    const heightWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wHeight, {
             tag: "HEIGHT",
-            rangeTag: "CUSTOM H",
-            label: "Custom Height (32px Grid)",
+            rangeTag: "HEIGHT",
+            tagWidth: TAG_W,
+            label: "",
             color: HADES_THEME.blue,
             min: 256,
             max: 4096,
@@ -554,11 +560,12 @@ export function setupLatentPipelineGuardUI(node) {
         })
     );
 
-    node.addCustomWidget(
+    const batchWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wBatch, {
             tag: "BATCH",
-            rangeTag: "COUNT",
-            label: "Latent Batch Size",
+            rangeTag: "BATCH",
+            tagWidth: TAG_W,
+            label: "",
             color: HADES_THEME.purple,
             min: 1,
             max: 64,
@@ -570,17 +577,33 @@ export function setupLatentPipelineGuardUI(node) {
         })
     );
 
-    if (wGuard29b) {
-        node.addCustomWidget(
-            createStyledToggleWidget(node, wGuard29b, {
-                tag: "2.9B",
-                color: HADES_THEME.emerald,
-                label: "Prevent 1280x1280 White-BG Bias",
-                onText: "GUARD ON",
-                offText: "ALLOW 1280",
-            })
-        );
-    }
+    const guardWidget = wGuard29b
+        ? node.addCustomWidget(
+              createStyledToggleWidget(node, wGuard29b, {
+                  tag: "GUARD",
+                  tagWidth: TAG_W,
+                  color: HADES_THEME.emerald,
+                  label: "",
+                  onText: "GUARD ON",
+                  offText: "BYPASSED",
+                  tooltip: `<strong>Anima 2.9B White-BG Guard</strong><br>Prevents the known Anima-2.9B (Preview 3) dataset artifact where 1280×1280 causes a blank white background or loss of contrast.<br><span style="color:#6ee7b7">When active, 1280×1280 automatically shifts to 1216×1216 (32px-grid aligned).</span>`,
+              })
+          )
+        : null;
+
+    node.widgets = [
+        bannerWidget,
+        presetWidget,
+        widthWidget,
+        heightWidget,
+        batchWidget,
+        guardWidget,
+        wPreset,
+        wWidth,
+        wHeight,
+        wBatch,
+        wGuard29b,
+    ].filter(Boolean);
 
     const sz = node.computeSize();
     node.setSize([Math.max(430, sz[0]), sz[1] + 8]);

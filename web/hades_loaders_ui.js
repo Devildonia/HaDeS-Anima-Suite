@@ -270,24 +270,21 @@ export function setupAnimaVAEDecodeUI(node) {
     const wTile = node.widgets?.find((w) => w.name === "tile_size_px");
     const wOverlap = node.widgets?.find((w) => w.name === "tile_overlap_px");
     const wThresh = node.widgets?.find((w) => w.name === "auto_tile_mp_threshold");
-    const wClean = node.widgets?.find((w) => w.name === "clean_corner_scribbles");
-    const wSens = node.widgets?.find((w) => w.name === "corner_sensitivity");
-    const wCorners = node.widgets?.find((w) => w.name === "active_corners");
 
-    [wMode, wTile, wOverlap, wThresh, wClean, wSens, wCorners].forEach(hideBackingWidget);
+    [wMode, wTile, wOverlap, wThresh].forEach(hideBackingWidget);
 
-    node.addCustomWidget(
+    const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
-            title: "ANIMA SMART TILED VAE DECODE",
+            title: "",
             accentColor: HADES_THEME.emerald,
-            customHeight: 58,
-            getStatusText: () => {
-                const mode = String(wMode?.value || "Auto Smart-Tile");
-                const shortMode = mode.startsWith("Auto") ? "AUTO SMART-TILE" : mode.startsWith("Force") ? "FORCE TILED" : "DIRECT FULL";
-                return `ANIMA DECODE • ${shortMode}`;
-            },
-            getStatusColor: () => (wClean?.value ? HADES_THEME.purple : HADES_THEME.emerald),
+            customHeight: 52,
             actions: [
+                {
+                    label: "Auto",
+                    onClick: (n) => {
+                        setWidgetValue(wMode, "Auto Smart-Tile (VRAM & HiRes Aware)", n);
+                    },
+                },
                 {
                     label: "6GB Safe",
                     onClick: (n) => {
@@ -296,123 +293,111 @@ export function setupAnimaVAEDecodeUI(node) {
                         setWidgetValue(wOverlap, 64, n);
                     },
                 },
+                {
+                    label: "Direct",
+                    onClick: (n) => {
+                        setWidgetValue(wMode, "Direct Full Decode (Max Speed)", n);
+                    },
+                },
             ],
             drawCustomHUD: (ctx, rect) => {
+                const isNarrow = rect.w < 260;
                 let cx = rect.x + 6;
                 const cy = rect.y + (rect.h - 16) * 0.5;
-                cx += drawPill(ctx, cx, cy, `TILE: ${wTile?.value ?? 512}px / ${wOverlap?.value ?? 64}px`, HADES_THEME.cyan);
-                cx += drawPill(ctx, cx, cy, `AUTO > ${Number(wThresh?.value ?? 1.35).toFixed(2)} MP`, HADES_THEME.blue);
-                drawPill(
-                    ctx,
-                    cx,
-                    cy,
-                    wClean?.value ? "SCRIBBLE SHIELD ON" : "SCRIBBLE SHIELD OFF",
-                    wClean?.value ? HADES_THEME.purple : HADES_THEME.textMuted
-                );
+                const tileVal = wTile?.value ?? 512;
+                const ovlVal = wOverlap?.value ?? 64;
+                const mpVal = Number(wThresh?.value ?? 1.35).toFixed(2);
+                cx += drawPill(ctx, cx, cy, isNarrow ? `${tileVal}/${ovlVal}px` : `TILE: ${tileVal}px / ${ovlVal}px`, HADES_THEME.cyan);
+                drawPill(ctx, cx, cy, isNarrow ? `>${mpVal} MP` : `AUTO > ${mpVal} MP`, HADES_THEME.blue);
             },
         })
     );
 
-    if (wMode) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wMode, {
-                tag: "MODE",
-                tagColor: HADES_THEME.emerald,
-                label: "Decode Strategy",
-            })
-        );
-    }
-    if (wTile) {
-        node.addCustomWidget(
-            createSpectralSliderWidget(node, wTile, {
-                tag: "TILE",
-                rangeTag: "256–2048",
-                label: "Spatial Tile Size (px)",
-                color: HADES_THEME.cyan,
-                min: 256,
-                max: 2048,
-                visMin: 256,
-                visMax: 2048,
-                step: 64,
-                defaultVal: 512,
-                decimals: 0,
-                isInt: true,
-            })
-        );
-    }
-    if (wOverlap) {
-        node.addCustomWidget(
-            createSpectralSliderWidget(node, wOverlap, {
-                tag: "OVLP",
-                rangeTag: "32–512",
-                label: "Tile Blend Overlap (px)",
-                color: HADES_THEME.blue,
-                min: 32,
-                max: 512,
-                visMin: 32,
-                visMax: 512,
-                step: 32,
-                defaultVal: 64,
-                decimals: 0,
-                isInt: true,
-            })
-        );
-    }
-    if (wThresh) {
-        node.addCustomWidget(
-            createSpectralSliderWidget(node, wThresh, {
-                tag: "MP>",
-                rangeTag: "0.5–4.0",
-                label: "Auto-Tile Resolution Threshold (MP)",
-                color: HADES_THEME.emerald,
-                min: 0.5,
-                max: 4.0,
-                visMin: 0.5,
-                visMax: 4.0,
-                step: 0.05,
-                defaultVal: 1.35,
-            })
-        );
-    }
-    if (wClean) {
-        node.addCustomWidget(
-            createStyledToggleWidget(node, wClean, {
-                tag: "HEAL",
-                color: HADES_THEME.purple,
-                label: "Post-Decode Corner Scribble Shield",
-                onText: "AUTO-HEAL ON",
-                offText: "BYPASSED",
-            })
-        );
-    }
-    if (wSens) {
-        node.addCustomWidget(
-            createSpectralSliderWidget(node, wSens, {
-                tag: "SENS",
-                rangeTag: "0.0–1.0",
-                label: "Corner Scribble Sensitivity",
-                color: HADES_THEME.purple,
-                min: 0.0,
-                max: 1.0,
-                visMin: 0.0,
-                visMax: 1.0,
-                step: 0.05,
-                defaultVal: 0.6,
-            })
-        );
-    }
-    if (wCorners) {
-        node.addCustomWidget(
-            createStyledComboWidget(node, wCorners, {
-                tag: "CRNR",
-                tagColor: HADES_THEME.amber,
-                label: "Inspected Corners",
-            })
-        );
-    }
+    const TAG_W = 66;
+
+    const modeWidget = wMode
+        ? node.addCustomWidget(
+              createStyledComboWidget(node, wMode, {
+                  tag: "MODE",
+                  tagColor: HADES_THEME.emerald,
+                  tagWidth: TAG_W,
+                  label: "",
+              })
+          )
+        : null;
+
+    const tileWidget = wTile
+        ? node.addCustomWidget(
+              createSpectralSliderWidget(node, wTile, {
+                  tag: "TILE",
+                  rangeTag: "TILE",
+                  tagWidth: TAG_W,
+                  label: "",
+                  color: HADES_THEME.cyan,
+                  min: 256,
+                  max: 2048,
+                  visMin: 256,
+                  visMax: 2048,
+                  step: 64,
+                  defaultVal: 512,
+                  decimals: 0,
+                  isInt: true,
+              })
+          )
+        : null;
+
+    const overlapWidget = wOverlap
+        ? node.addCustomWidget(
+              createSpectralSliderWidget(node, wOverlap, {
+                  tag: "OVERLAP",
+                  rangeTag: "OVERLAP",
+                  tagWidth: TAG_W,
+                  label: "",
+                  color: HADES_THEME.blue,
+                  min: 32,
+                  max: 512,
+                  visMin: 32,
+                  visMax: 512,
+                  step: 32,
+                  defaultVal: 64,
+                  decimals: 0,
+                  isInt: true,
+              })
+          )
+        : null;
+
+    const threshWidget = wThresh
+        ? node.addCustomWidget(
+              createSpectralSliderWidget(node, wThresh, {
+                  tag: "AUTO-MP",
+                  rangeTag: "AUTO-MP",
+                  tagWidth: TAG_W,
+                  label: "",
+                  color: HADES_THEME.emerald,
+                  min: 0.5,
+                  max: 4.0,
+                  visMin: 0.5,
+                  visMax: 4.0,
+                  step: 0.05,
+                  defaultVal: 1.35,
+              })
+          )
+        : null;
+
+    node.widgets = [
+        bannerWidget,
+        modeWidget,
+        tileWidget,
+        overlapWidget,
+        threshWidget,
+        wMode,
+        wTile,
+        wOverlap,
+        wThresh,
+    ].filter(Boolean);
 
     const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    node.setSize([Math.max(420, sz[0]), sz[1] + 8]);
 }
 
 export const LOADER_NODE_DISPATCH = {

@@ -929,14 +929,23 @@ def test_11_anima_single_pass_ksampler_and_schedulers():
     try:
         ks = hades.HaDeSAnimaKSampler()
         lat_in = {"samples": torch.zeros(1, 16, 128, 128)}
+        # Test both concise modern profile name and legacy string compatibility
         out_lat, dec_img, info = ks.sample_anima(
             m, [], [], lat_in,
-            "Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)",
+            "Anima Lightning TDM",
             42, 32, 4.5, "er_sde", "normal", 1.0, 3.0, vae=DummyVAE(16)
         )
         assert tuple(out_lat["samples"].shape) == (1, 16, 128, 128)
         assert tuple(dec_img.shape) == (1, 1024, 1024, 3)
         assert "anima_lightning_tdm" in info and "Steps: 4" in info
+
+        # Verify legacy workflow string
+        out_lat2, dec_img2, info2 = ks.sample_anima(
+            m, [], [], lat_in,
+            "Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)",
+            42, 32, 4.5, "er_sde", "normal", 1.0, 3.0, vae=DummyVAE(16)
+        )
+        assert "Steps: 4" in info2
     finally:
         comfy.sample.sample = orig_sample
     print("[OK] Test 11: HaDeSAnimaKSampler (multiplier=1.0 shift, anima_beta57, anima_lightning_tdm) verified")
@@ -1157,34 +1166,31 @@ def test_17_anima_smart_vae_decode_and_scribble_shield():
 
     # 1. At 1024x1024 (1.05 MP <= 1.35 MP threshold), Auto Smart-Tile uses fast direct decode
     lat_1mp = {"samples": torch.zeros(1, 16, 128, 128)}
-    img_1mp, mask_1mp, info_1mp = dec_node.decode_anima(
+    img_1mp, info_1mp = dec_node.decode_anima(
         lat_1mp, vae_16, decode_mode="Auto Smart-Tile (VRAM & HiRes Aware)",
-        tile_size_px=512, tile_overlap_px=64, auto_tile_mp_threshold=1.35, clean_corner_scribbles=False
+        tile_size_px=512, tile_overlap_px=64, auto_tile_mp_threshold=1.35
     )
     assert vae_16.last_decode_method == "direct"
-    assert tuple(img_1mp.shape) == (1, 1024, 1024, 3) and tuple(mask_1mp.shape) == (1, 1024, 1024)
+    assert tuple(img_1mp.shape) == (1, 1024, 1024, 3)
 
-    # 2. At 1536x1536 (2.36 MP > 1.35 MP threshold), Auto Smart-Tile proactively switches to tiled decode + heals corner scribble
+    # 2. At 1536x1536 (2.36 MP > 1.35 MP threshold), Auto Smart-Tile proactively switches to tiled decode
     lat_hires = {"samples": torch.zeros(1, 16, 192, 192)}
-    img_hi, mask_hi, info_hi = dec_node.decode_anima(
+    img_hi, info_hi = dec_node.decode_anima(
         lat_hires, vae_16, decode_mode="Auto Smart-Tile (VRAM & HiRes Aware)",
-        tile_size_px=512, tile_overlap_px=64, auto_tile_mp_threshold=1.35, clean_corner_scribbles=True,
-        corner_sensitivity=0.70, active_corners="Bottom-Right Only"
+        tile_size_px=512, tile_overlap_px=64, auto_tile_mp_threshold=1.35
     )
     assert vae_16.last_decode_method == "tiled"
     assert tuple(img_hi.shape) == (1, 1536, 1536, 3)
-    assert float(mask_hi.max().item()) > 0.05, "Expected integrated Corner Scribble Shield to detect & heal bottom-right noise!"
     assert "Auto-Tile (2.36 MP > 1.35 MP threshold)" in info_hi
 
     # 3. Verify 3D WanVAE (latent_dim=3, 5D [B, T, H, W, 3] output) with 4D input & batch_size=2 round-trip upscale
     wan3d_vae = DummyWan3DVAE(16, noisy_corner=True)
-    img_3d, mask_3d, _ = dec_node.decode_anima(
+    img_3d, _ = dec_node.decode_anima(
         {"samples": torch.zeros(2, 16, 64, 64)},  # 4D [B=2, 16, 64, 64] fed to 3D WanVAE
         wan3d_vae,
         decode_mode="Direct Full Decode (Max Speed)",
-        clean_corner_scribbles=True,
     )
-    assert tuple(img_3d.shape) == (2, 512, 512, 3) and tuple(mask_3d.shape) == (2, 512, 512)
+    assert tuple(img_3d.shape) == (2, 512, 512, 3)
 
     rt_lat, (w0, h0), (w1, h1) = hades.upscale_anima_latent_32px(
         {"samples": torch.zeros(2, 16, 1, 64, 64)},
@@ -1196,7 +1202,7 @@ def test_17_anima_smart_vae_decode_and_scribble_shield():
     assert tuple(rt_lat["samples"].shape) == (2, 16, 1, 768 // 8, 768 // 8), (
         f"Expected batch_size=2 to be preserved on 3D WanVAE round-trip, got {rt_lat['samples'].shape}"
     )
-    print("[OK] Test 17: HaDeSAnimaVAEDecode (Proactive HiRes Auto-Tile, 3D WanVAE 4D/5D & batch=2 round-trip, Corner Scribble Shield) verified")
+    print("[OK] Test 17: HaDeSAnimaVAEDecode (Proactive HiRes Auto-Tile, 3D WanVAE 4D/5D & batch=2 round-trip) verified")
 
 
 def test_18_nag_only_anima_gate():

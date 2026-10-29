@@ -14,16 +14,22 @@ import {
 // =============================================================================
 
 const SINGLE_PROFILES = {
-    "Anima Base / Raehoshi (er_sde | 32 steps | CFG 4.5 | Shift 3.0)": [32, 4.5, "er_sde", "normal", 1.0, 3.0],
-    "Anima Aesthetic Crisp (er_sde | 30 steps | CFG 4.0 | beta | Shift 3.0)": [30, 4.0, "er_sde", "beta", 1.0, 3.0],
-    "Anima Aesthetic Painterly (euler_a | 35 steps | CFG 4.2 | anima_beta57 | Shift 2.8)": [
-        35, 4.2, "euler_ancestral", "anima_beta57", 1.0, 2.8,
-    ],
-    "Anima Turbo (euler | 10 steps | CFG 1.0 | Shift 3.0)": [10, 1.0, "euler", "normal", 1.0, 3.0],
-    "Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)": [
-        4, 1.0, "euler", "anima_lightning_tdm", 1.0, 3.0,
-    ],
-    "Anima 2.9B / 3.8B Deep DiT (er_sde | 36 steps | CFG 4.5 | Shift 3.0)": [36, 4.5, "er_sde", "normal", 1.0, 3.0],
+    "Anima Base / Raehoshi": [32, 4.5, "er_sde", "normal", 1.0, 3.0],
+    "Anima Aesthetic Crisp": [30, 4.0, "er_sde", "beta", 1.0, 3.0],
+    "Anima Aesthetic Painterly": [35, 4.2, "euler_ancestral", "anima_beta57", 1.0, 2.8],
+    "Anima Turbo": [10, 1.0, "euler", "normal", 1.0, 3.0],
+    "Anima Lightning TDM": [4, 1.0, "euler", "anima_lightning_tdm", 1.0, 3.0],
+    "Anima 2.9B / 3.8B Deep DiT": [36, 4.5, "er_sde", "normal", 1.0, 3.0],
+};
+
+const LEGACY_SINGLE_PROFILE_MAP = {
+    "Manual (Use Widget Settings)": "Manual",
+    "Anima Base / Raehoshi (er_sde | 32 steps | CFG 4.5 | Shift 3.0)": "Anima Base / Raehoshi",
+    "Anima Aesthetic Crisp (er_sde | 30 steps | CFG 4.0 | beta | Shift 3.0)": "Anima Aesthetic Crisp",
+    "Anima Aesthetic Painterly (euler_a | 35 steps | CFG 4.2 | anima_beta57 | Shift 2.8)": "Anima Aesthetic Painterly",
+    "Anima Turbo (euler | 10 steps | CFG 1.0 | Shift 3.0)": "Anima Turbo",
+    "Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)": "Anima Lightning TDM",
+    "Anima 2.9B / 3.8B Deep DiT (er_sde | 36 steps | CFG 4.5 | Shift 3.0)": "Anima 2.9B / 3.8B Deep DiT",
 };
 
 const DUAL_PROFILES = {
@@ -76,14 +82,15 @@ const TRIPLE_PROFILES = {
     ],
 };
 
-function bindPresetSync(node, wPreset, presetTable, orderedWidgets) {
+function bindPresetSync(node, wPreset, presetTable, orderedWidgets, manualLabel = "Manual (Use Widget Settings)") {
     let isApplying = false;
     const applyProfile = (profileName) => {
-        const vals = presetTable[profileName];
+        const canonical = LEGACY_SINGLE_PROFILE_MAP[profileName] || profileName;
+        const vals = presetTable[canonical] || presetTable[profileName];
         if (!vals) return;
         isApplying = true;
         try {
-            setWidgetValue(wPreset, profileName, node);
+            setWidgetValue(wPreset, canonical, node);
             orderedWidgets.forEach((w, idx) => {
                 if (w && vals[idx] !== undefined) {
                     setWidgetValue(w, vals[idx], node);
@@ -98,8 +105,9 @@ function bindPresetSync(node, wPreset, presetTable, orderedWidgets) {
         const origCb = wPreset.callback;
         wPreset.callback = function (val) {
             if (typeof origCb === "function") origCb.call(this, val);
-            if (!isApplying && presetTable[val]) {
-                applyProfile(val);
+            const canonical = LEGACY_SINGLE_PROFILE_MAP[val] || val;
+            if (!isApplying && (presetTable[canonical] || presetTable[val])) {
+                applyProfile(canonical);
             }
         };
     }
@@ -109,8 +117,8 @@ function bindPresetSync(node, wPreset, presetTable, orderedWidgets) {
         const origCb = w.callback;
         w.callback = function (val) {
             if (typeof origCb === "function") origCb.call(this, val);
-            if (!isApplying && wPreset && wPreset.value !== "Manual (Use Widget Settings)") {
-                wPreset.value = "Manual (Use Widget Settings)";
+            if (!isApplying && wPreset && wPreset.value !== manualLabel) {
+                wPreset.value = manualLabel;
             }
         };
     });
@@ -135,9 +143,13 @@ export function setupAnimaKSamplerUI(node) {
     const managed = [wProfile, wSteps, wCfg, wSampler, wSched, wDenoise, wShift];
     managed.forEach(hideBackingWidget);
 
-    const applyProfile = bindPresetSync(node, wProfile, SINGLE_PROFILES, [
-        wSteps, wCfg, wSampler, wSched, wDenoise, wShift,
-    ]);
+    const applyProfile = bindPresetSync(
+        node,
+        wProfile,
+        SINGLE_PROFILES,
+        [wSteps, wCfg, wSampler, wSched, wDenoise, wShift],
+        "Manual"
+    );
 
     const bannerWidget = node.addCustomWidget(
         createSpectralBannerWidget(node, {
@@ -199,29 +211,23 @@ export function setupAnimaKSamplerUI(node) {
             actions: [
                 {
                     label: "Base/Rae",
-                    onClick: () =>
-                        applyProfile("Anima Base / Raehoshi (er_sde | 32 steps | CFG 4.5 | Shift 3.0)"),
+                    onClick: () => applyProfile("Anima Base / Raehoshi"),
                 },
                 {
                     label: "Aesthetic",
-                    onClick: () =>
-                        applyProfile("Anima Aesthetic Crisp (er_sde | 30 steps | CFG 4.0 | beta | Shift 3.0)"),
+                    onClick: () => applyProfile("Anima Aesthetic Crisp"),
                 },
                 {
                     label: "Beta57",
-                    onClick: () =>
-                        applyProfile(
-                            "Anima Aesthetic Painterly (euler_a | 35 steps | CFG 4.2 | anima_beta57 | Shift 2.8)"
-                        ),
+                    onClick: () => applyProfile("Anima Aesthetic Painterly"),
                 },
                 {
                     label: "Turbo",
-                    onClick: () => applyProfile("Anima Turbo (euler | 10 steps | CFG 1.0 | Shift 3.0)"),
+                    onClick: () => applyProfile("Anima Turbo"),
                 },
                 {
                     label: "TDM 4s",
-                    onClick: () =>
-                        applyProfile("Anima Lightning TDM (euler | 4 steps | CFG 1.0 | anima_lightning_tdm)"),
+                    onClick: () => applyProfile("Anima Lightning TDM"),
                 },
             ],
         })
@@ -326,9 +332,13 @@ export function setupAnimaKSamplerUI(node) {
 
     function sanitizeSinglePassValues() {
         if (wProfile) {
-            const val = String(wProfile.value ?? "");
-            if (!SINGLE_PROFILES[val] && val !== "Manual (Use Widget Settings)") {
-                wProfile.value = "Manual (Use Widget Settings)";
+            let val = String(wProfile.value ?? "");
+            if (LEGACY_SINGLE_PROFILE_MAP[val]) {
+                val = LEGACY_SINGLE_PROFILE_MAP[val];
+                wProfile.value = val;
+            }
+            if (!SINGLE_PROFILES[val] && val !== "Manual") {
+                wProfile.value = "Manual";
             }
         }
         if (wSeed) {

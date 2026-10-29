@@ -77,6 +77,80 @@ export function drawRoundedRect(ctx, x, y, w, h, r) {
 }
 
 // =============================================================================
+// FLOATING HUD TOOLTIP ENGINE
+// =============================================================================
+let _hadesTooltipEl = null;
+
+if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
+    window._hadesTooltipGlobalInit = true;
+    window.addEventListener("pointerdown", () => hideHadesTooltip(), { passive: true });
+    window.addEventListener("wheel", () => hideHadesTooltip(), { passive: true });
+}
+
+export function showHadesTooltip(htmlContent, clientX, clientY, accentColor = HADES_THEME.emerald) {
+    if (!htmlContent || typeof document === "undefined") return;
+    if (!_hadesTooltipEl) {
+        _hadesTooltipEl = document.createElement("div");
+        _hadesTooltipEl.id = "hades-floating-tooltip";
+        Object.assign(_hadesTooltipEl.style, {
+            position: "fixed",
+            zIndex: "99999",
+            pointerEvents: "none",
+            backgroundColor: "#161920",
+            color: "#e5e7eb",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            fontFamily: "system-ui, -apple-system, sans-serif",
+            fontSize: "11px",
+            lineHeight: "1.45",
+            maxWidth: "320px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.08)",
+            transition: "opacity 0.12s ease-out, transform 0.12s ease-out",
+            opacity: "0",
+            transform: "translateY(4px)",
+            display: "none",
+        });
+        document.body.appendChild(_hadesTooltipEl);
+    }
+    _hadesTooltipEl.innerHTML = htmlContent;
+    _hadesTooltipEl.style.borderLeft = `3px solid ${accentColor}`;
+    _hadesTooltipEl.style.display = "block";
+
+    const pad = 14;
+    const vpW = window.innerWidth || 1920;
+    const vpH = window.innerHeight || 1080;
+    let targetX = clientX + 14;
+    let targetY = clientY + 14;
+    if (targetX + 330 > vpW) {
+        targetX = Math.max(pad, clientX - 330);
+    }
+    if (targetY + 120 > vpH) {
+        targetY = Math.max(pad, clientY - 100);
+    }
+
+    _hadesTooltipEl.style.left = `${targetX}px`;
+    _hadesTooltipEl.style.top = `${targetY}px`;
+    requestAnimationFrame(() => {
+        if (_hadesTooltipEl) {
+            _hadesTooltipEl.style.opacity = "1";
+            _hadesTooltipEl.style.transform = "translateY(0)";
+        }
+    });
+}
+
+export function hideHadesTooltip() {
+    if (_hadesTooltipEl && _hadesTooltipEl.style.display !== "none") {
+        _hadesTooltipEl.style.opacity = "0";
+        _hadesTooltipEl.style.transform = "translateY(4px)";
+        setTimeout(() => {
+            if (_hadesTooltipEl && _hadesTooltipEl.style.opacity === "0") {
+                _hadesTooltipEl.style.display = "none";
+            }
+        }, 120);
+    }
+}
+
+// =============================================================================
 // CLASSIC COMFYUI THEME / VANILLA TOGGLE ENGINE
 // =============================================================================
 try {
@@ -1121,19 +1195,25 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
 export function createStyledToggleWidget(node, backingWidget, config = {}) {
     const {
         tag = "FLAG",
+        tagWidth = null,
         color = HADES_THEME.emerald,
         label = backingWidget?.name || "",
         onText = "ENABLED",
         offText = "DISABLED",
+        tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
+
+    const plainTooltip = typeof tooltip === "string" ? tooltip.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
     return {
         name: `hades_toggle_${backingWidget?.name || label}`,
         type: "custom",
         value: "",
-        options: { serialize: false },
+        tooltip: plainTooltip,
+        options: { serialize: false, tooltip: plainTooltip },
         serialize: false,
         _bounds: null,
+        _isHovered: false,
 
         computeSize(width) {
             return [width, 28];
@@ -1155,36 +1235,39 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            const tagW = 52;
+            const isNarrow = w < 280;
+            ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
+            const tagW = tagWidth || Math.max(isNarrow ? 42 : 50, Math.round(ctx.measureText(tag).width + (isNarrow ? 8 : 12)));
             drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
             ctx.fillStyle = `${color}22`;
             ctx.fill();
             ctx.strokeStyle = `${color}66`;
             ctx.stroke();
 
-            ctx.font = "bold 9px monospace";
             ctx.fillStyle = color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
-            ctx.font = "11px sans-serif";
-            ctx.fillStyle = "#d1d5db";
-            ctx.textAlign = "left";
-            ctx.fillText(label, x + tagW + 10, rowY + h * 0.5 + 0.5);
+            if (label) {
+                ctx.font = "11px sans-serif";
+                ctx.fillStyle = "#d1d5db";
+                ctx.textAlign = "left";
+                ctx.fillText(label, x + tagW + 10, rowY + h * 0.5 + 0.5);
+            }
 
-            const pillW = 84;
-            const pillX = x + w - pillW - 4;
+            const pillW = isNarrow ? 74 : 82;
+            const pillX = x + w - pillW - 3;
             const pillY = rowY + 3;
             const pillH = h - 6;
 
-            drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 9);
+            drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 4);
             ctx.fillStyle = isOn ? `${color}33` : "#1e222b";
             ctx.fill();
             ctx.strokeStyle = isOn ? color : "#333947";
             ctx.stroke();
 
-            ctx.font = "bold 9px monospace";
+            ctx.font = isNarrow ? "bold 9px monospace" : "bold 9.5px monospace";
             ctx.fillStyle = isOn ? color : HADES_THEME.textMuted;
             ctx.textAlign = "center";
             ctx.fillText(isOn ? onText : offText, pillX + pillW * 0.5, pillY + pillH * 0.5 + 0.5);
@@ -1194,12 +1277,33 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
         },
 
         mouse(event, pos, n) {
-            if ((event.type !== "pointerdown" && event.type !== "mousedown") || !this._bounds || !backingWidget) {
-                return false;
-            }
+            if (!this._bounds) return false;
             const [mx, my] = pos;
             const b = this._bounds;
-            if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+            const isInside = mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h;
+
+            if (event.type === "pointermove" || event.type === "mousemove") {
+                if (isInside && tooltip) {
+                    this._isHovered = true;
+                    showHadesTooltip(tooltip, event.clientX, event.clientY, color);
+                } else if (this._isHovered) {
+                    this._isHovered = false;
+                    hideHadesTooltip();
+                }
+                return false;
+            }
+
+            if (event.type === "pointerleave" || event.type === "mouseleave") {
+                if (this._isHovered) {
+                    this._isHovered = false;
+                    hideHadesTooltip();
+                }
+                return false;
+            }
+
+            if ((event.type === "pointerdown" || event.type === "mousedown") && isInside && backingWidget) {
+                hideHadesTooltip();
+                this._isHovered = false;
                 setWidgetValue(backingWidget, !backingWidget.value, n);
                 return true;
             }

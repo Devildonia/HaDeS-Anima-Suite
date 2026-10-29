@@ -527,17 +527,6 @@ class HaDeSAnimaVAEDecode:
         "Force Seamless Tiled (Low-VRAM 6GB Safe)",
         "Direct Full Decode (Max Speed)",
     ]
-    CORNER_CHOICES = [
-        "Bottom Corners Only (Left & Right)",
-        "All 4 Corners",
-        "Bottom-Right Only",
-        "Bottom-Left Only",
-    ]
-    HEAL_MODES = [
-        "Smart Edge-Inward Blend (Auto-Heal)",
-        "Aggressive Corner Fill (Forced)",
-        "Soft Corner Blur",
-    ]
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -549,18 +538,11 @@ class HaDeSAnimaVAEDecode:
                 "tile_size_px": ("INT", {"default": 512, "min": 256, "max": 2048, "step": 64}),
                 "tile_overlap_px": ("INT", {"default": 64, "min": 32, "max": 512, "step": 32}),
                 "auto_tile_mp_threshold": ("FLOAT", {"default": 1.35, "min": 0.50, "max": 4.00, "step": 0.05}),
-                "clean_corner_scribbles": ("BOOLEAN", {"default": False}),
-                "corner_box_percent": ("FLOAT", {"default": 0.10, "min": 0.03, "max": 0.50, "step": 0.01,
-                                            "tooltip": "Corner shield box size as fraction of image size (base). The box auto-expands up to 50% while logo content is detected at its edge."}),
-                "corner_sensitivity": ("FLOAT", {"default": 0.75, "min": 0.0, "max": 1.0, "step": 0.05}),
-                "active_corners": (cls.CORNER_CHOICES, {"default": "Bottom Corners Only (Left & Right)"}),
-                "shield_heal_mode": (cls.HEAL_MODES, {"default": "Smart Edge-Inward Blend (Auto-Heal)"}),
-                "shield_feather_radius": ("INT", {"default": 12, "min": 1, "max": 64, "step": 1}),
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING")
-    RETURN_NAMES = ("image", "scribble_mask", "decode_info")
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("image", "info")
     FUNCTION = "decode_anima"
     CATEGORY = "HaDeS/Anima Loaders"
 
@@ -572,12 +554,6 @@ class HaDeSAnimaVAEDecode:
         tile_size_px: int = 512,
         tile_overlap_px: int = 64,
         auto_tile_mp_threshold: float = 1.35,
-        clean_corner_scribbles: bool = False,
-        corner_box_percent: float = 0.10,
-        corner_sensitivity: float = 0.75,
-        active_corners: str = "Bottom Corners Only (Left & Right)",
-        shield_heal_mode: str = "Smart Edge-Inward Blend (Auto-Heal)",
-        shield_feather_radius: int = 12,
     ):
         _validate_anima_16ch_vae_optional(vae)
 
@@ -636,26 +612,9 @@ class HaDeSAnimaVAEDecode:
 
         images = _normalize_decoded_image_4d(images)
 
-        scribble_status = "Disabled"
-        if clean_corner_scribbles:
-            shield = HaDeSAnimaCornerScribbleShield()
-            images, mask_out, shield_info = shield.shield_corners(
-                image=images,
-                corner_box_percent=float(corner_box_percent),
-                detection_sensitivity=float(corner_sensitivity),
-                active_corners=active_corners,
-                heal_mode=shield_heal_mode,
-                feather_radius=int(shield_feather_radius),
-            )
-            scribble_status = shield_info.split("Detected: ")[-1] if "Detected: " in shield_info else "Active"
-        else:
-            b_sz, img_h, img_w = int(images.shape[0]), int(images.shape[1]), int(images.shape[2])
-            mask_out = torch.zeros((b_sz, img_h, img_w), dtype=images.dtype, device=images.device)
-
         info = (
             f"HaDeS Anima VAE Decode | Output: {w_px}x{h_px}px ({mp:.2f} MP) | "
-            f"Strategy: {tile_reason} (Tile {eff_tile_px}px / Overlap {eff_overlap_px}px) | "
-            f"Corner Scribble Shield: {scribble_status}"
+            f"Strategy: {tile_reason} (Tile {eff_tile_px}px / Overlap {eff_overlap_px}px)"
         )
         print(f"\n[HaDeS Anima VAE Decode] {info}")
-        return (images, mask_out, info)
+        return (images, info)
