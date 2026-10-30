@@ -1293,7 +1293,7 @@ class HaDeSAnimaSuiteTelemetry:
 
     def _classify_stream(self, text: str) -> str:
         t = text.upper()
-        if any(k in t for k in ["MODEL LOADER", "CLIP LOADER", "VAE LOADER", "BLOCK MERGER", "CLIP BLOCK MERGER", "PREDICTIVE MODEL MERGER"]):
+        if any(k in t for k in ["MODEL LOADER", "CLIP LOADER", "VAE LOADER", "BLOCK MERGER", "CLIP BLOCK MERGER", "PREDICTIVE MODEL MERGER", "MODEL SAVER"]):
             return "ARCHITECTURE"
         if any(k in t for k in ["MULTI-LORA", "LORA REMAPPER", "STANDALONE LORA MERGER", "PROMPT STUDIO"]):
             return "CONDITIONING"

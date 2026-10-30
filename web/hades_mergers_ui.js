@@ -743,10 +743,225 @@ export function setupCLIPBlockMergerUI(node) {
     node.setSize([initW, initH]);
 }
 
+export function setupModelSaverUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wFile = findW("filename_prefix");
+    const wFormat = findW("save_format");
+    const wPrecision = findW("precision");
+    const wAdapter = findW("llm_adapter_mode");
+    const wMetadata = findW("include_metadata");
+    const wAuthor = findW("custom_author");
+    const wTitle = findW("custom_model_title");
+
+    [wFile, wFormat, wPrecision, wAdapter, wMetadata, wAuthor, wTitle].forEach(hideBackingWidget);
+
+    const TAG_W = 76;
+
+    // Spectral Banner Widget with HUD and Quick Action Presets
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.emerald,
+            customHeight: 52,
+            actions: [
+                {
+                    label: "BF16 Master",
+                    tooltip: `<strong>Master Precision (BF16)</strong><br>Saves in full unquantized bfloat16 master format with complete numeric fidelity (~4.8 GB).`,
+                    onClick: () => {
+                        setWidgetValue(wPrecision, "bfloat16 (Original Master)", node);
+                    },
+                },
+                {
+                    label: "ConvRot INT8",
+                    tooltip: `<strong>ConvRot INT8 (Block-Hadamard Rotated)</strong><br>Applies Walsh-Hadamard orthogonal rotation to eliminate outlier peaks before symmetric INT8 quantization (~2.4 GB). Near-zero visual degradation.`,
+                    onClick: () => {
+                        setWidgetValue(wPrecision, "convrot_int8 (Hadamard Rotated INT8)", node);
+                    },
+                },
+                {
+                    label: "ConvRot INT4",
+                    tooltip: `<strong>ConvRot INT4 (High-Density 4-Bit Packed)</strong><br>Rotates feature channels and packs 2 nibbles per byte into uint8 (~1.3 GB). Fits on 6GB–8GB GPUs.`,
+                    onClick: () => {
+                        setWidgetValue(wPrecision, "convrot_int4 (Hadamard Rotated INT4)", node);
+                    },
+                },
+                {
+                    label: "Diffusers HF",
+                    tooltip: `<strong>Hugging Face Diffusers Format</strong><br>Applies 24-rule inverse conversion to transformer_blocks.*, attn1.*, and text_conditioner.* for training scripts and Hugging Face distribution.`,
+                    onClick: () => {
+                        setWidgetValue(wFormat, "Diffusers (HuggingFace / Trainer)", node);
+                    },
+                },
+            ],
+            drawCustomHUD(ctx, rect) {
+                const isDiffusers = String(wFormat?.value || "").includes("Diffusers");
+                const prec = String(wPrecision?.value || "bfloat16");
+                const isConvRot8 = prec.includes("convrot_int8");
+                const isConvRot4 = prec.includes("convrot_int4");
+                const isFp8 = prec.includes("fp8");
+                const hasMeta = wMetadata ? Boolean(wMetadata.value) : true;
+                const adapterMode = String(wAdapter?.value || "Embed");
+
+                ctx.font = "bold 9px monospace";
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+
+                const badgeY = rect.y + 7;
+                // Format badge
+                ctx.fillStyle = isDiffusers ? HADES_THEME.purple : HADES_THEME.emerald;
+                ctx.fillText(
+                    isDiffusers ? "FORMAT: DIFFUSERS (HF)" : "FORMAT: COMFY NATIVE (DIT)",
+                    rect.x + 8,
+                    badgeY
+                );
+
+                // Right side badge: Precision & Size estimate
+                ctx.textAlign = "right";
+                let precLabel = "BF16 (~4.8GB)";
+                let precColor = HADES_THEME.cyan;
+                if (isConvRot8) {
+                    precLabel = "CONVROT INT8 (~2.4GB)";
+                    precColor = HADES_THEME.emerald;
+                } else if (isConvRot4) {
+                    precLabel = "CONVROT INT4 (~1.3GB)";
+                    precColor = HADES_THEME.amber;
+                } else if (isFp8) {
+                    precLabel = "FP8 E4M3 (~2.6GB)";
+                    precColor = HADES_THEME.blue;
+                }
+                ctx.fillStyle = precColor;
+                ctx.fillText(precLabel, rect.x + rect.w - 8, badgeY);
+
+                // Sub-HUD Row: Bridge status & Metadata status
+                const subY = rect.y + 19;
+                ctx.textAlign = "left";
+                let bridgeStr = "BRIDGE: EMBEDDED";
+                if (adapterMode.includes("Strip")) bridgeStr = "BRIDGE: STRIPPED (PURE DIT)";
+                else if (adapterMode.includes("Separate")) bridgeStr = "BRIDGE: EXPORT SEPARATE";
+
+                ctx.fillStyle = HADES_THEME.muted;
+                ctx.fillText(bridgeStr, rect.x + 8, subY);
+
+                ctx.textAlign = "right";
+                ctx.fillStyle = hasMeta ? HADES_THEME.cyan : HADES_THEME.muted;
+                ctx.fillText(hasMeta ? "METADATA: MODELSPEC ACTIVE" : "METADATA: BARE TENSORS (OFF)", rect.x + rect.w - 8, subY);
+            },
+        })
+    );
+
+    // Styled Widgets
+    if (wFile) {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, wFile, {
+                tag: "OUTPUT",
+                color: HADES_THEME.cyan,
+                tagWidth: TAG_W,
+                suffix: ".safetensors",
+                promptTitle: "Enter Model Output Subfolder and Filename Prefix",
+                tooltip: `<strong>Export Checkpoint Path</strong><br>Saved directly into models/diffusion_models/ with automatic numeric incrementing.`,
+            })
+        );
+    }
+
+    if (wFormat) {
+        node.addCustomWidget(
+            createStyledComboWidget(node, wFormat, {
+                tag: "FORMAT",
+                tagColor: HADES_THEME.purple,
+                tagWidth: TAG_W,
+                label: "",
+                tooltip: `<strong>Output Checkpoint Format</strong><br>• <strong>Native ComfyUI (MiniTrainDIT):</strong> Native blocks naming convention.<br>• <strong>Diffusers (HuggingFace / Trainer):</strong> Converts keys back to transformer_blocks.* and text_conditioner.* for OneTrainer, Musubi, Kohya, or Hugging Face.`,
+            })
+        );
+    }
+
+    if (wPrecision) {
+        node.addCustomWidget(
+            createStyledComboWidget(node, wPrecision, {
+                tag: "PRECISION",
+                tagColor: HADES_THEME.emerald,
+                tagWidth: TAG_W,
+                label: "",
+                tooltip: `<strong>Precision & Quantization Engine</strong><br>• <strong>bfloat16:</strong> Full master fidelity (~4.8 GB).<br>• <strong>convrot_int8:</strong> Hadamard rotated INT8 (~2.4 GB).<br>• <strong>convrot_int4:</strong> Ultra-dense 4-bit packed nibbles (~1.3 GB).<br>• <strong>fp8_e4m3fn:</strong> ComfyUI native float8.<br>• <strong>float32:</strong> Uncompressed.`,
+            })
+        );
+    }
+
+    if (wAdapter) {
+        node.addCustomWidget(
+            createStyledComboWidget(node, wAdapter, {
+                tag: "BRIDGE",
+                tagColor: HADES_THEME.blue,
+                tagWidth: TAG_W,
+                label: "",
+                tooltip: `<strong>AnimaTextConditioner (llm_adapter) Handling</strong><br>• <strong>Embed:</strong> Keeps full 6-layer bridge in the checkpoint.<br>• <strong>Strip:</strong> Drops bridge weights for pure DiT.<br>• <strong>Export Separately:</strong> Saves companion _adapter.safetensors.`,
+            })
+        );
+    }
+
+    if (wMetadata) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wMetadata, {
+                tag: "METADATA",
+                color: HADES_THEME.cyan,
+                tagWidth: TAG_W,
+                label: "Inject ModelSpec & Merge Recipe Header",
+                onText: "ACTIVE",
+                offText: "DISABLED",
+                tooltip: `<strong>Safetensors Metadata Injection</strong><br>When active, injects modelspec.architecture ("anima/mini_train_dit"), topology (28L/40L/52L), and author details into the JSON header. Turn OFF for bare unlabelled tensors.`,
+            })
+        );
+    }
+
+    if (wAuthor) {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, wAuthor, {
+                tag: "AUTHOR",
+                color: HADES_THEME.purple,
+                tagWidth: TAG_W,
+                promptTitle: "Enter Author / Creator Name",
+                emptyPlaceholder: "HaDeS",
+                tooltip: `<strong>Model Author / Creator</strong><br>Embedded into modelspec.author in the safetensors header.`,
+            })
+        );
+    }
+
+    if (wTitle) {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, wTitle, {
+                tag: "TITLE",
+                color: HADES_THEME.amber,
+                tagWidth: TAG_W,
+                promptTitle: "Enter Custom Model Display Title",
+                emptyPlaceholder: "Leave empty to use filename",
+                tooltip: `<strong>Model Display Title</strong><br>Embedded into modelspec.title in the safetensors header.`,
+            })
+        );
+    }
+
+    const origConfigure = node.configure;
+    node.configure = function (info) {
+        if (origConfigure) origConfigure.apply(this, arguments);
+        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
+            this.size = [info.size[0], info.size[1]];
+        }
+        this.setDirtyCanvas?.(true, true);
+    };
+
+    const minW = 440;
+    const sz = node.computeSize();
+    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
+    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 10) : sz[1] + 10;
+    node.setSize([initW, initH]);
+}
+
 export const MERGER_NODE_DISPATCH = {
     HaDeSAnimaModelBlockMerger: setupManualBlockMergerUI,
     HaDeSAnimaPredictiveModelMerger: setupPredictiveModelMergerUI,
     HaDeSAnimaPredictiveMultiLoraLoader: setupMultiLoraLoaderUI,
     HaDeSAnimaStandaloneLoraMerger: setupStandaloneLoraMergerUI,
     HaDeSAnimaCLIPBlockMerger: setupCLIPBlockMergerUI,
+    HaDeSAnimaModelSaver: setupModelSaverUI,
 };

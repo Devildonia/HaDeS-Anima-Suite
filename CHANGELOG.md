@@ -5,6 +5,21 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.9] - 2026-10-30
+
+### Added
+- **Node #19: HaDeS Anima Model Saver (`HaDeSAnimaModelSaver`):**
+  - High-fidelity model checkpoint saver under `HaDeS/Anima Mergers` with pass-through `MODEL` output for seamless downstream pipeline execution without wire duplication.
+  - **Multi-Format Export:** Bidirectional support for `Native ComfyUI (MiniTrainDIT)` and `Diffusers (HuggingFace / Trainer)` using 24 inverse remapping rules (`transformer_blocks.*`, `attn1.*`, `attn2.*`, `text_conditioner.*`).
+  - **ConvRot INT8 & INT4 Quantization:** Block-level Hadamard orthogonal rotation ($H_{64}$) that eliminates outlier channels before symmetric quantization, reducing quantization reconstruction error by >67% compared to naive INT8. Supports 4-bit uint8 nibble packing (`[-8, 7]` signed range offset by 8) with per-channel `bfloat16` scale tensors.
+  - **LLM Adapter Golden Rule Isolation:** Supports embedding adapter directly into checkpoint, stripping adapter (`Strip (Pure DiT)`), or exporting adapter to a separate companion safetensors file (`_adapter.safetensors`).
+  - **SAI ModelSpec Metadata Injection (Toggleable):** Controlled via `include_metadata` boolean toggle, injecting `modelspec.architecture: anima/mini_train_dit`, dynamic topology (`28L`, `40L`, `52L`), quantization tags, author, and timestamp.
+  - **Frontend Canvas UI:** Spectral HUD banner with active status display, 4 quick preset buttons (`BF16 Master`, `ConvRot INT8`, `ConvRot INT4`, `Diffusers HF`), styled input widgets, and contextual tooltips.
+  - **Telemetry Stream Integration:** Classified under `ARCHITECTURE` stream in `HaDeSAnimaSuiteTelemetry`.
+  - **Test Suite 23:** Added comprehensive unit test asserting all 6 format, quantization, adapter separation, and metadata configurations.
+
+---
+
 ## [0.1.8] - 2026-10-30
 
 ### Fixed

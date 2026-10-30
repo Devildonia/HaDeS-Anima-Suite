@@ -18,7 +18,7 @@ except ImportError:
     def _convert_lora_fn(sd):
         return sd
 
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
@@ -1616,12 +1616,377 @@ from .anima_loader_nodes import (
     _inspect_and_validate_anima_vae_sd,
 )
 
+# ==============================================================================
+# HADES ANIMA MODEL SAVER - MULTI-FORMAT, CONVROT INT8/INT4 & MODELSPEC HEADER
+# ==============================================================================
+
+_COMFY_TO_DIFFUSERS_SUBS = (
+    (".self_attn.q_proj", ".attn1.to_q"),
+    (".self_attn.k_proj", ".attn1.to_k"),
+    (".self_attn.v_proj", ".attn1.to_v"),
+    (".self_attn.output_proj", ".attn1.to_out.0"),
+    (".self_attn.q_norm", ".attn1.norm_q"),
+    (".self_attn.k_norm", ".attn1.norm_k"),
+    (".cross_attn.q_proj", ".attn2.to_q"),
+    (".cross_attn.k_proj", ".attn2.to_k"),
+    (".cross_attn.v_proj", ".attn2.to_v"),
+    (".cross_attn.output_proj", ".attn2.to_out.0"),
+    (".cross_attn.q_norm", ".attn2.norm_q"),
+    (".cross_attn.k_norm", ".attn2.norm_k"),
+    (".mlp.layer1", ".ff.net.0.proj"),
+    (".mlp.layer2", ".ff.net.2"),
+    (".adaln_modulation_self_attn.1", ".norm1.linear_1"),
+    (".adaln_modulation_self_attn.2", ".norm1.linear_2"),
+    (".adaln_modulation_cross_attn.1", ".norm2.linear_1"),
+    (".adaln_modulation_cross_attn.2", ".norm2.linear_2"),
+    (".adaln_modulation_mlp.1", ".norm3.linear_1"),
+    (".adaln_modulation_mlp.2", ".norm3.linear_2"),
+    ("blocks.", "transformer_blocks."),
+    ("t_embedder.1.linear_1", "time_embed.emb.timestep_embedder.linear_1"),
+    ("t_embedder.1.linear_2", "time_embed.emb.timestep_embedder.linear_2"),
+    ("t_embedding_norm", "time_embed.norm"),
+    ("x_embedder.proj.1", "patch_embed.proj"),
+    ("final_layer.linear", "proj_out"),
+    ("final_layer.adaln_modulation.1", "norm_out.linear_1"),
+    ("final_layer.adaln_modulation.2", "norm_out.linear_2"),
+)
+
+def remap_anima_comfy_to_diffusers_sd(sd: dict) -> tuple[dict, int]:
+    """
+    Convert a ComfyUI MiniTrainDIT (+ LLMAdapter) state_dict back into official Diffusers format
+    (transformer_blocks.*, attn1.*, text_conditioner.*) without modifying tensor data.
+    """
+    out_sd = {}
+    remapped = 0
+
+    for orig_k, tensor in sd.items():
+        k = orig_k
+        for root_pfx in ("model.diffusion_model.", "diffusion_model.", "transformer."):
+            if k.startswith(root_pfx):
+                k = k[len(root_pfx):]
+                break
+
+        if k.startswith("llm_adapter."):
+            k = "text_conditioner." + k[len("llm_adapter."):]
+        else:
+            for old_frag, new_frag in _COMFY_TO_DIFFUSERS_SUBS:
+                if old_frag in k:
+                    k = k.replace(old_frag, new_frag)
+
+        if k != orig_k:
+            remapped += 1
+        out_sd[k] = tensor
+
+    return out_sd, remapped
+
+
+def _get_hadamard_matrix(n: int, device="cpu", dtype=torch.float32) -> torch.Tensor:
+    """
+    Generate an orthogonal, normalized Walsh-Hadamard matrix H_n of size n x n where n is a power of 2.
+    Property: H_n @ H_n.T = I_n (exact norm preservation).
+    """
+    H = torch.ones((1, 1), device=device, dtype=dtype)
+    while H.shape[0] < n:
+        H = torch.cat([torch.cat([H, H], dim=1), torch.cat([H, -H], dim=1)], dim=0) / (2.0 ** 0.5)
+    return H
+
+
+def _quantize_convrot_int8(tensor: torch.Tensor, block_size: int = 64) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Applies Block-Hadamard orthogonal rotation to eliminate outlier peaks and quantizes to symmetric INT8.
+    Returns: (int8_tensor, scale_tensor_in_bfloat16)
+    """
+    orig_shape = tensor.shape
+    t = tensor.to(torch.float32)
+
+    if len(orig_shape) >= 2 and orig_shape[-1] % block_size == 0:
+        H = _get_hadamard_matrix(block_size, device=t.device, dtype=torch.float32)
+        reshaped = t.view(-1, block_size)
+        rotated = (reshaped @ H).view(orig_shape)
+    else:
+        rotated = t
+
+    scale = rotated.abs().max(dim=-1, keepdim=True)[0] / 127.0
+    scale = torch.clamp(scale, min=1e-8)
+    q_tensor = torch.clamp(torch.round(rotated / scale), -128, 127).to(torch.int8)
+    return q_tensor, scale.to(torch.bfloat16)
+
+
+def _quantize_convrot_int4(tensor: torch.Tensor, block_size: int = 64) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Applies Block-Hadamard orthogonal rotation and packs into 4-bit nibbles (2-to-1 byte uint8).
+    Returns: (packed_uint8_tensor, scale_tensor_in_bfloat16)
+    """
+    orig_shape = tensor.shape
+    t = tensor.to(torch.float32)
+
+    if len(orig_shape) >= 2 and orig_shape[-1] % block_size == 0:
+        H = _get_hadamard_matrix(block_size, device=t.device, dtype=torch.float32)
+        reshaped = t.view(-1, block_size)
+        rotated = (reshaped @ H).view(orig_shape)
+    else:
+        rotated = t
+
+    scale = rotated.abs().max(dim=-1, keepdim=True)[0] / 7.0
+    scale = torch.clamp(scale, min=1e-8)
+    q_int4 = torch.clamp(torch.round(rotated / scale), -8, 7).to(torch.int8)
+
+    u4 = (q_int4 + 8).to(torch.uint8)
+    if u4.shape[-1] % 2 != 0:
+        pad = torch.zeros((*u4.shape[:-1], 1), dtype=torch.uint8, device=u4.device)
+        u4 = torch.cat([u4, pad], dim=-1)
+
+    low_nibble = u4[..., 0::2]
+    high_nibble = u4[..., 1::2] << 4
+    packed = low_nibble | high_nibble
+
+    return packed, scale.to(torch.bfloat16)
+
+
+class HaDeSAnimaModelSaver:
+    """
+    Node 19: HaDeS Anima Model Saver (Multi-Format, ConvRot INT8/INT4 & ModelSpec Header).
+    Exports merged or fine-tuned Anima models with:
+      1. Dual Format: Native ComfyUI (MiniTrainDIT) or Diffusers (Hugging Face / Trainer native).
+      2. Precision & Quantization: BF16, FP8 E4M3FN, ConvRot INT8 (Hadamard Rotated), ConvRot INT4 (Packed), FP32.
+      3. llm_adapter Golden Rule: Embed full checkpoint, Strip pure DiT, or Export adapter to dedicated file.
+      4. Metadatas: ModelSpec architecture, topology detection, author & recipe metadata (with toggle ON/OFF).
+      5. Pass-Through & Telemetry: MODEL output to continue downstream pipeline + info string for Flight Telemetry.
+    """
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "filename_prefix": ("STRING", {
+                    "default": "diffusion_models/Anima_HaDeS_Merged",
+                    "tooltip": "Subfolder and filename prefix for saving the checkpoint (e.g. diffusion_models/MyAnima)."
+                }),
+                "save_format": ([
+                    "Native ComfyUI (MiniTrainDIT)",
+                    "Diffusers (HuggingFace / Trainer)",
+                ], {
+                    "tooltip": "Checkpoint layout format. Native ComfyUI uses MiniTrainDIT keys; Diffusers uses official Hugging Face keys (transformer_blocks.*, text_conditioner.*)."
+                }),
+                "precision": ([
+                    "bfloat16 (Original Master)",
+                    "fp8_e4m3fn (ComfyUI Native FP8)",
+                    "convrot_int8 (Hadamard Rotated INT8)",
+                    "convrot_int4 (Hadamard Rotated INT4)",
+                    "float32 (Uncompressed)",
+                ], {
+                    "tooltip": "Precision / Quantization target. ConvRot eliminates outlier peaks via Block-Hadamard rotation before quantizing to INT8/INT4."
+                }),
+                "llm_adapter_mode": ([
+                    "Embed in Checkpoint (Full)",
+                    "Strip (Pure DiT)",
+                    "Export Adapter Separately",
+                ], {
+                    "tooltip": "Handling of Anima's 6-layer text conditioner bridge. Embed in Checkpoint creates standard standalone file; Strip removes it; Export Separately writes a companion _adapter.safetensors."
+                }),
+                "include_metadata": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Inject ModelSpec architecture, topology, and merge recipe into safetensors header. Turn OFF to output completely bare safetensors."
+                }),
+            },
+            "optional": {
+                "custom_author": ("STRING", {
+                    "default": "HaDeS",
+                    "tooltip": "Optional author or creator name embedded in safetensors metadata."
+                }),
+                "custom_model_title": ("STRING", {
+                    "default": "",
+                    "tooltip": "Optional model display title embedded in safetensors metadata."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("MODEL", "STRING", "STRING")
+    RETURN_NAMES = ("model", "saved_path", "info")
+    FUNCTION = "save_anima_model"
+    OUTPUT_NODE = True
+    CATEGORY = "HaDeS/Anima Mergers"
+
+    def save_anima_model(
+        self,
+        model,
+        filename_prefix: str = "diffusion_models/Anima_HaDeS_Merged",
+        save_format: str = "Native ComfyUI (MiniTrainDIT)",
+        precision: str = "bfloat16 (Original Master)",
+        llm_adapter_mode: str = "Embed in Checkpoint (Full)",
+        include_metadata: bool = True,
+        custom_author: str = "HaDeS",
+        custom_model_title: str = "",
+    ):
+        output_dir = folder_paths.get_output_directory()
+        full_output_folder, filename, counter, subfolder, filename_prefix_ = folder_paths.get_save_image_path(
+            filename_prefix, output_dir
+        )
+        os.makedirs(full_output_folder, exist_ok=True)
+        out_filepath = os.path.join(full_output_folder, f"{filename}_{counter:05}_.safetensors")
+
+        if hasattr(comfy.model_management, "load_models_gpu"):
+            comfy.model_management.load_models_gpu([model])
+
+        if hasattr(model, "model_state_dict"):
+            raw_sd = model.model_state_dict(filter_prefix="diffusion_model.")
+        elif hasattr(model, "model") and hasattr(model.model, "state_dict"):
+            if hasattr(model.model, "diffusion_model"):
+                raw_sd = model.model.diffusion_model.state_dict()
+            else:
+                raw_sd = model.model.state_dict()
+        elif hasattr(model, "state_dict"):
+            raw_sd = model.state_dict()
+        else:
+            raise ValueError("Provided model object has no recognizable state_dict method.")
+
+        sd = {}
+        for k, v in raw_sd.items():
+            if isinstance(v, torch.Tensor):
+                sd[k] = v.detach().cpu().contiguous()
+            else:
+                sd[k] = v
+
+        adapter_sd = {}
+        adapter_path = None
+        if llm_adapter_mode == "Strip (Pure DiT)":
+            sd = {k: v for k, v in sd.items() if not ("llm_adapter" in k or "text_conditioner" in k)}
+        elif llm_adapter_mode == "Export Adapter Separately":
+            main_sd = {}
+            for k, v in sd.items():
+                if "llm_adapter" in k or "text_conditioner" in k:
+                    ad_k = k
+                    for pfx in ("llm_adapter.", "text_conditioner."):
+                        if ad_k.startswith(pfx):
+                            ad_k = ad_k[len(pfx):]
+                            break
+                    adapter_sd[ad_k] = v
+                else:
+                    main_sd[k] = v
+            sd = main_sd
+            if adapter_sd:
+                adapter_path = out_filepath.replace(".safetensors", "_adapter.safetensors")
+
+        max_block = -1
+        for k in sd.keys():
+            m = re.search(r"blocks\.(\d+)", k)
+            if m:
+                max_block = max(max_block, int(m.group(1)))
+
+        num_blocks = max_block + 1 if max_block >= 0 else 28
+        if num_blocks <= 28:
+            topology_str = "Anima-2.0B (28L)"
+        elif num_blocks <= 40:
+            topology_str = "Anima-2.9B (40L)"
+        elif num_blocks <= 52:
+            topology_str = "Anima-3.8B (52L)"
+        else:
+            topology_str = f"Anima-Custom ({num_blocks}L)"
+
+        is_diffusers = "Diffusers" in save_format
+        if is_diffusers:
+            sd, _ = remap_anima_comfy_to_diffusers_sd(sd)
+            if adapter_sd:
+                adapter_sd, _ = remap_anima_comfy_to_diffusers_sd(adapter_sd)
+
+        final_sd = {}
+        is_convrot_8 = "convrot_int8" in precision
+        is_convrot_4 = "convrot_int4" in precision
+        is_fp8 = "fp8" in precision
+        is_fp32 = "float32" in precision
+
+        for k, tensor in sd.items():
+            if not isinstance(tensor, torch.Tensor) or not torch.is_floating_point(tensor):
+                final_sd[k] = tensor
+                continue
+
+            is_linear_weight = tensor.ndim >= 2 and "weight" in k and not any(p in k for p in ("norm", "bias", "embedding", "adaln"))
+
+            if is_convrot_8 and is_linear_weight:
+                q_w, scale = _quantize_convrot_int8(tensor, block_size=64 if tensor.shape[-1] % 64 == 0 else 32)
+                final_sd[k] = q_w
+                final_sd[f"{k}.scale"] = scale
+            elif is_convrot_4 and is_linear_weight:
+                packed_w, scale = _quantize_convrot_int4(tensor, block_size=64 if tensor.shape[-1] % 64 == 0 else 32)
+                final_sd[k] = packed_w
+                final_sd[f"{k}.scale"] = scale
+                final_sd[f"{k}.shape"] = torch.tensor(list(tensor.shape), dtype=torch.int32)
+            elif is_fp8 and is_linear_weight and hasattr(torch, "float8_e4m3fn"):
+                final_sd[k] = tensor.to(torch.float8_e4m3fn)
+            elif is_fp32:
+                final_sd[k] = tensor.to(torch.float32)
+            else:
+                final_sd[k] = tensor.to(torch.bfloat16)
+
+        metadata = {}
+        if include_metadata:
+            import datetime
+            metadata = {
+                "format": "pt",
+                "modelspec.architecture": "anima/mini_train_dit",
+                "modelspec.sai_model_spec": "1.0.0",
+                "modelspec.title": custom_model_title or filename,
+                "modelspec.author": custom_author or "HaDeS",
+                "hades/suite_version": "0.1.9",
+                "hades/topology": topology_str,
+                "hades/precision": precision,
+                "hades/format": save_format,
+                "hades/llm_adapter_mode": llm_adapter_mode,
+                "hades/timestamp": datetime.datetime.utcnow().isoformat(),
+            }
+            if is_convrot_8:
+                metadata["quantization"] = "convrot_int8"
+                metadata["modelspec.quantization"] = "block_hadamard_rotation_int8"
+                metadata["hades/quant_method"] = "block_hadamard_rotation"
+                metadata["hades/hadamard_block_size"] = "64"
+            elif is_convrot_4:
+                metadata["quantization"] = "convrot_int4"
+                metadata["modelspec.quantization"] = "block_hadamard_rotation_int4"
+                metadata["hades/quant_method"] = "block_hadamard_rotation_packed"
+                metadata["hades/hadamard_block_size"] = "64"
+
+        comfy.utils.save_torch_file(final_sd, out_filepath, metadata=metadata)
+
+        if adapter_path and adapter_sd:
+            adapter_meta = dict(metadata)
+            if adapter_meta:
+                adapter_meta["modelspec.title"] = f"{filename}_adapter"
+                adapter_meta["hades/component"] = "AnimaTextConditioner (llm_adapter)"
+            comfy.utils.save_torch_file(adapter_sd, adapter_path, metadata=adapter_meta)
+
+        file_size_bytes = os.path.getsize(out_filepath) if os.path.exists(out_filepath) else 0
+        file_size_gb = file_size_bytes / (1024 ** 3)
+        file_size_mb = file_size_bytes / (1024 ** 2)
+        size_display = f"{file_size_gb:.2f} GB" if file_size_gb >= 1.0 else f"{file_size_mb:.1f} MB"
+
+        meta_status = "ON" if include_metadata else "OFF"
+        adapter_msg = f"Adapter: {llm_adapter_mode}"
+        if adapter_path:
+            adapter_msg += f" ({os.path.basename(adapter_path)})"
+
+        info_out = (
+            f"HaDeS Anima Model Saver | File: {os.path.basename(out_filepath)} | "
+            f"Format: {save_format} | Precision: {precision} | Size: {size_display} | "
+            f"Topo: {topology_str} | {adapter_msg} | Meta: {meta_status}"
+        )
+
+        return {
+            "ui": {
+                "saved_path": [out_filepath],
+                "info": [info_out]
+            },
+            "result": (model, out_filepath, info_out)
+        }
+
+
 NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaModelBlockMerger": HaDeSAnimaModelBlockMerger,
     "HaDeSAnimaPredictiveModelMerger": HaDeSAnimaPredictiveModelMerger,
     "HaDeSAnimaPredictiveMultiLoraLoader": HaDeSAnimaPredictiveMultiLoraLoader,
     "HaDeSAnimaStandaloneLoraMerger": HaDeSAnimaStandaloneLoraMerger,
     "HaDeSAnimaCLIPBlockMerger": HaDeSAnimaCLIPBlockMerger,
+    "HaDeSAnimaModelSaver": HaDeSAnimaModelSaver,
     "HaDeSAnimaPromptStudio": HaDeSAnimaPromptStudio,
     "HaDeSAnimaAttentionGuidance": HaDeSAnimaAttentionGuidance,
     "HaDeSAnimaLatentPipelineGuard": HaDeSAnimaLatentPipelineGuard,
@@ -1643,6 +2008,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaPredictiveMultiLoraLoader": "Anima Predictive Multi-LoRA",
     "HaDeSAnimaStandaloneLoraMerger": "Anima LoRA Merger",
     "HaDeSAnimaCLIPBlockMerger": "Anima CLIP Block Merger",
+    "HaDeSAnimaModelSaver": "Anima Model Saver",
     "HaDeSAnimaPromptStudio": "Anima Prompt Studio",
     "HaDeSAnimaAttentionGuidance": "Anima Attention Guidance (NAG)",
     "HaDeSAnimaLatentPipelineGuard": "Anima Latent",
@@ -1681,4 +2047,6 @@ __all__ = [
     "_inspect_and_validate_anima_vae_sd",
     "format_anima_prompt_text",
     "HaDeSAnimaSuiteTelemetry",
+    "HaDeSAnimaModelSaver",
+    "remap_anima_comfy_to_diffusers_sd",
 ]

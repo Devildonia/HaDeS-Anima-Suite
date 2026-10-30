@@ -1,12 +1,12 @@
-# HaDeS Anima Suite v0.1.8 — Complete 18-Node Anima Ecosystem for ComfyUI
+# HaDeS Anima Suite v0.1.9 — Complete 19-Node Anima Ecosystem for ComfyUI
 
-**HaDeS Anima Suite** is a specialized **18-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
+**HaDeS Anima Suite** is a specialized **19-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
-It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
+It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, the **Multi-Format ConvRot INT8/INT4 Model Saver**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
 
 ---
 
-## Key Architectural Innovations in v0.1.8
+## Key Architectural Innovations in v0.1.9
 
 1. **Dynamic Multi-Variant Topology (`2.0B / 2.9B / 3.8B`):**
    - Automatically detects whether a checkpoint or LoRA belongs to **Anima-2.0B** (`28` DiT blocks), **Anima-2.9B** (`40` DiT blocks), or **Anima-3.8B** (`52` DiT blocks) plus the `6`-layer `llm_adapter` bridge, proportionally mapping any depth onto the canonical 34-band spectrum (`0..27` DiT + `28..33` Bridge).
@@ -23,24 +23,31 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
    - **Corner Scribble Shield:** Detects and heals (or masks with `mask` output for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with core ambient texture safeguards (peak-aware HF detection differentiating fine 1px strokes from uniform grain $\sigma=0.03$), telemetry sync, and adaptive expansion capped strictly at 50% for large marks.
 5. **Centralized Suite Telemetry & Diagnostics Flight Auditor:**
    - Connects up to 8+ `info` streams across all HaDeS Suite nodes in the workflow, auto-classifies them into logical pipeline phases, and runs an automated **Diagnostics & Health Engine** (Flow Shift synchronization check, Turbo/CFG=1 NAG guidance validation, 32px macroblock alignment check, 16ch Wan2.1 VAE verification, and `llm_adapter` text bridge lock). Outputs an audit-grade Markdown report, a structured JSON telemetry payload, and a compact single-line status summary with one-click clipboard copying.
+6. **Anima Model Saver & Block ConvRot Quantization (`bfloat16`, `convrot_int8`, `convrot_int4`, `Diffusers` export):**
+   - High-fidelity export node with pass-through `MODEL` output for seamless downstream pipeline continuation.
+   - Dual format: Native ComfyUI (`MiniTrainDIT`) or Diffusers (`transformer_blocks.*`, `text_conditioner.*`).
+   - Block Hadamard Rotation (`ConvRot` INT8 & INT4): Diffuses severe Anima channel outliers via Sylvester orthogonal matrix transformations before quantization, achieving 67%+ error reduction over naive INT8/INT4.
+   - Companion `llm_adapter` handling: Full checkpoint embedding, DiT stripping, or dedicated companion adapter export.
+   - ModelSpec metadata injection with toggleable `include_metadata`.
 
 ---
 
-## Overview of the 18 Nodes
+## Overview of the 19 Nodes
 
 ```
-HaDeS Anima Suite v0.1.8
+HaDeS Anima Suite v0.1.9
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader
 │   ├── 16. Anima VAE Loader
 │   └── 17. Anima VAE Decode
-├── HaDeS/Anima Mergers (5 Nodes)
+├── HaDeS/Anima Mergers (6 Nodes)
 │   ├── 1. Anima Model Block Merger
 │   ├── 2. Anima Predictive Model Merger
 │   ├── 3. Anima Predictive Multi-LoRA
 │   ├── 4. Anima LoRA Merger
-│   └── 5. Anima CLIP Block Merger
+│   ├── 5. Anima CLIP Block Merger
+│   └── 19. Anima Model Saver
 ├── HaDeS/Anima Pipeline (6 Nodes)
 │   ├── 6. Anima Prompt Studio
 │   ├── 7. Anima Attention Guidance (NAG)
@@ -111,6 +118,23 @@ HaDeS Anima Suite v0.1.8
 #### 5. `Anima CLIP Block Merger`
 - **Class:** `HaDeSAnimaCLIPBlockMerger`
 - **Purpose:** Merges two Anima text encoders (`Qwen3-0.6B` 28 layers or `Qwen3.5-4B` 36 layers) across 5 linguistic bands (`vocab_embeddings`, `syntax_rigidity` `[0–35%]`, `semantic_focus` `[35–72%]`, `style_abstraction` `[72%+]`, `final_projections`) using dynamic proportional layer depth detection.
+
+#### 19. `Anima Model Saver`
+- **Class:** `HaDeSAnimaModelSaver`
+- **Category:** `HaDeS/Anima Mergers`
+- **Purpose:** Dedicated high-fidelity model exporter for merged or fine-tuned Anima models supporting format conversion (Native ComfyUI $\leftrightarrow$ Diffusers), cutting-edge ConvRot block-Hadamard quantization (INT8 and packed INT4), granular `llm_adapter` isolation, and toggleable ModelSpec metadata. Features pass-through `MODEL` output so downstream KSamplers can execute directly without wire branching.
+- **Inputs:**
+  - `model`: Input `MODEL` patcher.
+  - `filename_prefix`: Subfolder and filename prefix (default: `diffusion_models/Anima_HaDeS_Merged`).
+  - `save_format`: `Native ComfyUI (MiniTrainDIT)` or `Diffusers (HuggingFace / Trainer)`.
+  - `precision`: `bfloat16 (Original Master)`, `fp8_e4m3fn`, `convrot_int8 (Hadamard Rotated INT8)`, `convrot_int4 (Hadamard Rotated INT4)`, `float32`.
+  - `llm_adapter_mode`: `Embed in Checkpoint (Full)`, `Strip (Pure DiT)`, `Export Adapter Separately`.
+  - `include_metadata`: `True` / `False` (injects SAI ModelSpec `anima/mini_train_dit`, topology, author, recipe, and quant tags).
+  - `custom_author` / `custom_model_title`: Custom metadata fields.
+- **Outputs:**
+  - `model`: Pass-through model for downstream samplers.
+  - `saved_path`: Absolute file path on disk.
+  - `info`: Detailed telemetry string for `HaDeSAnimaSuiteTelemetry`.
 
 ---
 

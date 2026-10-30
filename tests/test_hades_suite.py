@@ -23,6 +23,7 @@ def _install_standalone_comfy_stubs():
     folder_paths.get_filename_list = lambda _: ["None"]
     folder_paths.get_folder_paths = lambda _: [tempfile.gettempdir()]
     folder_paths.get_full_path_or_raise = lambda _, name: name
+    folder_paths.get_output_directory = lambda: tempfile.gettempdir()
     sys.modules["folder_paths"] = folder_paths
 
     comfy = types.ModuleType("comfy")
@@ -39,6 +40,7 @@ def _install_standalone_comfy_stubs():
     comfy.utils.load_torch_file = lambda p, safe_load=True, return_metadata=False: (
         (safetensors.torch.load_file(p), {}) if return_metadata else safetensors.torch.load_file(p)
     )
+    comfy.utils.save_torch_file = lambda sd, p, metadata=None: safetensors.torch.save_file(sd, p, metadata=metadata)
     comfy.utils.common_upscale = lambda samples, w, h, method, crop: torch.nn.functional.interpolate(
         samples.float(), size=(h, w), mode="bilinear", align_corners=False
     ).to(samples.dtype)
@@ -129,6 +131,13 @@ else:
         import comfy.sample
         import comfy.samplers
         import comfy.model_sampling
+
+if not hasattr(folder_paths, "get_output_directory"):
+    folder_paths.get_output_directory = lambda: tempfile.gettempdir()
+if not hasattr(folder_paths, "get_save_image_path"):
+    folder_paths.get_save_image_path = lambda prefix, output_dir: (output_dir, os.path.basename(prefix), 1, "", os.path.basename(prefix))
+if not hasattr(comfy.utils, "save_torch_file"):
+    comfy.utils.save_torch_file = lambda sd, p, metadata=None: safetensors.torch.save_file(sd, p, metadata=metadata)
 
 PKG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 INIT_PATH = os.path.join(PKG_DIR, "__init__.py")
@@ -1548,6 +1557,176 @@ def test_22_anima_suite_telemetry():
     print("[OK] Test 22: HaDeS Anima Suite Telemetry (Multi-Stream Aggregation, Diagnostics & Health Scoring, JSON & Formats) verified")
 
 
+def test_23_anima_model_saver():
+    import tempfile
+    from safetensors import safe_open
+
+    saver = hades.HaDeSAnimaModelSaver()
+
+    # Create synthetic Anima ModelPatcher
+    sd = {
+        "diffusion_model.blocks.0.cross_attn.q_proj.weight": torch.randn(64, 64, dtype=torch.float32),
+        "diffusion_model.blocks.0.self_attn.q_proj.weight": torch.randn(64, 64, dtype=torch.float32),
+        "llm_adapter.blocks.0.cross_attn.q_proj.weight": torch.randn(32, 32, dtype=torch.float32),
+    }
+    dummy_model = DummyModelPatcher(sd)
+
+    test_prefix_base = f"hades_test_saver_{int(time.time()*1000)}"
+    created_files = []
+
+    def _exec_saver(*args, **kwargs):
+        res = saver.save_anima_model(*args, **kwargs)
+        if isinstance(res, dict) and "result" in res:
+            return res["result"]
+        return res
+
+    try:
+        # Case 1: Native ComfyUI (MiniTrainDIT) + bfloat16 + metadata=True
+        prefix_1 = f"{test_prefix_base}_c1"
+        out_m, out_path, out_info = _exec_saver(
+            model=dummy_model,
+            filename_prefix=prefix_1,
+            save_format="Native ComfyUI (MiniTrainDIT)",
+            precision="bfloat16 (Original Master)",
+            llm_adapter_mode="Embed in Checkpoint (Full)",
+            include_metadata=True,
+            custom_model_title="Anima Test Master",
+            custom_author="HaDeS Architect",
+        )
+        created_files.append(out_path)
+        assert out_m is dummy_model, "ModelSaver must return input model as pass-through"
+        assert os.path.exists(out_path), f"Saved checkpoint missing: {out_path}"
+        assert "Native ComfyUI" in out_info
+        assert "bfloat16" in out_info
+
+        # Verify saved safetensors keys and metadata
+        with safe_open(out_path, framework="pt") as f:
+            c1_keys = f.keys()
+            meta = f.metadata() or {}
+            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight" in c1_keys
+            assert "llm_adapter.blocks.0.cross_attn.q_proj.weight" in c1_keys
+            assert meta.get("modelspec.architecture") == "anima/mini_train_dit"
+            assert meta.get("modelspec.title") == "Anima Test Master"
+            assert meta.get("modelspec.author") == "HaDeS Architect"
+            t_sample = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight")
+            assert t_sample.dtype == torch.bfloat16
+
+        # Case 2: Diffusers (HuggingFace / Trainer) + float32 + include_metadata=False
+        prefix_2 = f"{test_prefix_base}_c2"
+        _, out_path2, out_info2 = _exec_saver(
+            model=dummy_model,
+            filename_prefix=prefix_2,
+            save_format="Diffusers (HuggingFace / Trainer)",
+            precision="float32",
+            llm_adapter_mode="Embed in Checkpoint (Full)",
+            include_metadata=False,
+        )
+        created_files.append(out_path2)
+        assert os.path.exists(out_path2)
+        assert "Diffusers" in out_info2
+        with safe_open(out_path2, framework="pt") as f:
+            c2_keys = f.keys()
+            meta2 = f.metadata() or {}
+            assert len(meta2) == 0, f"Expected empty metadata when include_metadata=False, got {meta2}"
+            assert "transformer_blocks.0.attn2.to_q.weight" in c2_keys
+            assert "text_conditioner.blocks.0.cross_attn.q_proj.weight" in c2_keys
+            t2_sample = f.get_tensor("transformer_blocks.0.attn2.to_q.weight")
+            assert t2_sample.dtype == torch.float32
+
+        # Case 3: ConvRot INT8 (Hadamard Rotated INT8)
+        prefix_3 = f"{test_prefix_base}_c3"
+        _, out_path3, out_info3 = _exec_saver(
+            model=dummy_model,
+            filename_prefix=prefix_3,
+            save_format="Native ComfyUI (MiniTrainDIT)",
+            precision="convrot_int8 (Hadamard Rotated INT8)",
+            llm_adapter_mode="Embed in Checkpoint (Full)",
+            include_metadata=True,
+        )
+        created_files.append(out_path3)
+        assert os.path.exists(out_path3)
+        assert "convrot_int8" in out_info3
+        with safe_open(out_path3, framework="pt") as f:
+            c3_keys = f.keys()
+            meta3 = f.metadata() or {}
+            assert meta3.get("modelspec.quantization") == "block_hadamard_rotation_int8"
+            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight" in c3_keys
+            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight.scale" in c3_keys
+            t3_weight = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight")
+            t3_scale = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight.scale")
+            assert t3_weight.dtype == torch.int8
+            assert t3_scale.dtype == torch.bfloat16
+
+        # Case 4: ConvRot INT4 (Hadamard Rotated INT4)
+        prefix_4 = f"{test_prefix_base}_c4"
+        _, out_path4, out_info4 = _exec_saver(
+            model=dummy_model,
+            filename_prefix=prefix_4,
+            save_format="Native ComfyUI (MiniTrainDIT)",
+            precision="convrot_int4 (Hadamard Rotated INT4)",
+            llm_adapter_mode="Embed in Checkpoint (Full)",
+            include_metadata=True,
+        )
+        created_files.append(out_path4)
+        assert os.path.exists(out_path4)
+        assert "convrot_int4" in out_info4
+        with safe_open(out_path4, framework="pt") as f:
+            c4_keys = f.keys()
+            meta4 = f.metadata() or {}
+            assert meta4.get("modelspec.quantization") == "block_hadamard_rotation_int4"
+            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight" in c4_keys
+            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight.scale" in c4_keys
+            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight.shape" in c4_keys
+            t4_weight = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight")
+            t4_scale = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight.scale")
+            assert t4_weight.dtype == torch.uint8
+            assert t4_scale.dtype == torch.bfloat16
+
+        # Case 5: Strip LLM Adapter
+        prefix_5 = f"{test_prefix_base}_c5"
+        _, out_path5, _ = _exec_saver(
+            model=dummy_model,
+            filename_prefix=prefix_5,
+            save_format="Native ComfyUI (MiniTrainDIT)",
+            precision="bfloat16 (Original Master)",
+            llm_adapter_mode="Strip (Pure DiT)",
+            include_metadata=True,
+        )
+        created_files.append(out_path5)
+        with safe_open(out_path5, framework="pt") as f:
+            c5_keys = list(f.keys())
+            assert not any("llm_adapter" in k for k in c5_keys), "Strip mode must remove all llm_adapter keys"
+
+        # Case 6: Export Adapter Separately
+        prefix_6 = f"{test_prefix_base}_c6"
+        _, out_path6, out_info6 = _exec_saver(
+            model=dummy_model,
+            filename_prefix=prefix_6,
+            save_format="Native ComfyUI (MiniTrainDIT)",
+            precision="bfloat16 (Original Master)",
+            llm_adapter_mode="Export Adapter Separately",
+            include_metadata=True,
+        )
+        created_files.append(out_path6)
+        adapter_path = out_path6.replace(".safetensors", "_adapter.safetensors")
+        created_files.append(adapter_path)
+        assert os.path.exists(adapter_path), f"Companion adapter file missing: {adapter_path}"
+        with safe_open(adapter_path, framework="pt") as f:
+            ad_keys = list(f.keys())
+            assert "blocks.0.cross_attn.q_proj.weight" in ad_keys
+            assert not any(k.startswith("llm_adapter.") for k in ad_keys)
+
+    finally:
+        for p in created_files:
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
+
+    print("[OK] Test 23: HaDeS Anima Model Saver (Native, Diffusers, ConvRot INT8/INT4, Metadata ON/OFF, Adapter Separation) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1571,4 +1750,5 @@ if __name__ == "__main__":
     test_20_corner_shield_batch_isolation()
     test_21_nag_dynamic_shift_propagation()
     test_22_anima_suite_telemetry()
-    print("\nALL 22 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_23_anima_model_saver()
+    print("\nALL 23 HADES ANIMA SUITE TEST SUITES PASSED!")
