@@ -775,14 +775,14 @@ export function setupModelSaverUI(node) {
                 },
                 {
                     label: "ConvRot INT8",
-                    tooltip: `<strong>ConvRot INT8 (Block-Hadamard Rotated)</strong><br>Applies Walsh-Hadamard orthogonal rotation to eliminate outlier peaks before symmetric INT8 quantization (~2.4 GB). Near-zero visual degradation.`,
+                    tooltip: `<strong>ConvRot INT8 (ComfyUI native)</strong><br>Hadamard-rotated per-channel INT8 on the DiT block linears via comfy.quant_ops (~2.3 GB). Loads in the stock Load Diffusion Model node; fast matmul needs an int8-capable GPU.`,
                     onClick: () => {
                         setWidgetValue(wPrecision, "convrot_int8 (Hadamard Rotated INT8)", node);
                     },
                 },
                 {
                     label: "ConvRot INT4",
-                    tooltip: `<strong>ConvRot INT4 (High-Density 4-Bit Packed)</strong><br>Rotates feature channels and packs 2 nibbles per byte into uint8 (~1.3 GB). Fits on 6GB–8GB GPUs.`,
+                    tooltip: `<strong>ConvRot W4A4 (ComfyUI native)</strong><br>Hadamard-rotated 4-bit weights on the DiT block linears via comfy.quant_ops (~1.4 GB). Noticeably lossier than INT8.`,
                     onClick: () => {
                         setWidgetValue(wPrecision, "convrot_int4 (Hadamard Rotated INT4)", node);
                     },
@@ -798,8 +798,6 @@ export function setupModelSaverUI(node) {
             drawCustomHUD(ctx, rect) {
                 const isDiffusers = String(wFormat?.value || "").includes("Diffusers");
                 const prec = String(wPrecision?.value || "bfloat16");
-                const isConvRot8 = prec.includes("convrot_int8");
-                const isConvRot4 = prec.includes("convrot_int4");
                 const isFp8 = prec.includes("fp8");
                 const hasMeta = wMetadata ? Boolean(wMetadata.value) : true;
                 const adapterMode = String(wAdapter?.value || "Embed");
@@ -819,11 +817,14 @@ export function setupModelSaverUI(node) {
 
                 let precLabel = "BF16 (~4.8GB)";
                 let precColor = HADES_THEME.cyan;
-                if (isConvRot8) {
-                    precLabel = isNarrow ? "CR-INT8 (~2.4GB)" : "CONVROT INT8 (~2.4GB)";
+                if (prec.includes("convrot_int8")) {
+                    precLabel = isNarrow ? "CR-INT8 (~2.3GB)" : "CONVROT INT8 (~2.3GB)";
                     precColor = HADES_THEME.emerald;
-                } else if (isConvRot4) {
-                    precLabel = isNarrow ? "CR-INT4 (~1.3GB)" : "CONVROT INT4 (~1.3GB)";
+                } else if (prec.includes("convrot_int4")) {
+                    precLabel = isNarrow ? "CR-INT4 (~1.4GB)" : "CONVROT INT4 (~1.4GB)";
+                    precColor = HADES_THEME.amber;
+                } else if (prec.includes("float32")) {
+                    precLabel = "FP32 (~9.6GB)";
                     precColor = HADES_THEME.amber;
                 } else if (isFp8) {
                     precLabel = isNarrow ? "FP8 (~2.6GB)" : "FP8 E4M3 (~2.6GB)";
@@ -835,7 +836,7 @@ export function setupModelSaverUI(node) {
                 // Prevent Row 1 horizontal overlap on very small widths
                 if (ctx.measureText(fmtText).width + ctx.measureText(precLabel).width > maxRowW) {
                     fmtText = isDiffusers ? "DIFFUSERS" : "COMFY DIT";
-                    precLabel = isConvRot8 ? "INT8" : (isConvRot4 ? "INT4" : (isFp8 ? "FP8" : "BF16"));
+                    precLabel = prec.includes("convrot_int8") ? "INT8" : (prec.includes("convrot_int4") ? "INT4" : (prec.includes("float32") ? "FP32" : (isFp8 ? "FP8" : "BF16")));
                 }
                 if (ctx.measureText(fmtText).width + ctx.measureText(precLabel).width > maxRowW) {
                     fmtText = isDiffusers ? "DIFF" : "DIT";
@@ -870,11 +871,11 @@ export function setupModelSaverUI(node) {
                 }
 
                 ctx.textAlign = "left";
-                ctx.fillStyle = HADES_THEME.muted;
+                ctx.fillStyle = HADES_THEME.textMuted;
                 ctx.fillText(bridgeStr, rect.x + 8, subY);
 
                 ctx.textAlign = "right";
-                ctx.fillStyle = hasMeta ? HADES_THEME.cyan : HADES_THEME.muted;
+                ctx.fillStyle = hasMeta ? HADES_THEME.cyan : HADES_THEME.textMuted;
                 ctx.fillText(metaStr, rect.x + rect.w - 8, subY);
             },
         })
@@ -889,7 +890,7 @@ export function setupModelSaverUI(node) {
                 tagWidth: TAG_W,
                 suffix: ".safetensors",
                 promptTitle: "Enter Model Output Subfolder and Filename Prefix",
-                tooltip: `<strong>Export Checkpoint Path</strong><br>Saved directly into models/diffusion_models/ with automatic numeric incrementing.`,
+                tooltip: `<strong>Export Checkpoint Path</strong><br>Saved under ComfyUI/output/ (e.g. output/diffusion_models/...) with automatic numeric incrementing. Move it to models/diffusion_models/ to load it.`,
             })
         );
     }
@@ -913,7 +914,7 @@ export function setupModelSaverUI(node) {
                 tagColor: HADES_THEME.emerald,
                 tagWidth: TAG_W,
                 label: "",
-                tooltip: `<strong>Precision & Quantization Engine</strong><br>• <strong>bfloat16:</strong> Full master fidelity (~4.8 GB).<br>• <strong>convrot_int8:</strong> Hadamard rotated INT8 (~2.4 GB).<br>• <strong>convrot_int4:</strong> Ultra-dense 4-bit packed nibbles (~1.3 GB).<br>• <strong>fp8_e4m3fn:</strong> ComfyUI native float8.<br>• <strong>float32:</strong> Uncompressed.`,
+                tooltip: `<strong>Precision & Quantization Engine</strong><br>• <strong>bfloat16:</strong> Full master fidelity (~4.8 GB).<br>• <strong>fp8_e4m3fn:</strong> ComfyUI native float8 on linear weights (~2.6 GB).<br>• <strong>convrot_int8:</strong> Native ComfyUI ConvRot INT8 on DiT block linears (~2.3 GB).<br>• <strong>convrot_int4:</strong> Native ComfyUI ConvRot W4A4 (~1.4 GB, lossier).<br>• <strong>float32:</strong> Uncompressed.`,
             })
         );
     }

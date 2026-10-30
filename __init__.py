@@ -3,6 +3,7 @@ import re
 import json
 import math
 import logging
+import datetime
 import torch
 import folder_paths
 import safetensors.torch
@@ -10,6 +11,8 @@ import comfy.sd
 import comfy.utils
 import comfy.lora
 import comfy.model_management
+import comfy.model_patcher
+import comfy.quant_ops
 
 try:
     import comfy.lora_convert
@@ -18,7 +21,7 @@ except ImportError:
     def _convert_lora_fn(sd):
         return sd
 
-__version__ = "0.1.9"
+__version__ = "0.1.10"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
@@ -943,7 +946,7 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
                 m_res,
                 c_res,
                 f"HaDeS Multi-LoRA: Single active LoRA '{l_name}' applied at strength {str_val:+.2f} "
-                f"(Remapped: {stats['remapped_keys']}, Adapter Stripped: {stats['stripped_adapter_keys']})"
+                f"(Remapped: {stats['remapped_keys']}, Protect Adapter: {protect_llm_adapter}, Adapter Stripped: {stats['stripped_adapter_keys']})"
             )
 
         model_sd = new_model.model.state_dict()
@@ -1471,7 +1474,7 @@ class HaDeSAnimaStandaloneLoraMerger:
         info_lines = [
             "=== HADES ANIMA STANDALONE LORA MERGER (QR-SVD) ===",
             f"Saved to: {output_filepath}",
-            f"Preset: {preset} | Mode: {merge_mode} | Target SVD Rank: {target_rank}",
+            f"Preset: {preset} | Mode: {merge_mode} | Target SVD Rank: {target_rank} | Protect Adapter: {protect_llm_adapter}",
             f"Layers QR-SVD Merged: {stats['qr_svd']} | Fast-Copied: {stats['fast_copy']} | Diffusers Keys Remapped: {stats['remapped']} | Adapter Stripped: {stats['stripped_adapter']}",
         ]
         if stats["skipped_keys"] > 0:
@@ -1617,7 +1620,7 @@ from .anima_loader_nodes import (
 )
 
 # ==============================================================================
-# HADES ANIMA MODEL SAVER - MULTI-FORMAT, CONVROT INT8/INT4 & MODELSPEC HEADER
+# HADES ANIMA MODEL SAVER - MULTI-FORMAT, NATIVE CONVROT INT8/INT4 & MODELSPEC HEADER
 # ==============================================================================
 
 _COMFY_TO_DIFFUSERS_SUBS = (
@@ -1680,75 +1683,27 @@ def remap_anima_comfy_to_diffusers_sd(sd: dict) -> tuple[dict, int]:
     return out_sd, remapped
 
 
-def _get_hadamard_matrix(n: int, device="cpu", dtype=torch.float32) -> torch.Tensor:
-    """
-    Generate an orthogonal, normalized Walsh-Hadamard matrix H_n of size n x n where n is a power of 2.
-    Property: H_n @ H_n.T = I_n (exact norm preservation).
-    """
-    H = torch.ones((1, 1), device=device, dtype=dtype)
-    while H.shape[0] < n:
-        H = torch.cat([torch.cat([H, H], dim=1), torch.cat([H, -H], dim=1)], dim=0) / (2.0 ** 0.5)
-    return H
-
-
-def _quantize_convrot_int8(tensor: torch.Tensor, block_size: int = 64) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Applies Block-Hadamard orthogonal rotation to eliminate outlier peaks and quantizes to symmetric INT8.
-    Returns: (int8_tensor, scale_tensor_in_bfloat16)
-    """
-    orig_shape = tensor.shape
-    t = tensor.to(torch.float32)
-
-    if len(orig_shape) >= 2 and orig_shape[-1] % block_size == 0:
-        H = _get_hadamard_matrix(block_size, device=t.device, dtype=torch.float32)
-        reshaped = t.view(-1, block_size)
-        rotated = (reshaped @ H).view(orig_shape)
-    else:
-        rotated = t
-
-    scale = rotated.abs().max(dim=-1, keepdim=True)[0] / 127.0
-    scale = torch.clamp(scale, min=1e-8)
-    q_tensor = torch.clamp(torch.round(rotated / scale), -128, 127).to(torch.int8)
-    return q_tensor, scale.to(torch.bfloat16)
-
-
-def _quantize_convrot_int4(tensor: torch.Tensor, block_size: int = 64) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Applies Block-Hadamard orthogonal rotation and packs into 4-bit nibbles (2-to-1 byte uint8).
-    Returns: (packed_uint8_tensor, scale_tensor_in_bfloat16)
-    """
-    orig_shape = tensor.shape
-    t = tensor.to(torch.float32)
-
-    if len(orig_shape) >= 2 and orig_shape[-1] % block_size == 0:
-        H = _get_hadamard_matrix(block_size, device=t.device, dtype=torch.float32)
-        reshaped = t.view(-1, block_size)
-        rotated = (reshaped @ H).view(orig_shape)
-    else:
-        rotated = t
-
-    scale = rotated.abs().max(dim=-1, keepdim=True)[0] / 7.0
-    scale = torch.clamp(scale, min=1e-8)
-    q_int4 = torch.clamp(torch.round(rotated / scale), -8, 7).to(torch.int8)
-
-    u4 = (q_int4 + 8).to(torch.uint8)
-    if u4.shape[-1] % 2 != 0:
-        pad = torch.zeros((*u4.shape[:-1], 1), dtype=torch.uint8, device=u4.device)
-        u4 = torch.cat([u4, pad], dim=-1)
-
-    low_nibble = u4[..., 0::2]
-    high_nibble = u4[..., 1::2] << 4
-    packed = low_nibble | high_nibble
-
-    return packed, scale.to(torch.bfloat16)
+# precision label -> (comfy_kitchen layout, quantize kwargs, per-layer comfy_quant config read back by comfy.ops)
+_CONVROT_PRECISIONS = {
+    "convrot_int8 (Hadamard Rotated INT8)": (
+        "TensorWiseINT8Layout",
+        {"is_weight": True, "per_channel": True, "convrot": True, "convrot_groupsize": 256},
+        {"format": "int8_tensorwise", "convrot": True, "convrot_groupsize": 256},
+    ),
+    "convrot_int4 (Hadamard Rotated INT4)": (
+        "TensorCoreConvRotW4A4Layout",
+        {"convrot_groupsize": 256},
+        {"format": "convrot_w4a4", "convrot_groupsize": 256},
+    ),
+}
 
 
 class HaDeSAnimaModelSaver:
     """
-    Node 19: HaDeS Anima Model Saver (Multi-Format, ConvRot INT8/INT4 & ModelSpec Header).
+    Node 19: HaDeS Anima Model Saver (Multi-Format, Native ConvRot INT8/INT4 & ModelSpec Header).
     Exports merged or fine-tuned Anima models with:
       1. Dual Format: Native ComfyUI (MiniTrainDIT) or Diffusers (Hugging Face / Trainer native).
-      2. Precision & Quantization: BF16, FP8 E4M3FN, ConvRot INT8 (Hadamard Rotated), ConvRot INT4 (Packed), FP32.
+      2. Precision: BF16, FP8 E4M3FN, native ConvRot INT8 / W4A4 (comfy.quant_ops), FP32. Merge/LoRA patches are baked in before saving.
       3. llm_adapter Golden Rule: Embed full checkpoint, Strip pure DiT, or Export adapter to dedicated file.
       4. Metadatas: ModelSpec architecture, topology detection, author & recipe metadata (with toggle ON/OFF).
       5. Pass-Through & Telemetry: MODEL output to continue downstream pipeline + info string for Flight Telemetry.
@@ -1761,7 +1716,7 @@ class HaDeSAnimaModelSaver:
                 "model": ("MODEL",),
                 "filename_prefix": ("STRING", {
                     "default": "diffusion_models/Anima_HaDeS_Merged",
-                    "tooltip": "Subfolder and filename prefix for saving the checkpoint (e.g. diffusion_models/MyAnima)."
+                    "tooltip": "Subfolder and filename prefix inside ComfyUI/output (e.g. diffusion_models/MyAnima)."
                 }),
                 "save_format": ([
                     "Native ComfyUI (MiniTrainDIT)",
@@ -1776,7 +1731,7 @@ class HaDeSAnimaModelSaver:
                     "convrot_int4 (Hadamard Rotated INT4)",
                     "float32 (Uncompressed)",
                 ], {
-                    "tooltip": "Precision / Quantization target. ConvRot eliminates outlier peaks via Block-Hadamard rotation before quantizing to INT8/INT4."
+                    "tooltip": "Storage precision. fp8 casts linear weights; ConvRot INT8/INT4 quantize the DiT block linears with ComfyUI's native comfy.quant_ops layouts (loadable by the stock loader, needs int8-capable GPU for fast matmul). Already-quantized layers are kept as-is."
                 }),
                 "llm_adapter_mode": ([
                     "Embed in Checkpoint (Full)",
@@ -1826,27 +1781,17 @@ class HaDeSAnimaModelSaver:
         os.makedirs(full_output_folder, exist_ok=True)
         out_filepath = os.path.join(full_output_folder, f"{filename}_{counter:05}_.safetensors")
 
-        if hasattr(comfy.model_management, "load_models_gpu"):
-            comfy.model_management.load_models_gpu([model])
-
-        if hasattr(model, "model_state_dict"):
-            raw_sd = model.model_state_dict(filter_prefix="diffusion_model.")
-        elif hasattr(model, "model") and hasattr(model.model, "state_dict"):
-            if hasattr(model.model, "diffusion_model"):
-                raw_sd = model.model.diffusion_model.state_dict()
-            else:
-                raw_sd = model.model.state_dict()
-        elif hasattr(model, "state_dict"):
-            raw_sd = model.state_dict()
-        else:
-            raise ValueError("Provided model object has no recognizable state_dict method.")
+        # Same path as comfy.sd.save_checkpoint: with dynamic VRAM the merge/LoRA patches are applied at cast
+        # time and never live in the raw state_dict, so weights must go through the lazy patching casters.
+        comfy.model_management.load_models_gpu([model])
+        lazy_sd = model.model_state_dict_for_saving(model.model.diffusion_model, "diffusion_model.")
 
         sd = {}
-        for k, v in raw_sd.items():
-            if isinstance(v, torch.Tensor):
-                sd[k] = v.detach().cpu().contiguous()
-            else:
-                sd[k] = v
+        quantized_keys = set()
+        for k, v in lazy_sd.items():
+            if isinstance(v, comfy.model_patcher.LazyCastingParamPiece):
+                quantized_keys.add(k)
+            sd[k] = v.to("cpu").contiguous()
 
         adapter_sd = {}
         adapter_path = None
@@ -1884,35 +1829,37 @@ class HaDeSAnimaModelSaver:
         else:
             topology_str = f"Anima-Custom ({num_blocks}L)"
 
+        # The standalone adapter file keeps bare AnimaTextConditioner keys (blocks.*, embed.*, ...) in both formats,
+        # which is what HaDeSAnimaModelLoader's external_llm_adapter injection expects.
         is_diffusers = "Diffusers" in save_format
         if is_diffusers:
             sd, _ = remap_anima_comfy_to_diffusers_sd(sd)
-            if adapter_sd:
-                adapter_sd, _ = remap_anima_comfy_to_diffusers_sd(adapter_sd)
+            quantized_keys = set(remap_anima_comfy_to_diffusers_sd(dict.fromkeys(quantized_keys))[0])
 
         final_sd = {}
-        is_convrot_8 = "convrot_int8" in precision
-        is_convrot_4 = "convrot_int4" in precision
         is_fp8 = "fp8" in precision
         is_fp32 = "float32" in precision
+        convrot = _CONVROT_PRECISIONS.get(precision)
+        quant_device = comfy.model_management.get_torch_device()
 
         for k, tensor in sd.items():
-            if not isinstance(tensor, torch.Tensor) or not torch.is_floating_point(tensor):
+            # Already-quantized layers keep their native weight + scale pieces; recasting the raw weight would drop the scale.
+            if k in quantized_keys or not torch.is_floating_point(tensor):
                 final_sd[k] = tensor
                 continue
 
             is_linear_weight = tensor.ndim >= 2 and "weight" in k and not any(p in k for p in ("norm", "bias", "embedding", "adaln"))
 
-            if is_convrot_8 and is_linear_weight:
-                q_w, scale = _quantize_convrot_int8(tensor, block_size=64 if tensor.shape[-1] % 64 == 0 else 32)
-                final_sd[k] = q_w
-                final_sd[f"{k}.scale"] = scale
-            elif is_convrot_4 and is_linear_weight:
-                packed_w, scale = _quantize_convrot_int4(tensor, block_size=64 if tensor.shape[-1] % 64 == 0 else 32)
-                final_sd[k] = packed_w
-                final_sd[f"{k}.scale"] = scale
-                final_sd[f"{k}.shape"] = torch.tensor(list(tensor.shape), dtype=torch.int32)
-            elif is_fp8 and is_linear_weight and hasattr(torch, "float8_e4m3fn"):
+            is_dit_block_linear = (
+                is_linear_weight and tensor.ndim == 2 and k.endswith(".weight") and "blocks." in k
+                and "llm_adapter" not in k and "text_conditioner" not in k
+            )
+            if convrot is not None and is_dit_block_linear and tensor.shape[1] % 256 == 0:
+                layout, quant_kwargs, quant_conf = convrot
+                qt = comfy.quant_ops.QuantizedTensor.from_float(tensor.to(quant_device, torch.bfloat16), layout, **quant_kwargs)
+                final_sd.update({qk: qv.cpu() for qk, qv in qt.state_dict(k).items()})
+                final_sd[f"{k[:-len('.weight')]}.comfy_quant"] = torch.tensor(list(json.dumps(quant_conf).encode("utf-8")), dtype=torch.uint8)
+            elif is_fp8 and is_linear_weight:
                 final_sd[k] = tensor.to(torch.float8_e4m3fn)
             elif is_fp32:
                 final_sd[k] = tensor.to(torch.float32)
@@ -1921,30 +1868,19 @@ class HaDeSAnimaModelSaver:
 
         metadata = {}
         if include_metadata:
-            import datetime
             metadata = {
                 "format": "pt",
                 "modelspec.architecture": "anima/mini_train_dit",
                 "modelspec.sai_model_spec": "1.0.0",
                 "modelspec.title": custom_model_title or filename,
                 "modelspec.author": custom_author or "HaDeS",
-                "hades/suite_version": "0.1.9",
+                "hades/suite_version": __version__,
                 "hades/topology": topology_str,
                 "hades/precision": precision,
                 "hades/format": save_format,
                 "hades/llm_adapter_mode": llm_adapter_mode,
-                "hades/timestamp": datetime.datetime.utcnow().isoformat(),
+                "hades/timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             }
-            if is_convrot_8:
-                metadata["quantization"] = "convrot_int8"
-                metadata["modelspec.quantization"] = "block_hadamard_rotation_int8"
-                metadata["hades/quant_method"] = "block_hadamard_rotation"
-                metadata["hades/hadamard_block_size"] = "64"
-            elif is_convrot_4:
-                metadata["quantization"] = "convrot_int4"
-                metadata["modelspec.quantization"] = "block_hadamard_rotation_int4"
-                metadata["hades/quant_method"] = "block_hadamard_rotation_packed"
-                metadata["hades/hadamard_block_size"] = "64"
 
         comfy.utils.save_torch_file(final_sd, out_filepath, metadata=metadata)
 

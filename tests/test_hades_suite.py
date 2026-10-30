@@ -55,6 +55,17 @@ def _install_standalone_comfy_stubs():
     comfy.model_management.get_torch_device = lambda: torch.device("cpu")
     comfy.model_management.intermediate_device = lambda: torch.device("cpu")
     comfy.model_management.get_free_memory = lambda dev=None: 8 * (1024 ** 3)
+    comfy.model_management.load_models_gpu = lambda models, **kw: None
+
+    comfy.model_patcher = types.ModuleType("comfy.model_patcher")
+
+    class _StubLazyCastingParamPiece(torch.nn.Parameter):
+        pass
+
+    comfy.model_patcher.LazyCastingParamPiece = _StubLazyCastingParamPiece
+
+    comfy.quant_ops = types.ModuleType("comfy.quant_ops")
+    comfy.quant_ops.QuantizedTensor = type("QuantizedTensor", (), {})
 
     comfy.sample = types.ModuleType("comfy.sample")
     comfy.sample.fix_empty_latent_channels = lambda model, lat, *a: lat
@@ -96,6 +107,8 @@ def _install_standalone_comfy_stubs():
     sys.modules["comfy.utils"] = comfy.utils
     sys.modules["comfy.lora"] = comfy.lora
     sys.modules["comfy.model_management"] = comfy.model_management
+    sys.modules["comfy.model_patcher"] = comfy.model_patcher
+    sys.modules["comfy.quant_ops"] = comfy.quant_ops
     sys.modules["comfy.sample"] = comfy.sample
     sys.modules["comfy.samplers"] = comfy.samplers
     sys.modules["comfy.model_sampling"] = comfy.model_sampling
@@ -177,6 +190,7 @@ class DummyModelPatcher:
     def __init__(self, sd, image_model="anima"):
         inner = DummyInnerModel({k: v.clone() for k, v in sd.items()})
         inner.model_config = types.SimpleNamespace(unet_config={"image_model": image_model})
+        inner.diffusion_model = inner
         self.model = inner
         self.patches = {}
         self.backup = {}
@@ -208,6 +222,26 @@ class DummyModelPatcher:
     def add_patches(self, patches, strength_patch=1.0, strength_model=1.0):
         for k, v in patches.items():
             self.patches.setdefault(k, []).append((strength_patch, v, strength_model, None, None))
+
+    def set_model_patch(self, patch, name):
+        to = self.model_options["transformer_options"]
+        to.setdefault("patches", {})
+        to["patches"][name] = to["patches"].get(name, []) + [patch]
+
+    def set_model_attn1_patch(self, patch):
+        self.set_model_patch(patch, "attn1_patch")
+
+    def set_model_attn2_patch(self, patch):
+        self.set_model_patch(patch, "attn2_patch")
+
+    def model_state_dict_for_saving(self, model=None, prefix=""):
+        # Mirrors ComfyUI: keys are relative to the diffusion model, values come back with patches baked in.
+        out = {}
+        for k, v in self.model.state_dict().items():
+            if k.startswith(prefix):
+                patches = self.patches.get(k, [])
+                out[k[len(prefix):]] = self.calculate_weight(patches, v, k) if patches else v
+        return out
 
     def calculate_weight(self, patches, weight, key):
         out = weight.clone()
@@ -697,6 +731,11 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
     print("[OK] Test 7: Prompt Studio (Canonical Ordering, Multi-Word Slop Scrubbing, NL Grammatical Colons, Character/Artist Sockets, Multi-Artist Weight Syntax, NL Capitalization & T5 Scaling) verified")
 
 
+def _run_attn_patches(patcher, name):
+    for patch in patcher.model_options["transformer_options"].get("patches", {}).get(name, []):
+        patch(None, None, None, pe=None, attn_mask=None, extra_options={})
+
+
 def test_8_nag_attention_guidance():
     m = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
     nag_node = hades.HaDeSAnimaAttentionGuidance()
@@ -720,21 +759,31 @@ def test_8_nag_attention_guidance():
         dim=0,
     )
 
-    out_active = override_fn(
-        dummy_attn,
-        q,
-        k,
-        v,
-        8,
-        transformer_options={"sigmas": torch.tensor([0.8]), "cond_or_uncond": [1, 0]},
-    )
-    assert out_active.dtype == torch.float16 and out_active.shape == q.shape
-    # Uncond branch (index 0) must remain unchanged while cond branch (index 1) is extrapolated
+    t_opts = {"sigmas": torch.tensor([0.8]), "cond_or_uncond": [1, 0]}
     base_out = dummy_attn(q, k, v, 8)
+
+    # Self-attention (tagged by the attn1 patch) must never be guided
+    _run_attn_patches(m_guided, "attn1_patch")
+    out_self = override_fn(dummy_attn, q, k, v, 8, transformer_options=t_opts)
+    assert torch.allclose(out_self, base_out)
+
+    _run_attn_patches(m_guided, "attn2_patch")
+    out_active = override_fn(dummy_attn, q, k, v, 8, transformer_options=t_opts)
+    assert out_active.dtype == torch.float16 and out_active.shape == q.shape
+    # Uncond branch (index 0) must remain unchanged while cond branch (index 1) is guided
     assert torch.allclose(out_active[0], base_out[0])
     assert not torch.allclose(out_active[1], base_out[1])
+    # NAG reference math: positive queries re-attend over the negative keys/values (q_cond + v_uncond here)
+    z_pos = base_out[1:].float()
+    z_neg = dummy_attn(q[1:], k[:1], v[:1], 8).float()
+    z_g = z_pos * 3.5 - z_neg * 2.5
+    n_p = z_pos.abs().sum(-1, keepdim=True)
+    n_g = z_g.abs().sum(-1, keepdim=True)
+    z_n = z_g / n_g * n_p * (n_g / n_p).clamp(max=2.5)
+    expected = (0.45 * z_n + 0.55 * z_pos).half()
+    assert torch.allclose(out_active[1:], expected, atol=1e-2)
 
-    # Test 4D q, k, v ([B, H, S, D] with skip_reshape=True) in single-branch CFG=1 mode
+    # Test 4D q, k, v ([B, H, S, D] with skip_reshape=True): without a negative branch there is nothing to guide
     def dummy_attn_4d(q, k, v, heads, mask=None, **kwargs):
         b, h, s, d = q.shape
         return (q + v).permute(0, 2, 1, 3).reshape(b, s, h * d)
@@ -752,6 +801,7 @@ def test_8_nag_attention_guidance():
         transformer_options={"sigmas": torch.tensor([0.8]), "cond_or_uncond": [0]},
     )
     assert out_4d.shape == (1, 16, 64) and out_4d.dtype == torch.float16
+    assert torch.allclose(out_4d, dummy_attn_4d(q4, k4, v4, 8))
 
     # When mask is present, must bypass cleanly
     out_masked = override_fn(
@@ -955,6 +1005,20 @@ def test_11_anima_single_pass_ksampler_and_schedulers():
             42, 32, 4.5, "er_sde", "normal", 1.0, 3.0, vae=DummyVAE(16)
         )
         assert "Steps: 4" in info2
+
+        # flow_shift = 0 inherits the upstream shift (e.g. Model Loader 4.2) instead of silently resetting it
+        sampled_models = []
+        comfy.sample.sample = lambda model, noise, *a, **kw: sampled_models.append(model) or a[6]
+        m_loader = hades.clone_model_with_anima_shift(m, 4.2)
+        _, _, info_inh = ks.sample_anima(m_loader, [], [], lat_in, "Manual", 42, 8, 4.5, "euler", "normal", 1.0, 0.0)
+        assert abs(float(sampled_models[-1].get_model_object("model_sampling").shift) - 4.2) < 1e-4
+        assert "Flow Shift (multiplier=1.0): 4.20 (inherited)" in info_inh
+        _, _, info_exp = ks.sample_anima(m_loader, [], [], lat_in, "Manual", 42, 8, 4.5, "euler", "normal", 1.0, 2.5)
+        assert abs(float(sampled_models[-1].get_model_object("model_sampling").shift) - 2.5) < 1e-4
+        assert "Flow Shift (multiplier=1.0): 2.50 |" in info_exp
+        # Profiles whose shift is the Anima default inherit as well
+        ks.sample_anima(m_loader, [], [], lat_in, "Anima Turbo", 42, 8, 4.5, "euler", "normal", 1.0, 0.0)
+        assert abs(float(sampled_models[-1].get_model_object("model_sampling").shift) - 4.2) < 1e-4
     finally:
         comfy.sample.sample = orig_sample
     print("[OK] Test 11: HaDeSAnimaKSampler (multiplier=1.0 shift, anima_beta57, anima_lightning_tdm) verified")
@@ -1456,7 +1520,7 @@ def test_22_anima_suite_telemetry():
     t_model = "HaDeS Anima Model Loader | Model: Anima HaDeS v2.0 | Dtype: default | Precision: auto | Flow Shift: 3.00 | Remap: 24-Rule Active"
     t_clip = "HaDeS Anima CLIP Loader | CLIP: qwen3508b | Device: default (GPU Dynamic) | Precision: auto | Qwen3-0.6B: 1024d Guard Locked"
     t_vae = "HaDeS Anima VAE Loader | VAE: Wan2_1_VAE_bf16 | Precision: bfloat16 | Latent Channels: 16 (Wan2.1)"
-    t_lora = "=== HADES ANIMA UNIVERSAL LORA REMAPPER ===\nSource LoRA: test_style.safetensors\nStrengths: Model +1.00 | CLIP +0.50\nDirty llm_adapter Keys Stripped: 6 | Outliers Clamped: 0"
+    t_lora = "=== HADES ANIMA UNIVERSAL LORA REMAPPER ===\nSource LoRA: test_style.safetensors\nStrengths: Model +1.00 | CLIP +0.50\nProtect Adapter: True | Dirty llm_adapter Keys Stripped: 6 | Outliers Clamped: 0"
     t_ksamp = "HaDeS Anima KSampler | Profile: Anima Lightning TDM | Resolution: 1024x1024px | Sampler: euler | Scheduler: anima_lightning_tdm | Steps: 4 | CFG: 1.00 | Denoise: 1.00 | Flow Shift (multiplier=1.0): 3.00"
     t_nag = "HaDeS Anima Attention Guidance | Preset: Turbo | Scale: 3.50 | Alpha: 0.45 | Tau: 2.50 | Window: 0.00 -> 0.70 (Active: True)"
     t_shield = "HaDeS Corner Scribble Shield | Box: 102x102px (10% base) | Mode: Smart Edge-Inward Blend (Auto-Heal) | Active: All 4 Corners | Detected: Clean (Low HF Energy)"
@@ -1501,6 +1565,28 @@ def test_22_anima_suite_telemetry():
     assert any("Flow Shift Divergence" in iss["message"] for iss in data_div["diagnostics"]["issues"])
     assert any("not 32px macroblock aligned" in iss["message"] for iss in data_div["diagnostics"]["issues"])
     assert "Flow Shift Divergence" in diag_div or "warnings" in diag_div
+
+    # 3b. Regression: "Stripped" wording in Prompt Studio / remapper streams must not fake adapter protection,
+    # and the Latent node stream must feed the 32px resolution check.
+    t_studio_strip = hades.HaDeSAnimaPromptStudio().process_prompt(
+        "Anima Base 2B (Keep Quality Tags)", "Standard Anime / Illustration", True, 1.0, "", "", "1girl", "bad"
+    )[4]
+    t_lora_unprotected = t_lora.replace("Protect Adapter: True", "Protect Adapter: False")
+    t_latent = hades.anima_pipeline_nodes.HaDeSAnimaLatentPipelineGuard().generate_latent(
+        "1024x1024 (1:1 Square - 1.05 MP)", 1024, 1024, 1
+    )[3]
+    _, json_adp, _ = _exec_telemetry(
+        report_format="JSON Raw Data",
+        report_title="Adapter Flag Regression",
+        info_1=t_studio_strip,
+        info_2=t_lora_unprotected,
+        info_3=t_latent,
+    )
+    data_adp = json.loads(json_adp)
+    assert data_adp["extracted_telemetry"]["llm_adapter_safe"] is False
+    assert any("strip_llm_adapter" in iss["message"] for iss in data_adp["diagnostics"]["issues"])
+    assert data_adp["extracted_telemetry"]["resolution"] == "1024x1024px"
+    assert t_latent in data_adp["streams_by_category"]["SAMPLING"]
 
     # 4. Regression Test for Audit B2 & B4: Shield + Prompt Studio (No false 32px warning, no false LoRA warning)
     t_studio = "=== HADES ANIMA PROMPT STUDIO ===\nModel Variant: Anima Aesthetic\nEmphasis Scale: 1.50x"
@@ -1567,12 +1653,18 @@ def test_23_anima_model_saver():
     sd = {
         "diffusion_model.blocks.0.cross_attn.q_proj.weight": torch.randn(64, 64, dtype=torch.float32),
         "diffusion_model.blocks.0.self_attn.q_proj.weight": torch.randn(64, 64, dtype=torch.float32),
-        "llm_adapter.blocks.0.cross_attn.q_proj.weight": torch.randn(32, 32, dtype=torch.float32),
+        "diffusion_model.llm_adapter.blocks.0.cross_attn.q_proj.weight": torch.randn(32, 32, dtype=torch.float32),
     }
     dummy_model = DummyModelPatcher(sd)
+    # A merge patch that only exists on the patcher (dynamic VRAM never writes it into the raw weights)
+    merged_w = torch.full((64, 64), 0.25)
+    dummy_model.add_patches({"diffusion_model.blocks.0.self_attn.q_proj.weight": ("set", (merged_w,))})
 
     test_prefix_base = f"hades_test_saver_{int(time.time()*1000)}"
     created_files = []
+    # The dummy patcher is not loadable by the real model manager; weight baking is emulated by model_state_dict_for_saving
+    orig_load_models_gpu = comfy.model_management.load_models_gpu
+    comfy.model_management.load_models_gpu = lambda models, **kw: None
 
     def _exec_saver(*args, **kwargs):
         res = saver.save_anima_model(*args, **kwargs)
@@ -1603,13 +1695,17 @@ def test_23_anima_model_saver():
         with safe_open(out_path, framework="pt") as f:
             c1_keys = f.keys()
             meta = f.metadata() or {}
-            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight" in c1_keys
+            # Native layout must be prefix-free so the stock UNETLoader detects it
+            assert "blocks.0.cross_attn.q_proj.weight" in c1_keys
             assert "llm_adapter.blocks.0.cross_attn.q_proj.weight" in c1_keys
+            assert not any(k.startswith("diffusion_model.") for k in c1_keys)
             assert meta.get("modelspec.architecture") == "anima/mini_train_dit"
             assert meta.get("modelspec.title") == "Anima Test Master"
             assert meta.get("modelspec.author") == "HaDeS Architect"
-            t_sample = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight")
+            t_sample = f.get_tensor("blocks.0.cross_attn.q_proj.weight")
             assert t_sample.dtype == torch.bfloat16
+            baked = f.get_tensor("blocks.0.self_attn.q_proj.weight")
+            assert torch.allclose(baked.float(), merged_w), "Saver must bake merge/LoRA patches into the saved weights"
 
         # Case 2: Diffusers (HuggingFace / Trainer) + float32 + include_metadata=False
         prefix_2 = f"{test_prefix_base}_c2"
@@ -1633,54 +1729,20 @@ def test_23_anima_model_saver():
             t2_sample = f.get_tensor("transformer_blocks.0.attn2.to_q.weight")
             assert t2_sample.dtype == torch.float32
 
-        # Case 3: ConvRot INT8 (Hadamard Rotated INT8)
+        # Case 3: FP8 E4M3FN casts linear weights only
         prefix_3 = f"{test_prefix_base}_c3"
         _, out_path3, out_info3 = _exec_saver(
             model=dummy_model,
             filename_prefix=prefix_3,
             save_format="Native ComfyUI (MiniTrainDIT)",
-            precision="convrot_int8 (Hadamard Rotated INT8)",
+            precision="fp8_e4m3fn (ComfyUI Native FP8)",
             llm_adapter_mode="Embed in Checkpoint (Full)",
             include_metadata=True,
         )
         created_files.append(out_path3)
-        assert os.path.exists(out_path3)
-        assert "convrot_int8" in out_info3
         with safe_open(out_path3, framework="pt") as f:
-            c3_keys = f.keys()
-            meta3 = f.metadata() or {}
-            assert meta3.get("modelspec.quantization") == "block_hadamard_rotation_int8"
-            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight" in c3_keys
-            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight.scale" in c3_keys
-            t3_weight = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight")
-            t3_scale = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight.scale")
-            assert t3_weight.dtype == torch.int8
-            assert t3_scale.dtype == torch.bfloat16
-
-        # Case 4: ConvRot INT4 (Hadamard Rotated INT4)
-        prefix_4 = f"{test_prefix_base}_c4"
-        _, out_path4, out_info4 = _exec_saver(
-            model=dummy_model,
-            filename_prefix=prefix_4,
-            save_format="Native ComfyUI (MiniTrainDIT)",
-            precision="convrot_int4 (Hadamard Rotated INT4)",
-            llm_adapter_mode="Embed in Checkpoint (Full)",
-            include_metadata=True,
-        )
-        created_files.append(out_path4)
-        assert os.path.exists(out_path4)
-        assert "convrot_int4" in out_info4
-        with safe_open(out_path4, framework="pt") as f:
-            c4_keys = f.keys()
-            meta4 = f.metadata() or {}
-            assert meta4.get("modelspec.quantization") == "block_hadamard_rotation_int4"
-            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight" in c4_keys
-            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight.scale" in c4_keys
-            assert "diffusion_model.blocks.0.cross_attn.q_proj.weight.shape" in c4_keys
-            t4_weight = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight")
-            t4_scale = f.get_tensor("diffusion_model.blocks.0.cross_attn.q_proj.weight.scale")
-            assert t4_weight.dtype == torch.uint8
-            assert t4_scale.dtype == torch.bfloat16
+            assert f.get_tensor("blocks.0.cross_attn.q_proj.weight").dtype == torch.float8_e4m3fn
+            assert not any(k.endswith(".scale") for k in f.keys())
 
         # Case 5: Strip LLM Adapter
         prefix_5 = f"{test_prefix_base}_c5"
@@ -1717,6 +1779,7 @@ def test_23_anima_model_saver():
             assert not any(k.startswith("llm_adapter.") for k in ad_keys)
 
     finally:
+        comfy.model_management.load_models_gpu = orig_load_models_gpu
         for p in created_files:
             try:
                 if os.path.exists(p):
@@ -1724,7 +1787,7 @@ def test_23_anima_model_saver():
             except Exception:
                 pass
 
-    print("[OK] Test 23: HaDeS Anima Model Saver (Native, Diffusers, ConvRot INT8/INT4, Metadata ON/OFF, Adapter Separation) verified")
+    print("[OK] Test 23: HaDeS Anima Model Saver (Patch baking, prefix-free Native, Diffusers, FP8, Metadata ON/OFF, Adapter Separation) verified")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,19 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.10] - 2026-10-30
+
+### Fixed
+- **Model Saver saved unmerged weights:** weights now go through ComfyUI's `model_state_dict_for_saving` lazy casters (same path as `comfy.sd.save_checkpoint`), so merge and LoRA patches are baked in even with dynamic VRAM. Already-quantized layers keep their weight + scale pieces.
+- **Model Saver Native files did not load in the stock loader:** keys are now saved without the `diffusion_model.` prefix.
+- **Model Saver ConvRot INT8/INT4 produced files nothing could load:** both now use ComfyUI's native `comfy.quant_ops` layouts (`int8_tensorwise` + convrot, `convrot_w4a4`) on the DiT block linears with per-layer `comfy_quant` configs. Option names are unchanged.
+- **Model Saver adapter export:** the companion `_adapter.safetensors` now holds bare AnimaTextConditioner keys in both formats (what `external_llm_adapter` expects).
+- **NAG guided every attention layer:** guidance now runs only on cross-attention (tagged via `attn1_patch` / `attn2_patch`), re-attending the positive queries over the negative prompt's keys/values, with the reference NAG formula (`nag_scale = 1.0` disables). The token-mean single-branch fallback was removed.
+- **KSamplers silently overrode the model's flow shift:** `flow_shift` / `shift_pass1` / `shift_stage1` accept `0` = inherit the shift already set on the model (Model Loader, ModelSampling nodes) and default to it. Profiles and presets that used the Anima default shift (3.0) now inherit. Info strings report the shift actually used.
+- **Telemetry false diagnostics:** `llm_adapter` protection is read from an explicit `Protect Adapter: <bool>` flag in every LoRA stream (the word "Stripped" in Prompt Studio no longer fakes it), and the Latent node stream is classified as SAMPLING so the resolution check runs.
+
+---
+
 ## [0.1.9] - 2026-10-30
 
 ### Added

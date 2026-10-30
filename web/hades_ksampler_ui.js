@@ -14,12 +14,12 @@ import {
 // =============================================================================
 
 const SINGLE_PROFILES = {
-    "Anima Base / Raehoshi": [32, 4.5, "er_sde", "normal", 1.0, 3.0],
-    "Anima Aesthetic Crisp": [30, 4.0, "er_sde", "beta", 1.0, 3.0],
+    "Anima Base / Raehoshi": [32, 4.5, "er_sde", "normal", 1.0, 0.0],
+    "Anima Aesthetic Crisp": [30, 4.0, "er_sde", "beta", 1.0, 0.0],
     "Anima Aesthetic Painterly": [35, 4.2, "euler_ancestral", "anima_beta57", 1.0, 2.8],
-    "Anima Turbo": [10, 1.0, "euler", "normal", 1.0, 3.0],
-    "Anima Lightning TDM": [4, 1.0, "euler", "anima_lightning_tdm", 1.0, 3.0],
-    "Anima 2.9B / 3.8B Deep DiT": [36, 4.5, "er_sde", "normal", 1.0, 3.0],
+    "Anima Turbo": [10, 1.0, "euler", "normal", 1.0, 0.0],
+    "Anima Lightning TDM": [4, 1.0, "euler", "anima_lightning_tdm", 1.0, 0.0],
+    "Anima 2.9B / 3.8B Deep DiT": [36, 4.5, "er_sde", "normal", 1.0, 0.0],
 };
 
 const LEGACY_SINGLE_PROFILE_MAP = {
@@ -34,22 +34,22 @@ const LEGACY_SINGLE_PROFILE_MAP = {
 
 const DUAL_PROFILES = {
     "HiRes Standard 1.5x (er_sde 30s -> er_sde + beta57 16s @ 0.42 denoise)": [
-        30, 4.5, "er_sde", "normal", 1.0, 3.0,
+        30, 4.5, "er_sde", "normal", 1.0, 0.0,
         "Latent 16ch Variance-Preserving Bicubic", 1.5,
         16, 4.0, "er_sde", "anima_beta57", 0.42, 3.6,
     ],
     "Aesthetic Painterly 1.5x (er_sde 32s -> euler_a + beta57 18s @ 0.45 denoise)": [
-        32, 4.2, "er_sde", "beta", 1.0, 3.0,
+        32, 4.2, "er_sde", "beta", 1.0, 0.0,
         "Latent 16ch Variance-Preserving Bicubic", 1.5,
         18, 3.8, "euler_ancestral", "anima_beta57", 0.45, 3.5,
     ],
     "Base-to-Turbo Fast HiRes 1.5x (er_sde 30s CFG 4.5 -> euler 8s CFG 1.0 @ 0.38 denoise)": [
-        30, 4.5, "er_sde", "normal", 1.0, 3.0,
+        30, 4.5, "er_sde", "normal", 1.0, 0.0,
         "Latent 16ch Variance-Preserving Bicubic", 1.5,
         8, 1.0, "euler", "normal", 0.38, 3.5,
     ],
     "Same-Res Texture & Lineart Refiner 1.0x (30s -> 12s @ 0.28 denoise)": [
-        30, 4.5, "er_sde", "normal", 1.0, 3.0,
+        30, 4.5, "er_sde", "normal", 1.0, 0.0,
         "Direct Latent Pass-Through (1.0x)", 1.0,
         12, 3.6, "euler", "anima_beta57", 0.28, 3.2,
     ],
@@ -58,25 +58,25 @@ const DUAL_PROFILES = {
 const TRIPLE_PROFILES = {
     "Progressive Staircase 1.0x -> 1.35x -> 1.75x (Ultra-Res Poster Pipeline)": [
         "Latent 16ch Variance-Preserving Bicubic",
-        28, 4.5, "er_sde", "normal", 1.0, 3.0,
+        28, 4.5, "er_sde", "normal", 1.0, 0.0,
         1.35, 16, 4.0, "er_sde", "beta", 0.48, 3.5,
         1.75, 12, 3.4, "euler", "anima_beta57", 0.26, 4.0,
     ],
     "Progressive 2x Master 1.0x -> 1.5x -> 2.0x (4 MP Studio Illustration)": [
         "Latent 16ch Variance-Preserving Bicubic",
-        30, 4.5, "er_sde", "normal", 1.0, 3.0,
+        30, 4.5, "er_sde", "normal", 1.0, 0.0,
         1.5, 18, 4.0, "er_sde", "beta", 0.46, 3.6,
         2.0, 14, 3.5, "euler", "anima_beta57", 0.28, 4.2,
     ],
     "Concept -> Aesthetic Bridge 1.5x -> Micro-Polish 1.5x (Lock Res at Stage 2)": [
         "Latent 16ch Variance-Preserving Bicubic",
-        28, 4.5, "er_sde", "normal", 1.0, 3.0,
+        28, 4.5, "er_sde", "normal", 1.0, 0.0,
         1.5, 16, 4.0, "er_sde", "beta", 0.45, 3.6,
         1.5, 10, 3.2, "euler", "anima_beta57", 0.22, 3.6,
     ],
     "Hybrid Base -> Aesthetic -> Turbo Polish (Fast 3-Stage Studio)": [
         "Latent 16ch Variance-Preserving Bicubic",
-        28, 4.5, "er_sde", "normal", 1.0, 3.0,
+        28, 4.5, "er_sde", "normal", 1.0, 0.0,
         1.4, 14, 4.0, "er_sde", "beta", 0.46, 3.5,
         1.75, 6, 1.0, "euler", "normal", 0.28, 3.9,
     ],
@@ -157,7 +157,9 @@ export function setupAnimaKSamplerUI(node) {
             accentColor: HADES_THEME.blue,
             customHeight: 72,
             drawCustomHUD(ctx, rect) {
-                const shift = Number(wShift?.value ?? 3.0);
+                const shiftRaw = Number(wShift?.value ?? 0.0);
+                const shift = shiftRaw > 0 ? shiftRaw : 3.0;
+                const shiftText = shiftRaw > 0 ? shift.toFixed(2) : "INHERIT";
                 const denoise = Math.max(0.05, Math.min(1.0, Number(wDenoise?.value ?? 1.0)));
                 const steps = Number(wSteps?.value ?? 32);
                 const cfg = Number(wCfg?.value ?? 4.5);
@@ -204,8 +206,8 @@ export function setupAnimaKSamplerUI(node) {
                 ctx.font = isNarrow ? "8.5px monospace" : "9px monospace";
                 ctx.fillStyle = HADES_THEME.emerald;
                 const line2 = isNarrow
-                    ? `${steps}s · C:${cfg.toFixed(1)} · S:${shift.toFixed(2)}`
-                    : `STEPS: ${steps}  |  CFG: ${cfg.toFixed(1)}  |  SHIFT: ${shift.toFixed(2)}`;
+                    ? `${steps}s · C:${cfg.toFixed(1)} · S:${shiftText}`
+                    : `STEPS: ${steps}  |  CFG: ${cfg.toFixed(1)}  |  SHIFT: ${shiftText}`;
                 ctx.fillText(line2, infoX, rect.y + 25);
             },
             actions: [
@@ -316,13 +318,14 @@ export function setupAnimaKSamplerUI(node) {
             tagWidth: K_TAG_WIDTH,
             label: "",
             color: HADES_THEME.amber,
-            min: 0.5,
+            min: 0.0,
             max: 10.0,
-            visMin: 1.0,
+            visMin: 0.0,
             visMax: 6.0,
             step: 0.05,
-            defaultVal: 3.0,
-            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br>Time-step density warping for Anima's Rectified Flow architecture.<br><span style="color:#fbbf24">• Calibrated default (3.0):</span> Native balance for optimal contrast & anatomy.<br><span style="color:#fbbf24">• Higher (3.5–5.0):</span> Allocates more steps to early high-noise structural formation (ideal for high-res).<br><span style="color:#fbbf24">• Lower (1.5–2.5):</span> Allocates more steps to late-stage fine detail refinement.`,
+            defaultVal: 0.0,
+            zeroLabel: "INHERIT",
+            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br><span style="color:#fbbf24">• 0 (INHERIT):</span> Keeps the shift set upstream (Model Loader flow_shift / ModelSampling nodes).<br>Time-step density warping for Anima's Rectified Flow architecture.<br><span style="color:#fbbf24">• Calibrated default (3.0):</span> Native balance for optimal contrast & anatomy.<br><span style="color:#fbbf24">• Higher (3.5–5.0):</span> Allocates more steps to early high-noise structural formation (ideal for high-res).<br><span style="color:#fbbf24">• Lower (1.5–2.5):</span> Allocates more steps to late-stage fine detail refinement.`,
         })
     );
 
@@ -585,7 +588,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
                 ctx.fillStyle = HADES_THEME.textPrimary;
                 ctx.font = totalW < 240 ? "bold 8px monospace" : "bold 9px monospace";
 
-                let p2Text = `PASS 2: ${s2}s | DEN ${d2.toFixed(2)} | S ${sh2.toFixed(1)}`;
+                let p2Text = `PASS 2: ${s2}s | DEN ${d2.toFixed(2)} | S ${sh2 > 0 ? sh2.toFixed(1) : "INH"}`;
                 if (ctx.measureText(p2Text).width > p2W - 4) {
                     p2Text = `P2: ${s2}s · D${d2.toFixed(2)}`;
                 }
@@ -678,8 +681,8 @@ export function setupAnimaDualPassKSamplerUI(node) {
     const shift1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift1, {
             tag: "P1 SHFT", rangeTag: "M=1.0", label: "Pass 1 Flow Shift",
-            color: HADES_THEME.blue, min: 0.5, max: 10.0, visMin: 1.0, visMax: 6.0, step: 0.05, defaultVal: 3.0,
-            tooltip: `<strong>Pass 1 Flow Shift</strong><br>Time-step warping parameter for Anima's Rectified Flow (multiplier=1.0, 3.00 base standard).`,
+            color: HADES_THEME.blue, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 0.0, zeroLabel: "INHERIT",
+            tooltip: `<strong>Pass 1 Flow Shift</strong><br>Time-step warping parameter for Anima's Rectified Flow (multiplier=1.0). 0 = inherit the model's shift (Model Loader / ModelSampling).`,
         })
     );
 
@@ -738,7 +741,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
     const shift2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift2, {
             tag: "P2 SHFT", rangeTag: "M=1.0", label: "Pass 2 High-Res Flow Shift",
-            color: HADES_THEME.emerald, min: 0.5, max: 10.0, visMin: 1.0, visMax: 6.0, step: 0.05, defaultVal: 3.6,
+            color: HADES_THEME.emerald, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.6, zeroLabel: "INHERIT",
             tooltip: `<strong>Pass 2 High-Res Flow Shift</strong><br>Rectified Flow time-step shift for high-resolution refinement (3.5–4.0 focuses compute on fine details).`,
         })
     );
@@ -1096,8 +1099,8 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     const shift1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift1, {
             tag: "S1 SHFT", rangeTag: "M=1.0", label: "Stage 1 Flow Shift",
-            color: HADES_THEME.blue, min: 0.5, max: 10.0, visMin: 1.0, visMax: 6.0, step: 0.05, defaultVal: 3.0,
-            tooltip: `<strong>Stage 1 Flow Shift</strong><br>Standard Rectified Flow shift for base resolution (3.00).`,
+            color: HADES_THEME.blue, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 0.0, zeroLabel: "INHERIT",
+            tooltip: `<strong>Stage 1 Flow Shift</strong><br>Rectified Flow shift for base resolution. 0 = inherit the model's shift (Model Loader / ModelSampling).`,
         })
     );
 
@@ -1147,7 +1150,7 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     const shift2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift2, {
             tag: "S2 SHFT", rangeTag: "M=1.0", label: "Stage 2 Flow Shift",
-            color: HADES_THEME.cyan, min: 0.5, max: 10.0, visMin: 1.0, visMax: 6.0, step: 0.05, defaultVal: 3.5,
+            color: HADES_THEME.cyan, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.5, zeroLabel: "INHERIT",
             tooltip: `<strong>Stage 2 Flow Shift</strong><br>Rectified Flow shift for intermediate resolution (3.40–3.60).`,
         })
     );
@@ -1198,7 +1201,7 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     const shift3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift3, {
             tag: "S3 SHFT", rangeTag: "M=1.0", label: "Stage 3 Flow Shift",
-            color: HADES_THEME.purple, min: 0.5, max: 10.0, visMin: 1.0, visMax: 6.0, step: 0.05, defaultVal: 4.0,
+            color: HADES_THEME.purple, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 4.0, zeroLabel: "INHERIT",
             tooltip: `<strong>Stage 3 Flow Shift</strong><br>Flow shift for high resolution (3.80–4.20).`,
         })
     );

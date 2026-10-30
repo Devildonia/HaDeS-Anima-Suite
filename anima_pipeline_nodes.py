@@ -693,7 +693,7 @@ class HaDeSAnimaAttentionGuidance:
             if image_model != "anima":
                 return (m, "HaDeS NAG: Bypassed (not an Anima model; only_anima=True).")
         if nag_scale <= 1.0 or nag_alpha <= 0.0 or start_percent >= end_percent:
-            return (m, "HaDeS NAG: Bypassed (nag_scale <= 1.0 or nag_alpha == 0.0).")
+            return (m, "HaDeS NAG: Bypassed (nag_scale <= 1.0, nag_alpha == 0.0 or empty start/end window).")
 
         model_sampling = m.get_model_object("model_sampling")
         if model_sampling is not None and hasattr(model_sampling, "percent_to_sigma"):
@@ -718,25 +718,36 @@ class HaDeSAnimaAttentionGuidance:
                 return prev_override(func, *args, **kwargs)
             return func(*args, **kwargs)
 
-        def _apply_l1_nag(z_cond, z_baseline):
-            orig_dtype = z_cond.dtype
-            zc = z_cond.float()
-            zb = z_baseline.float()
-            z_guided = zc + float(nag_scale) * (zc - zb)
+        def _apply_l1_nag(z_pos, z_neg):
+            orig_dtype = z_pos.dtype
+            zp = z_pos.float()
+            z_guided = zp * float(nag_scale) - z_neg.float() * (float(nag_scale) - 1.0)
 
-            norm_c = torch.norm(zc, p=1, dim=-1, keepdim=True).clamp(min=1e-6)
+            norm_p = torch.norm(zp, p=1, dim=-1, keepdim=True).clamp(min=1e-6)
             norm_g = torch.norm(z_guided, p=1, dim=-1, keepdim=True).clamp(min=1e-6)
-            ratio = (norm_g / norm_c).clamp(max=float(nag_tau))
-            z_normed = (z_guided / norm_g) * (norm_c * ratio)
+            ratio = (norm_g / norm_p).clamp(max=float(nag_tau))
+            z_normed = (z_guided / norm_g) * (norm_p * ratio)
 
-            z_final = float(nag_alpha) * z_normed + (1.0 - float(nag_alpha)) * zc
+            z_final = float(nag_alpha) * z_normed + (1.0 - float(nag_alpha)) * zp
             return z_final.to(orig_dtype)
+
+        # Cosmos/Anima blocks run attn1_patch right before self-attention and attn2_patch right before
+        # cross-attention, so these no-op patches tag which kind of attention reaches the override next.
+        attn_kind = {"cross": False}
+
+        def _mark_self_attn(q, k, v, extra_options=None, **kwargs):
+            attn_kind["cross"] = False
+            return {}
+
+        def _mark_cross_attn(q, k, v, extra_options=None, **kwargs):
+            attn_kind["cross"] = True
+            return {}
 
         def hades_nag_attention_override(func, *args, **kwargs):
             q, k, v = args[0], args[1], args[2]
             mask = kwargs.get("mask", None)
 
-            if mask is not None:
+            if mask is not None or not attn_kind["cross"]:
                 return _call_base_attn(func, *args, **kwargs)
 
             t_opts = kwargs.get("transformer_options", {})
@@ -754,31 +765,24 @@ class HaDeSAnimaAttentionGuidance:
                 if not (s_end <= curr_sigma <= s_start):
                     return _call_base_attn(func, *args, **kwargs)
 
-            total_batch = q.shape[0]
-            cond_or_uncond = t_opts.get("cond_or_uncond", [0, 1])
+            cond_or_uncond = t_opts.get("cond_or_uncond", [])
             n_chunks = len(cond_or_uncond)
+            out_all = _call_base_attn(func, *args, **kwargs)
+            if 0 not in cond_or_uncond or 1 not in cond_or_uncond or q.shape[0] % n_chunks != 0:
+                return out_all
 
-            if n_chunks >= 2 and total_batch >= n_chunks and total_batch % n_chunks == 0 and (0 in cond_or_uncond and 1 in cond_or_uncond):
-                out_all = _call_base_attn(func, *args, **kwargs)
-                chunks = list(out_all.chunk(n_chunks, dim=0))
-                uncond_idx = cond_or_uncond.index(1)
-                z_uncond = chunks[uncond_idx]
-                for idx_c, flag in enumerate(cond_or_uncond):
-                    if flag == 0:
-                        chunks[idx_c] = _apply_l1_nag(chunks[idx_c], z_uncond)
-                return torch.cat(chunks, dim=0)
-
-            # Single-branch fallback: extrapolate cross-attention against token-mean context baseline
-            out_cond = _call_base_attn(func, *args, **kwargs)
-            if v.ndim == 4 and out_cond.ndim == 3 and k.shape[2] != q.shape[2] and v.shape[2] > 1:
-                v_mean = v.mean(dim=2, keepdim=True).permute(0, 2, 1, 3).reshape(out_cond.shape[0], 1, -1)
-                if v_mean.shape[-1] == out_cond.shape[-1]:
-                    return _apply_l1_nag(out_cond, v_mean.expand_as(out_cond))
-            elif v.ndim == 3 and out_cond.ndim == 3 and k.shape[1] != q.shape[1] and v.shape[1] > 1:
-                v_mean = v.mean(dim=1, keepdim=True)
-                if v_mean.shape[-1] == out_cond.shape[-1]:
-                    return _apply_l1_nag(out_cond, v_mean.expand_as(out_cond))
-            return out_cond
+            # NAG: the positive branch re-attends with its own queries over the negative prompt's keys/values,
+            # then extrapolates away from that negative attention output. The uncond chunk itself is untouched.
+            q_chunks = q.chunk(n_chunks, dim=0)
+            k_chunks = k.chunk(n_chunks, dim=0)
+            v_chunks = v.chunk(n_chunks, dim=0)
+            out_chunks = list(out_all.chunk(n_chunks, dim=0))
+            uncond_idx = cond_or_uncond.index(1)
+            for idx_c, flag in enumerate(cond_or_uncond):
+                if flag == 0:
+                    z_neg = _call_base_attn(func, q_chunks[idx_c], k_chunks[uncond_idx], v_chunks[uncond_idx], *args[3:], **kwargs)
+                    out_chunks[idx_c] = _apply_l1_nag(out_chunks[idx_c], z_neg)
+            return torch.cat(out_chunks, dim=0)
 
         if "transformer_options" not in m.model_options:
             m.model_options["transformer_options"] = {}
@@ -787,6 +791,8 @@ class HaDeSAnimaAttentionGuidance:
         m.model_options["_hades_nag_state"] = nag_state
         m.model_options["transformer_options"]["_hades_nag_state"] = nag_state
         m.model_options["transformer_options"]["optimized_attention_override"] = hades_nag_attention_override
+        m.set_model_attn1_patch(_mark_self_attn)
+        m.set_model_attn2_patch(_mark_cross_attn)
         m.model_options["disable_cfg1_optimization"] = True
 
         info = (
@@ -997,7 +1003,7 @@ class HaDeSAnimaUniversalLoraLoader:
             f"Source LoRA: {lora_name}",
             f"Strengths: Model {strength_model:+.2f} | CLIP {strength_clip:+.2f}",
             f"Diffusers/Kohya Keys Remapped: {stats['remapped_keys']} | Total Output Keys: {len(canon_sd)}",
-            f"Dirty llm_adapter Keys Stripped: {stats['stripped_adapter_keys']} | Outliers Clamped: {stats['clamped_tensors']}",
+            f"Protect Adapter: {strip_llm_adapter} | Dirty llm_adapter Keys Stripped: {stats['stripped_adapter_keys']} | Outliers Clamped: {stats['clamped_tensors']}",
             f"Exported Copy: {saved_msg}",
         ]
         return (new_model, new_clip, "\n".join(info_lines))
@@ -1297,7 +1303,7 @@ class HaDeSAnimaSuiteTelemetry:
             return "ARCHITECTURE"
         if any(k in t for k in ["MULTI-LORA", "LORA REMAPPER", "STANDALONE LORA MERGER", "PROMPT STUDIO"]):
             return "CONDITIONING"
-        if any(k in t for k in ["KSAMPLER", "ATTENTION GUIDANCE", "NAG", "LATENT PIPELINE GUARD"]):
+        if any(k in t for k in ["KSAMPLER", "ATTENTION GUIDANCE", "NAG", "LATENT & PIPELINE GUARD"]):
             return "SAMPLING"
         if any(k in t for k in ["CORNER SCRIBBLE SHIELD", "CORNER SHIELD", "VAE DECODE"]):
             return "POST_PROCESSING"
@@ -1408,11 +1414,13 @@ class HaDeSAnimaSuiteTelemetry:
                     vae_channels = 16
                     break
 
-        # llm_adapter check: check conditioning streams
-        for cond_item in buckets["CONDITIONING"]:
-            if any(x in cond_item.upper() for x in ["STRIPPED", "PROTECTED", "DIRTY LLM_ADAPTER KEYS STRIPPED", "BRIDGE: STRIPPED"]):
-                llm_adapter_safe = True
-                break
+        # llm_adapter check: every LoRA stream reports its own "Protect Adapter: <bool>" flag; all of them must be on
+        lora_protect_flags = [
+            m_p.group(1).lower() == "true"
+            for m_p in (re.search(r"Protect Adapter:\s*(True|False)", s) for s in buckets["CONDITIONING"])
+            if m_p
+        ]
+        llm_adapter_safe = bool(lora_protect_flags) and all(lora_protect_flags)
 
         # Corner shield & VAE decode checks
         for post_item in buckets["POST_PROCESSING"]:
@@ -1454,11 +1462,7 @@ class HaDeSAnimaSuiteTelemetry:
             else:
                 issues.append(("ERROR", f"Incompatible VAE ({vae_channels} channels). Anima architecture strictly requires Wan2.1 16-channel VAE."))
 
-        has_loras = any(
-            any(k in s.upper() for k in ["MULTI-LORA", "LORA REMAPPER", "STANDALONE LORA MERGER"])
-            for s in buckets["CONDITIONING"]
-        )
-        if has_loras:
+        if lora_protect_flags:
             if llm_adapter_safe:
                 checks.append("Anima 6-layer text conditioner bridge protected (dirty lr=0 llm_adapter keys stripped).")
             else:

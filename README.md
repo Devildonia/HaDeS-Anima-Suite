@@ -2,7 +2,7 @@
 
 **HaDeS Anima Suite** is a specialized **19-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
-It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, the **Multi-Format ConvRot INT8/INT4 Model Saver**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
+It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, the **Multi-Format Anima Model Saver**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
 
 ---
 
@@ -23,10 +23,11 @@ It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart T
    - **Corner Scribble Shield:** Detects and heals (or masks with `mask` output for second-pass inpainting) Anima's notorious **~20% corner pseudo-signature scribble artifact** with core ambient texture safeguards (peak-aware HF detection differentiating fine 1px strokes from uniform grain $\sigma=0.03$), telemetry sync, and adaptive expansion capped strictly at 50% for large marks.
 5. **Centralized Suite Telemetry & Diagnostics Flight Auditor:**
    - Connects up to 8+ `info` streams across all HaDeS Suite nodes in the workflow, auto-classifies them into logical pipeline phases, and runs an automated **Diagnostics & Health Engine** (Flow Shift synchronization check, Turbo/CFG=1 NAG guidance validation, 32px macroblock alignment check, 16ch Wan2.1 VAE verification, and `llm_adapter` text bridge lock). Outputs an audit-grade Markdown report, a structured JSON telemetry payload, and a compact single-line status summary with one-click clipboard copying.
-6. **Anima Model Saver & Block ConvRot Quantization (`bfloat16`, `convrot_int8`, `convrot_int4`, `Diffusers` export):**
+6. **Anima Model Saver (`bfloat16`, `fp8_e4m3fn`, native ConvRot `INT8`/`INT4`, `float32`, `Diffusers` export):**
    - High-fidelity export node with pass-through `MODEL` output for seamless downstream pipeline continuation.
    - Dual format: Native ComfyUI (`MiniTrainDIT`) or Diffusers (`transformer_blocks.*`, `text_conditioner.*`).
-   - Block Hadamard Rotation (`ConvRot` INT8 & INT4): Diffuses severe Anima channel outliers via Sylvester orthogonal matrix transformations before quantization, achieving 67%+ error reduction over naive INT8/INT4.
+   - Merge and LoRA patches are baked into the saved weights (same lazy patching path as ComfyUI's own checkpoint saver); Native files load in the stock `Load Diffusion Model` node.
+   - ConvRot INT8 / W4A4 use ComfyUI's own `comfy.quant_ops` layouts (`int8_tensorwise` + convrot, `convrot_w4a4`) on the DiT block linears, with per-layer `comfy_quant` configs.
    - Companion `llm_adapter` handling: Full checkpoint embedding, DiT stripping, or dedicated companion adapter export.
    - ModelSpec metadata injection with toggleable `include_metadata`.
 
@@ -122,14 +123,14 @@ HaDeS Anima Suite v0.1.9
 #### 19. `Anima Model Saver`
 - **Class:** `HaDeSAnimaModelSaver`
 - **Category:** `HaDeS/Anima Mergers`
-- **Purpose:** Dedicated high-fidelity model exporter for merged or fine-tuned Anima models supporting format conversion (Native ComfyUI $\leftrightarrow$ Diffusers), cutting-edge ConvRot block-Hadamard quantization (INT8 and packed INT4), granular `llm_adapter` isolation, and toggleable ModelSpec metadata. Features pass-through `MODEL` output so downstream KSamplers can execute directly without wire branching.
+- **Purpose:** Dedicated high-fidelity model exporter for merged or fine-tuned Anima models supporting format conversion (Native ComfyUI $\leftrightarrow$ Diffusers), bf16 / fp8 / native ConvRot INT8-INT4 / fp32 storage with merge and LoRA patches baked in, granular `llm_adapter` isolation, and toggleable ModelSpec metadata. Features pass-through `MODEL` output so downstream KSamplers can execute directly without wire branching.
 - **Inputs:**
   - `model`: Input `MODEL` patcher.
-  - `filename_prefix`: Subfolder and filename prefix (default: `diffusion_models/Anima_HaDeS_Merged`).
+  - `filename_prefix`: Subfolder and filename prefix inside `ComfyUI/output` (default: `diffusion_models/Anima_HaDeS_Merged`).
   - `save_format`: `Native ComfyUI (MiniTrainDIT)` or `Diffusers (HuggingFace / Trainer)`.
-  - `precision`: `bfloat16 (Original Master)`, `fp8_e4m3fn`, `convrot_int8 (Hadamard Rotated INT8)`, `convrot_int4 (Hadamard Rotated INT4)`, `float32`.
+  - `precision`: `bfloat16 (Original Master)`, `fp8_e4m3fn (ComfyUI Native FP8)`, `convrot_int8 (Hadamard Rotated INT8)`, `convrot_int4 (Hadamard Rotated INT4)`, `float32 (Uncompressed)`.
   - `llm_adapter_mode`: `Embed in Checkpoint (Full)`, `Strip (Pure DiT)`, `Export Adapter Separately`.
-  - `include_metadata`: `True` / `False` (injects SAI ModelSpec `anima/mini_train_dit`, topology, author, recipe, and quant tags).
+  - `include_metadata`: `True` / `False` (injects SAI ModelSpec `anima/mini_train_dit`, topology, author and recipe tags).
   - `custom_author` / `custom_model_title`: Custom metadata fields.
 - **Outputs:**
   - `model`: Pass-through model for downstream samplers.

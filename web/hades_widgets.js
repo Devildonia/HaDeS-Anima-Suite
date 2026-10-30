@@ -970,6 +970,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
         defaultVal = config.defVal ?? 0.5,
         decimals = 2,
         isInt = false,
+        zeroLabel = null,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -1060,7 +1061,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
 
             ctx.font = isNarrow ? "10px monospace" : "11px monospace";
             ctx.fillStyle = HADES_THEME.textPrimary;
-            const valStr = isInt ? String(Math.round(curVal)) : curVal.toFixed(decimals);
+            const valStr = zeroLabel && curVal === 0 ? zeroLabel : (isInt ? String(Math.round(curVal)) : curVal.toFixed(decimals));
             ctx.fillText(valStr, trackX + trackW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
 
             let railStartX = 0;

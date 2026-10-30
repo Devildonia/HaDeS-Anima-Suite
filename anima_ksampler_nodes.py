@@ -152,6 +152,13 @@ def clone_model_with_anima_shift(model, flow_shift: float):
     return m
 
 
+def _resolve_flow_shift(model, flow_shift: float) -> float:
+    """Shift a pass will actually sample with: the widget value, or the model's own shift when the widget is 0 (inherit)."""
+    if float(flow_shift) > 0.0:
+        return float(flow_shift)
+    return float(getattr(model.get_model_object("model_sampling"), "shift", 3.0))
+
+
 def _beta_ppf_approx(q: float, alpha: float = 0.5, beta: float = 0.7) -> float:
     """Fast and accurate numerical inverse of Regularized Incomplete Beta I_x(alpha, beta) = q."""
     if q <= 0.0:
@@ -395,11 +402,9 @@ def run_anima_ksampler_pass(
     flow_shift: float = 3.0,
     disable_noise: bool = False,
 ) -> tuple[dict, torch.Tensor]:
-    """Execute a single Anima Rectified Flow sampling pass with multiplier=1.0 shift and custom sigmas."""
-    patched_model = clone_model_with_anima_shift(model, flow_shift)
-    if math.isclose(float(cfg), 1.0, abs_tol=1e-4):
-        # Preserve any NAG disable_cfg1_optimization flag if already attached on model_options
-        pass
+    """Execute a single Anima Rectified Flow sampling pass with multiplier=1.0 shift and custom sigmas.
+    flow_shift <= 0 keeps the shift already set on the model (Model Loader, ModelSampling* nodes)."""
+    patched_model = clone_model_with_anima_shift(model, flow_shift) if float(flow_shift) > 0.0 else model
 
     latent_image = latent_dict["samples"]
     if hasattr(comfy.sample, "fix_empty_latent_channels"):
@@ -477,12 +482,12 @@ class HaDeSAnimaKSampler:
 
     VARIANT_PROFILES = {
         "Manual": None,
-        "Anima Base / Raehoshi": (32, 4.5, "er_sde", "normal", 1.0, 3.0),
-        "Anima Aesthetic Crisp": (30, 4.0, "er_sde", "beta", 1.0, 3.0),
+        "Anima Base / Raehoshi": (32, 4.5, "er_sde", "normal", 1.0, 0.0),
+        "Anima Aesthetic Crisp": (30, 4.0, "er_sde", "beta", 1.0, 0.0),
         "Anima Aesthetic Painterly": (35, 4.2, "euler_ancestral", "anima_beta57", 1.0, 2.8),
-        "Anima Turbo": (10, 1.0, "euler", "normal", 1.0, 3.0),
-        "Anima Lightning TDM": (4, 1.0, "euler", "anima_lightning_tdm", 1.0, 3.0),
-        "Anima 2.9B / 3.8B Deep DiT": (36, 4.5, "er_sde", "normal", 1.0, 3.0),
+        "Anima Turbo": (10, 1.0, "euler", "normal", 1.0, 0.0),
+        "Anima Lightning TDM": (4, 1.0, "euler", "anima_lightning_tdm", 1.0, 0.0),
+        "Anima 2.9B / 3.8B Deep DiT": (36, 4.5, "er_sde", "normal", 1.0, 0.0),
     }
 
     _LEGACY_PROFILE_MAP = {
@@ -515,7 +520,7 @@ class HaDeSAnimaKSampler:
                     "default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01,
                     "tooltip": "1.0 for txt2img. For img2img: 0.50–0.60 for minor detail refinement, 0.75–0.85 for creative compositional guidance."
                 }),
-                "flow_shift": ("FLOAT", {"default": 3.0, "min": 0.5, "max": 10.0, "step": 0.05}),
+                "flow_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
             },
             "optional": {
                 "vae": ("VAE",),
@@ -570,7 +575,7 @@ class HaDeSAnimaKSampler:
         info = (
             f"HaDeS Anima KSampler | Profile: {canonical_profile} | Resolution: {w_px}x{h_px}px | "
             f"Sampler: {sampler_name} | Scheduler: {scheduler} | Steps: {steps} | CFG: {cfg:.2f} | "
-            f"Denoise: {denoise:.2f} | Flow Shift (multiplier=1.0): {flow_shift:.2f} | "
+            f"Denoise: {denoise:.2f} | Flow Shift (multiplier=1.0): {_resolve_flow_shift(model, flow_shift):.2f}{' (inherited)' if flow_shift <= 0 else ''} | "
             f"Sigmas[0..]: [{sig_head}]"
         )
         print(f"\n[HaDeS Anima KSampler] {info}")
@@ -590,22 +595,22 @@ class HaDeSAnimaDualPassKSampler:
     DUAL_PRESETS = {
         "Manual (Use Widget Settings)": None,
         "HiRes Standard 1.5x (er_sde 30s -> er_sde + beta57 16s @ 0.42 denoise)": (
-            30, 4.5, "er_sde", "normal", 1.00, 3.00,
+            30, 4.5, "er_sde", "normal", 1.00, 0.0,
             "Latent 16ch Variance-Preserving Bicubic", 1.50,
             16, 4.0, "er_sde", "anima_beta57", 0.42, 3.60,
         ),
         "Aesthetic Painterly 1.5x (er_sde 32s -> euler_a + beta57 18s @ 0.45 denoise)": (
-            32, 4.2, "er_sde", "beta", 1.00, 3.00,
+            32, 4.2, "er_sde", "beta", 1.00, 0.0,
             "Latent 16ch Variance-Preserving Bicubic", 1.50,
             18, 3.8, "euler_ancestral", "anima_beta57", 0.45, 3.50,
         ),
         "Base-to-Turbo Fast HiRes 1.5x (er_sde 30s CFG 4.5 -> euler 8s CFG 1.0 @ 0.38 denoise)": (
-            30, 4.5, "er_sde", "normal", 1.00, 3.00,
+            30, 4.5, "er_sde", "normal", 1.00, 0.0,
             "Latent 16ch Variance-Preserving Bicubic", 1.50,
             8, 1.0, "euler", "normal", 0.38, 3.50,
         ),
         "Same-Res Texture & Lineart Refiner 1.0x (30s -> 12s @ 0.28 denoise)": (
-            30, 4.5, "er_sde", "normal", 1.00, 3.00,
+            30, 4.5, "er_sde", "normal", 1.00, 0.0,
             "Direct Latent Pass-Through (1.0x)", 1.00,
             12, 3.6, "euler", "anima_beta57", 0.28, 3.20,
         ),
@@ -628,7 +633,7 @@ class HaDeSAnimaDualPassKSampler:
                 "sampler_pass1": (ANIMA_SAMPLER_LIST, {"default": "er_sde"}),
                 "scheduler_pass1": (ANIMA_SCHEDULER_LIST, {"default": "normal"}),
                 "denoise_pass1": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "shift_pass1": ("FLOAT", {"default": 3.0, "min": 0.5, "max": 10.0, "step": 0.05}),
+                "shift_pass1": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
                 "upscale_method": (ANIMA_UPSCALE_METHODS, {
                     "default": "Latent 16ch Variance-Preserving Bicubic"
                 }),
@@ -638,7 +643,7 @@ class HaDeSAnimaDualPassKSampler:
                 "sampler_pass2": (ANIMA_SAMPLER_LIST, {"default": "er_sde"}),
                 "scheduler_pass2": (ANIMA_SCHEDULER_LIST, {"default": "anima_beta57"}),
                 "denoise_pass2": ("FLOAT", {"default": 0.42, "min": 0.05, "max": 1.0, "step": 0.01}),
-                "shift_pass2": ("FLOAT", {"default": 3.6, "min": 0.5, "max": 10.0, "step": 0.05}),
+                "shift_pass2": ("FLOAT", {"default": 3.6, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
             },
             "optional": {
                 "model_pass2": ("MODEL",),
@@ -732,10 +737,10 @@ class HaDeSAnimaDualPassKSampler:
         )
         info = (
             f"HaDeS Anima Dual-Pass KSampler | Preset: {dual_preset} | "
-            f"Pass 1: {w1}x{h1}px ({sampler_pass1}/{scheduler_pass1}, {steps_pass1}s, CFG {cfg_pass1:.1f}, Shift {shift_pass1:.2f}) -> "
+            f"Pass 1: {w1}x{h1}px ({sampler_pass1}/{scheduler_pass1}, {steps_pass1}s, CFG {cfg_pass1:.1f}, Shift {_resolve_flow_shift(model, shift_pass1):.2f}) -> "
             f"Bridge: {effective_bridge} ({upscale_factor:.2f}x -> {w2}x{h2}px) -> "
             f"Pass 2: {w2}x{h2}px ({sampler_pass2}/{scheduler_pass2}, {steps_pass2}s, CFG {cfg_pass2:.1f}, "
-            f"Denoise {denoise_pass2:.2f}, Shift {shift_pass2:.2f}, HybridModel={'Yes' if model_pass2 is not None else 'No'})"
+            f"Denoise {denoise_pass2:.2f}, Shift {_resolve_flow_shift(model_p2, shift_pass2):.2f}, HybridModel={'Yes' if model_pass2 is not None else 'No'})"
         )
         print(f"\n[HaDeS Anima Dual-Pass KSampler] {info}")
         return (final_latent, pass1_latent, decoded_img, info)
@@ -755,25 +760,25 @@ class HaDeSAnimaTriplePassKSampler:
         "Manual (Use Widget Settings)": None,
         "Progressive Staircase 1.0x -> 1.35x -> 1.75x (Ultra-Res Poster Pipeline)": (
             "Latent 16ch Variance-Preserving Bicubic",
-            28, 4.5, "er_sde", "normal", 1.00, 3.00,
+            28, 4.5, "er_sde", "normal", 1.00, 0.0,
             1.35, 16, 4.0, "er_sde", "beta", 0.48, 3.50,
             1.75, 12, 3.4, "euler", "anima_beta57", 0.26, 4.00,
         ),
         "Progressive 2x Master 1.0x -> 1.5x -> 2.0x (4 MP Studio Illustration)": (
             "Latent 16ch Variance-Preserving Bicubic",
-            30, 4.5, "er_sde", "normal", 1.00, 3.00,
+            30, 4.5, "er_sde", "normal", 1.00, 0.0,
             1.50, 18, 4.0, "er_sde", "beta", 0.46, 3.60,
             2.00, 14, 3.5, "euler", "anima_beta57", 0.28, 4.20,
         ),
         "Concept -> Aesthetic Bridge 1.5x -> Micro-Polish 1.5x (Lock Res at Stage 2)": (
             "Latent 16ch Variance-Preserving Bicubic",
-            28, 4.5, "er_sde", "normal", 1.00, 3.00,
+            28, 4.5, "er_sde", "normal", 1.00, 0.0,
             1.50, 16, 4.0, "er_sde", "beta", 0.45, 3.60,
             1.50, 10, 3.2, "euler", "anima_beta57", 0.22, 3.60,
         ),
         "Hybrid Base -> Aesthetic -> Turbo Polish (Fast 3-Stage Studio)": (
             "Latent 16ch Variance-Preserving Bicubic",
-            28, 4.5, "er_sde", "normal", 1.00, 3.00,
+            28, 4.5, "er_sde", "normal", 1.00, 0.0,
             1.40, 14, 4.0, "er_sde", "beta", 0.46, 3.50,
             1.75, 6, 1.0, "euler", "normal", 0.28, 3.90,
         ),
@@ -800,7 +805,7 @@ class HaDeSAnimaTriplePassKSampler:
                 "sampler_stage1": (ANIMA_SAMPLER_LIST, {"default": "er_sde"}),
                 "scheduler_stage1": (ANIMA_SCHEDULER_LIST, {"default": "normal"}),
                 "denoise_stage1": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "shift_stage1": ("FLOAT", {"default": 3.0, "min": 0.5, "max": 10.0, "step": 0.05}),
+                "shift_stage1": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
                 # Stage 2: Structural & Aesthetic Bridge
                 "scale_stage2": ("FLOAT", {"default": 1.35, "min": 1.0, "max": 2.5, "step": 0.05}),
                 "steps_stage2": ("INT", {"default": 16, "min": 1, "max": 200, "step": 1}),
@@ -808,7 +813,7 @@ class HaDeSAnimaTriplePassKSampler:
                 "sampler_stage2": (ANIMA_SAMPLER_LIST, {"default": "er_sde"}),
                 "scheduler_stage2": (ANIMA_SCHEDULER_LIST, {"default": "beta"}),
                 "denoise_stage2": ("FLOAT", {"default": 0.48, "min": 0.05, "max": 1.0, "step": 0.01}),
-                "shift_stage2": ("FLOAT", {"default": 3.5, "min": 0.5, "max": 10.0, "step": 0.05}),
+                "shift_stage2": ("FLOAT", {"default": 3.5, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
                 # Stage 3: Micro-Lineart & Surface Polish (scale_stage3 is relative to Stage 1 base)
                 "scale_stage3": ("FLOAT", {"default": 1.75, "min": 1.0, "max": 3.0, "step": 0.05}),
                 "steps_stage3": ("INT", {"default": 12, "min": 1, "max": 200, "step": 1}),
@@ -816,7 +821,7 @@ class HaDeSAnimaTriplePassKSampler:
                 "sampler_stage3": (ANIMA_SAMPLER_LIST, {"default": "euler"}),
                 "scheduler_stage3": (ANIMA_SCHEDULER_LIST, {"default": "anima_beta57"}),
                 "denoise_stage3": ("FLOAT", {"default": 0.26, "min": 0.05, "max": 1.0, "step": 0.01}),
-                "shift_stage3": ("FLOAT", {"default": 4.0, "min": 0.5, "max": 10.0, "step": 0.05}),
+                "shift_stage3": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
             },
             "optional": {
                 "model_pass2": ("MODEL",),
@@ -943,9 +948,9 @@ class HaDeSAnimaTriplePassKSampler:
         )
         info = (
             f"HaDeS Anima Triple-Pass KSampler | Preset: {triple_preset} | Bridge: {effective_bridge} | "
-            f"S1: {w1}x{h1}px ({sampler_stage1}/{scheduler_stage1}, {steps_stage1}s, CFG {cfg_stage1:.1f}, Shift {shift_stage1:.2f}) -> "
-            f"S2 ({scale_stage2:.2f}x): {w2}x{h2}px ({sampler_stage2}/{scheduler_stage2}, {steps_stage2}s, CFG {cfg_stage2:.1f}, Denoise {denoise_stage2:.2f}, Shift {shift_stage2:.2f}) -> "
-            f"S3 ({scale_stage3:.2f}x): {w3}x{h3}px ({sampler_stage3}/{scheduler_stage3}, {steps_stage3}s, CFG {cfg_stage3:.1f}, Denoise {denoise_stage3:.2f}, Shift {shift_stage3:.2f})"
+            f"S1: {w1}x{h1}px ({sampler_stage1}/{scheduler_stage1}, {steps_stage1}s, CFG {cfg_stage1:.1f}, Shift {_resolve_flow_shift(model, shift_stage1):.2f}) -> "
+            f"S2 ({scale_stage2:.2f}x): {w2}x{h2}px ({sampler_stage2}/{scheduler_stage2}, {steps_stage2}s, CFG {cfg_stage2:.1f}, Denoise {denoise_stage2:.2f}, Shift {_resolve_flow_shift(model_s2, shift_stage2):.2f}) -> "
+            f"S3 ({scale_stage3:.2f}x): {w3}x{h3}px ({sampler_stage3}/{scheduler_stage3}, {steps_stage3}s, CFG {cfg_stage3:.1f}, Denoise {denoise_stage3:.2f}, Shift {_resolve_flow_shift(model_s3, shift_stage3):.2f})"
         )
         print(f"\n[HaDeS Anima Triple-Pass KSampler] {info}")
         return (final_latent, stage1_latent, stage2_latent, decoded_img, info)
