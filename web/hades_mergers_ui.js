@@ -764,7 +764,7 @@ export function setupModelSaverUI(node) {
         createSpectralBannerWidget(node, {
             title: "",
             accentColor: HADES_THEME.emerald,
-            customHeight: 52,
+            customHeight: 68,
             actions: [
                 {
                     label: "BF16 Master",
@@ -804,49 +804,78 @@ export function setupModelSaverUI(node) {
                 const hasMeta = wMetadata ? Boolean(wMetadata.value) : true;
                 const adapterMode = String(wAdapter?.value || "Embed");
 
-                ctx.font = "bold 9px monospace";
-                ctx.textAlign = "left";
+                const isNarrow = rect.w < 350;
+                const maxRowW = Math.max(60, rect.w - 16);
+
+                ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
                 ctx.textBaseline = "middle";
 
-                const badgeY = rect.y + 7;
-                // Format badge
-                ctx.fillStyle = isDiffusers ? HADES_THEME.purple : HADES_THEME.emerald;
-                ctx.fillText(
-                    isDiffusers ? "FORMAT: DIFFUSERS (HF)" : "FORMAT: COMFY NATIVE (DIT)",
-                    rect.x + 8,
-                    badgeY
-                );
+                const badgeY = rect.y + 11;
 
-                // Right side badge: Precision & Size estimate
-                ctx.textAlign = "right";
+                // --- Row 1: Format & Precision ---
+                let fmtText = isDiffusers
+                    ? (isNarrow ? "DIFFUSERS (HF)" : "FORMAT: DIFFUSERS (HF)")
+                    : (isNarrow ? "COMFY NATIVE" : "FORMAT: COMFY NATIVE (DIT)");
+
                 let precLabel = "BF16 (~4.8GB)";
                 let precColor = HADES_THEME.cyan;
                 if (isConvRot8) {
-                    precLabel = "CONVROT INT8 (~2.4GB)";
+                    precLabel = isNarrow ? "CR-INT8 (~2.4GB)" : "CONVROT INT8 (~2.4GB)";
                     precColor = HADES_THEME.emerald;
                 } else if (isConvRot4) {
-                    precLabel = "CONVROT INT4 (~1.3GB)";
+                    precLabel = isNarrow ? "CR-INT4 (~1.3GB)" : "CONVROT INT4 (~1.3GB)";
                     precColor = HADES_THEME.amber;
                 } else if (isFp8) {
-                    precLabel = "FP8 E4M3 (~2.6GB)";
+                    precLabel = isNarrow ? "FP8 (~2.6GB)" : "FP8 E4M3 (~2.6GB)";
                     precColor = HADES_THEME.blue;
+                } else if (isNarrow) {
+                    precLabel = "BF16 (~4.8GB)";
                 }
+
+                // Prevent Row 1 horizontal overlap on very small widths
+                if (ctx.measureText(fmtText).width + ctx.measureText(precLabel).width > maxRowW) {
+                    fmtText = isDiffusers ? "DIFFUSERS" : "COMFY DIT";
+                    precLabel = isConvRot8 ? "INT8" : (isConvRot4 ? "INT4" : (isFp8 ? "FP8" : "BF16"));
+                }
+                if (ctx.measureText(fmtText).width + ctx.measureText(precLabel).width > maxRowW) {
+                    fmtText = isDiffusers ? "DIFF" : "DIT";
+                }
+
+                ctx.textAlign = "left";
+                ctx.fillStyle = isDiffusers ? HADES_THEME.purple : HADES_THEME.emerald;
+                ctx.fillText(fmtText, rect.x + 8, badgeY);
+
+                ctx.textAlign = "right";
                 ctx.fillStyle = precColor;
                 ctx.fillText(precLabel, rect.x + rect.w - 8, badgeY);
 
-                // Sub-HUD Row: Bridge status & Metadata status
-                const subY = rect.y + 19;
-                ctx.textAlign = "left";
-                let bridgeStr = "BRIDGE: EMBEDDED";
-                if (adapterMode.includes("Strip")) bridgeStr = "BRIDGE: STRIPPED (PURE DIT)";
-                else if (adapterMode.includes("Separate")) bridgeStr = "BRIDGE: EXPORT SEPARATE";
+                // --- Row 2: Bridge Status & Metadata ---
+                const subY = rect.y + 25;
 
+                let bridgeStr = "BRIDGE: EMBEDDED";
+                if (adapterMode.includes("Strip")) {
+                    bridgeStr = isNarrow ? "BRIDGE: STRIP" : "BRIDGE: STRIPPED (PURE DIT)";
+                } else if (adapterMode.includes("Separate")) {
+                    bridgeStr = isNarrow ? "BRIDGE: EXPORT" : "BRIDGE: EXPORT SEPARATE";
+                }
+
+                let metaStr = hasMeta
+                    ? (isNarrow ? "META: ACTIVE" : "METADATA: MODELSPEC ACTIVE")
+                    : (isNarrow ? "META: OFF" : "METADATA: BARE TENSORS (OFF)");
+
+                // Prevent Row 2 horizontal overlap on very small widths
+                if (ctx.measureText(bridgeStr).width + ctx.measureText(metaStr).width > maxRowW) {
+                    bridgeStr = adapterMode.includes("Strip") ? "STRIP" : (adapterMode.includes("Separate") ? "EXPORT" : "EMBED");
+                    metaStr = hasMeta ? "META: ON" : "META: OFF";
+                }
+
+                ctx.textAlign = "left";
                 ctx.fillStyle = HADES_THEME.muted;
                 ctx.fillText(bridgeStr, rect.x + 8, subY);
 
                 ctx.textAlign = "right";
                 ctx.fillStyle = hasMeta ? HADES_THEME.cyan : HADES_THEME.muted;
-                ctx.fillText(hasMeta ? "METADATA: MODELSPEC ACTIVE" : "METADATA: BARE TENSORS (OFF)", rect.x + rect.w - 8, subY);
+                ctx.fillText(metaStr, rect.x + rect.w - 8, subY);
             },
         })
     );
@@ -907,7 +936,7 @@ export function setupModelSaverUI(node) {
                 tag: "METADATA",
                 color: HADES_THEME.cyan,
                 tagWidth: TAG_W,
-                label: "Inject ModelSpec & Merge Recipe Header",
+                label: "SAI ModelSpec Header",
                 onText: "ACTIVE",
                 offText: "DISABLED",
                 tooltip: `<strong>Safetensors Metadata Injection</strong><br>When active, injects modelspec.architecture ("anima/mini_train_dit"), topology (28L/40L/52L), and author details into the JSON header. Turn OFF for bare unlabelled tensors.`,
@@ -941,16 +970,31 @@ export function setupModelSaverUI(node) {
         );
     }
 
+    const minW = 390;
+
+    const origComputeSize = node.computeSize;
+    node.computeSize = function () {
+        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
+        return [Math.max(sz[0], minW), sz[1]];
+    };
+
+    const origOnResize = node.onResize;
+    node.onResize = function (size) {
+        if (origOnResize) origOnResize.apply(this, arguments);
+        if (size && Array.isArray(size)) {
+            size[0] = Math.max(size[0], minW);
+        }
+    };
+
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
+        if (info?.size && Array.isArray(info.size)) {
+            this.size = [Math.max(info.size[0], minW), info.size[1]];
         }
         this.setDirtyCanvas?.(true, true);
     };
 
-    const minW = 440;
     const sz = node.computeSize();
     const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
     const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 10) : sz[1] + 10;

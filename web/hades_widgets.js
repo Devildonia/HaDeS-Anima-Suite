@@ -713,6 +713,10 @@ export function createSpectralBannerWidget(node, config) {
                         else if (lbl === "1.5→2.0x") lbl = "2.0x";
                         else if (lbl === "1.5x Lock") lbl = "Lock";
                         else if (lbl === "Turbo S3") lbl = "Turbo";
+                        else if (lbl === "BF16 Master") lbl = "BF16";
+                        else if (lbl === "ConvRot INT8") lbl = btnW < 52 ? "INT8" : "CR-INT8";
+                        else if (lbl === "ConvRot INT4") lbl = btnW < 52 ? "INT4" : "CR-INT4";
+                        else if (lbl === "Diffusers HF") lbl = btnW < 54 ? "HF" : "Diffusers";
                     }
 
                     ctx.save();
@@ -1075,10 +1079,16 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
 
                 let displayLabel = label;
                 if (labelMaxW > 12 && ctx.measureText(displayLabel).width > labelMaxW) {
-                    while (displayLabel.length > 2 && ctx.measureText(displayLabel + "…").width > labelMaxW) {
-                        displayLabel = displayLabel.slice(0, -1);
+                    if (displayLabel.includes("ModelSpec")) {
+                        displayLabel = "ModelSpec Header";
+                        if (ctx.measureText(displayLabel).width > labelMaxW) displayLabel = "ModelSpec";
                     }
-                    displayLabel += "…";
+                    if (ctx.measureText(displayLabel).width > labelMaxW) {
+                        while (displayLabel.length > 2 && ctx.measureText(displayLabel + "…").width > labelMaxW) {
+                            displayLabel = displayLabel.slice(0, -1);
+                        }
+                        displayLabel += "…";
+                    }
                 }
                 ctx.fillText(displayLabel, labelX, rowY + h * 0.5 + 0.5);
                 ctx.restore();
