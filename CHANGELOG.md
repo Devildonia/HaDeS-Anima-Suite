@@ -5,6 +5,24 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.8] - 2026-10-30
+
+### Fixed
+- **Suite Telemetry NAG Detection (Audit A2):**
+  - Updated Attention Guidance parser in `HaDeSAnimaSuiteTelemetry` to detect `HaDeS Anima NAG Active` and `HaDeS NAG: Bypassed` without requiring legacy `"ATTENTION GUIDANCE"` substring or `Active: True`.
+  - Accurately extracts `Scale` and `Tau` parameters directly from active attention guidance streams.
+  - Eliminates false *"Low CFG used without Anima Attention Guidance (NAG)"* warnings on Turbo/Lightning generation at `CFG = 1.0` when NAG is active.
+- **Prompt Studio Widget Alignment & Deserialization (Audit A1):**
+  - Added dual positional/named schema auto-detection in `node.configure` for `HaDeSAnimaPromptStudio`, supporting both named restoration and positional fallback.
+  - Reordered `widgets_values` across all 4 example workflows in `examples/` to match standard Python `INPUT_TYPES` (`positive_prompt` at index 6, `negative_prompt` at index 7, `header_mode` at index 8, `header_trigger` at index 9, `artwork_title` at index 10).
+  - Guarantees 100% interoperability across standard ComfyUI, headless API runners, and external static workflow analyzers.
+- **Workflow Usability Polish:**
+  - Updated Stage 3 of `Triple Pass Generation Example.json` to standard community checkpoint `anima-base-v1.0.safetensors`.
+- **Automated Verification:**
+  - Added regression test assertions in `test_22_anima_suite_telemetry` verifying real production strings for Active vs Bypassed NAG states.
+
+---
+
 ## [0.1.7] - 2026-10-30
 
 ### Added
@@ -15,9 +33,25 @@ The project adheres to [Semantic Versioning](https://semver.org/).
   - `HaDeS - Anima Suite - Merge Workflow Example - Medium.json`: Advanced block-level model & LoRA merging workflow with QR-SVD rank adaptation, 24-rule Diffusers remapping, and `llm_adapter` golden rule protection.
 - **HaDeS UX vs Vanilla ComfyUI Theme Switch Documentation:**
   - Added full user guide in `README.md` explaining how to toggle between the high-visibility **HaDeS Spectral Canvas UI** (cyberpunk badges, preset buttons, interactive HUDs, tooltips) and the **Native Classic ComfyUI Theme (Vanilla)** via the ComfyUI Settings menu (`HaDeS.ClassicUI`).
+- Contextual hover tooltips across HUD banners, buttons, and custom widgets on all 18 nodes.
+- Slop Guard expanded with `trending on artstation`.
 
-### Documentation
-- Updated `README.md` project tree, feature documentation, and example workflows breakdown.
+### Fixed
+- **Suite Telemetry ComfyUI Dispatch:**
+  - Declared `OUTPUT_NODE = True` and formatted return as `{"ui": ..., "result": ...}` for real-time frontend execution event dispatch.
+- **Suite Telemetry Regex Isolation:**
+  - Restricted canvas resolution extraction to `SAMPLING` and `POST_PROCESSING` streams with explicit tags, preventing false 32px misalignment warnings caused by Corner Shield's `Box: WxHpx`.
+  - Restricted VAE channel checks to VAE streams, preventing false errors on RGB images.
+  - Fixed LoRA check so `Prompt Studio` alone no longer triggers false `External LoRAs detected` tips.
+  - Fixed NAG scale parser to pull strictly from Attention Guidance streams rather than global text.
+- **Output Slot Standardization:**
+  - Renamed `scribble_mask` to `mask` in `Anima Corner Shield`.
+  - Renamed `model_info`, `clip_info`, `vae_info` to `info` across all Loader nodes.
+  - Implemented automatic, non-destructive client-side slot migration in JavaScript (`migrateOutputSlot`) preserving existing saved workflow wires.
+
+### Changed
+- Standardized package name in `pyproject.toml` to `hades-anima-suite` for Comfy Registry publication.
+- `model_pass2` officially documented as primary input socket in KSampler (with backward-compatible fallback for legacy `model_pass2_optional`).
 
 ---
 
@@ -30,24 +64,6 @@ The project adheres to [Semantic Versioning](https://semver.org/).
   - Automated Diagnostic & Health Engine: detects Flow Shift divergence, validates Turbo/Lightning CFG=1 NAG guidance, checks 32px macroblock canvas alignment, verifies 16ch Wan2.1 VAE integrity, and confirms `llm_adapter` text bridge protection.
   - Multi-format outputs: Markdown audit report, structured JSON telemetry, and compact single-line diagnostics string.
   - Interactive HUD console on canvas with real-time status monitor and one-click clipboard copying (`Copy Report`, `Copy JSON`).
-  - Declared as `OUTPUT_NODE = True` with full `{"ui": ...}` event dispatch for live frontend updates.
-- Contextual hover tooltips across HUD banners, buttons, and custom widgets on all 18 nodes.
-- Slop Guard expanded with `trending on artstation`.
-
-### Changed
-- **Output Slot Standardization:**
-  - Renamed `scribble_mask` to `mask` in `Anima Corner Shield`.
-  - Renamed `model_info`, `clip_info`, `vae_info` to `info` across all Loader nodes.
-  - Implemented automatic, non-destructive client-side slot migration in JavaScript (`migrateOutputSlot`) preserving existing saved workflow wires.
-- **KSampler Socket Clean-up:**
-  - `model_pass2` officially documented as primary input socket (with backward-compatible fallback for legacy `model_pass2_optional`).
-
-### Fixed
-- **Suite Telemetry Regex Isolation:**
-  - Restricted canvas resolution extraction to `SAMPLING` and `POST_PROCESSING` streams with explicit tags, preventing false 32px misalignment warnings caused by Corner Shield's `Box: WxHpx`.
-  - Restricted VAE channel checks to VAE streams, preventing false errors on RGB images.
-  - Fixed LoRA check so `Prompt Studio` alone no longer triggers false `External LoRAs detected` tips.
-  - Fixed NAG scale parser to pull strictly from Attention Guidance streams rather than global text.
 
 ---
 

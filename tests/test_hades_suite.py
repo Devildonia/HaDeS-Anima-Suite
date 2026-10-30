@@ -1517,6 +1517,34 @@ def test_22_anima_suite_telemetry():
     data_raw = json.loads(rep_raw_json)
     assert data_raw["report_title"] == "JSON Mode"
 
+    # 6. Regression Test for Audit A2: Real NAG string detection (Active vs Bypassed)
+    t_nag_real_active = "HaDeS Anima NAG Active | Preset: Turbo / Lightning Negative Enabler | Scale: 3.50 | Alpha: 0.45 | Tau: 2.50 | Window: 0%-70%"
+    t_ksamp_cfg1 = "HaDeS Anima KSampler | Profile: Anima Lightning TDM | Resolution: 1024x1024px | Sampler: euler | Scheduler: anima_lightning_tdm | Steps: 4 | CFG: 1.00 | Denoise: 1.00 | Flow Shift (multiplier=1.0): 3.00"
+    _, json_nag_act, _ = _exec_telemetry(
+        "Full Audit Report (Markdown)",
+        "NAG Real Active Test",
+        info_1=t_ksamp_cfg1,
+        info_2=t_nag_real_active,
+    )
+    data_nag_act = json.loads(json_nag_act)
+    assert data_nag_act["extracted_telemetry"]["nag_active"] is True, "Expected real NAG Active string to be recognized as active"
+    assert data_nag_act["extracted_telemetry"]["nag_scale"] == 3.5, f"Expected nag_scale 3.5, got {data_nag_act['extracted_telemetry']['nag_scale']}"
+    assert data_nag_act["extracted_telemetry"]["nag_tau"] == 2.5, f"Expected nag_tau 2.5, got {data_nag_act['extracted_telemetry']['nag_tau']}"
+    assert not any("without Anima Attention Guidance" in iss["message"] for iss in data_nag_act["diagnostics"]["issues"]), \
+        "CFG 1.0 paired with active real NAG string must NOT raise Low CFG warning"
+
+    t_nag_real_bypassed = "HaDeS NAG: Bypassed (not an Anima model; only_anima=True)."
+    _, json_nag_byp, _ = _exec_telemetry(
+        "Full Audit Report (Markdown)",
+        "NAG Real Bypassed Test",
+        info_1=t_ksamp_cfg1,
+        info_2=t_nag_real_bypassed,
+    )
+    data_nag_byp = json.loads(json_nag_byp)
+    assert data_nag_byp["extracted_telemetry"]["nag_active"] is False, "Expected real NAG Bypassed string to be recognized as inactive"
+    assert any("without Anima Attention Guidance" in iss["message"] for iss in data_nag_byp["diagnostics"]["issues"]), \
+        "CFG 1.0 paired with bypassed NAG must raise Low CFG warning"
+
     print("[OK] Test 22: HaDeS Anima Suite Telemetry (Multi-Stream Aggregation, Diagnostics & Health Scoring, JSON & Formats) verified")
 
 

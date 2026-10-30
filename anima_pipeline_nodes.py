@@ -1365,12 +1365,12 @@ class HaDeSAnimaSuiteTelemetry:
                 except ValueError:
                     pass
 
-            if "ATTENTION GUIDANCE" in samp_item.upper():
-                m_act = re.search(r"Active:\s*(True|False)", samp_item, re.IGNORECASE)
-                if m_act:
-                    nag_active = (m_act.group(1).lower() == "true")
-                else:
+            if "NAG" in samp_item.upper() or "ATTENTION GUIDANCE" in samp_item.upper():
+                if "BYPASSED" in samp_item.upper() or re.search(r"Active:\s*False", samp_item, re.IGNORECASE):
+                    nag_active = False
+                elif "ACTIVE" in samp_item.upper() or re.search(r"Active:\s*True", samp_item, re.IGNORECASE):
                     nag_active = True
+
                 m_sc = re.search(r"Scale[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
                 if m_sc:
                     try:

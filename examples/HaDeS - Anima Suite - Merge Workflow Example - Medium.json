@@ -4476,11 +4476,11 @@
         1,
         "souryuu asuka langley",
         "ekubo (ciaobero)",
+        "masterpiece, best quality, absurdres, score_7, low angle dramatic shot, tilted dutch angle, 1girl, seated inside the dark cramped cockpit of eva unit 02, intense fiery glare looking down at the viewer, tangled red hair floating weightlessly in LCL fluid, red plugsuit with matte mechanical seams and glowing green interface nodes, holographic tactical displays and hexagonal warning glyphs casting hard cyan and crimson shadows across her face, heavy ink lineart, high contrast shadows",
+        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature",
         "Canonical (1 Trigger + Title)",
         "ye-pop",
-        "",
-        "masterpiece, best quality, absurdres, score_7, low angle dramatic shot, tilted dutch angle, 1girl, seated inside the dark cramped cockpit of eva unit 02, intense fiery glare looking down at the viewer, tangled red hair floating weightlessly in LCL fluid, red plugsuit with matte mechanical seams and glowing green interface nodes, holographic tactical displays and hexagonal warning glyphs casting hard cyan and crimson shadows across her face, heavy ink lineart, high contrast shadows",
-        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
+        ""
       ],
       "widgets_values_named": {
         "model_variant": "Anima Base 2B (Keep Quality Tags)",

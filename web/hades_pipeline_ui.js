@@ -239,6 +239,35 @@ export function setupPromptStudioUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migratePromptStudioInputs(this);
+
+        // Robust prompt & widget value restoration (supports both named and positional schemas)
+        if (info) {
+            if (info.widgets_values_named) {
+                for (const [k, v] of Object.entries(info.widgets_values_named)) {
+                    const w = findW(k);
+                    if (w && v !== undefined) w.value = v;
+                }
+            } else if (Array.isArray(info.widgets_values) && info.widgets_values.length >= 11) {
+                const wv = info.widgets_values;
+                const isReordered = typeof wv[6] === "string" && (wv[6].includes("Canonical") || wv[6].includes("Dual"));
+                if (isReordered) {
+                    if (wHeaderMode) wHeaderMode.value = wv[6];
+                    if (wHeaderTrig) wHeaderTrig.value = wv[7];
+                    const wArt = findW("artwork_title");
+                    if (wArt) wArt.value = wv[8];
+                    if (wPos) wPos.value = wv[9];
+                    if (wNeg) wNeg.value = wv[10];
+                } else {
+                    if (wPos) wPos.value = wv[6];
+                    if (wNeg) wNeg.value = wv[7];
+                    if (wHeaderMode) wHeaderMode.value = wv[8];
+                    if (wHeaderTrig) wHeaderTrig.value = wv[9];
+                    const wArt = findW("artwork_title");
+                    if (wArt) wArt.value = wv[10];
+                }
+            }
+        }
+
         if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
             this.size = [info.size[0], info.size[1]];
         }

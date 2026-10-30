@@ -255,11 +255,11 @@
         1,
         "",
         "",
+        "1girl, solo, silver hair, cyan eyes, detailed anime illustration, soft rim lighting",
+        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature",
         "Canonical (1 Trigger + Title)",
         "ye-pop",
-        "",
-        "1girl, solo, silver hair, cyan eyes, detailed anime illustration, soft rim lighting",
-        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
+        ""
       ],
       "widgets_values_named": {
         "model_variant": "Anima Aesthetic (Strip score_* & Slop Guard)",
