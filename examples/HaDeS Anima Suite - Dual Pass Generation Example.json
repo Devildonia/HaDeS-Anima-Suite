@@ -37,9 +37,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaVAELoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -89,9 +90,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaModelLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -147,9 +149,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaCLIPLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -239,9 +242,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaPromptStudio",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -255,11 +259,11 @@
         1,
         "",
         "",
-        "1girl, solo, silver hair, cyan eyes, detailed anime illustration, soft rim lighting",
-        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature",
         "Canonical (1 Trigger + Title)",
         "ye-pop",
-        ""
+        "",
+        "1girl, solo, silver hair, cyan eyes, detailed anime illustration, soft rim lighting",
+        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
       ],
       "widgets_values_named": {
         "model_variant": "Anima Aesthetic (Strip score_* & Slop Guard)",
@@ -332,9 +336,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaLatentPipelineGuard",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -440,9 +445,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "08df1949855e95919cc7d2d16e047c2e5f2071a5",
         "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -537,9 +543,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "9847cb56c620e737a9a99f8ea137189b7540e8ff",
         "Node name for S&R": "HaDeSAnimaDualPassKSampler",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -619,9 +626,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaModelLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -745,6 +753,11 @@
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
     "VHS_KeepIntermediate": true
+  },
+  "extensions": {
+    "seed_widgets": {
+      "22": 3
+    }
   },
   "version": 0.4,
   "seed_widgets": {

@@ -1869,8 +1869,6 @@
           "version": "7.8"
         }
       },
-      "widgets_values": [],
-      "widgets_values_named": {},
       "color": "#3f467d",
       "bgcolor": "#2b3269"
     },
@@ -1915,8 +1913,6 @@
           "version": "7.8"
         }
       },
-      "widgets_values": [],
-      "widgets_values_named": {},
       "color": "#3f467d",
       "bgcolor": "#2b3269"
     },
@@ -1961,8 +1957,6 @@
           "version": "7.8"
         }
       },
-      "widgets_values": [],
-      "widgets_values_named": {},
       "color": "#682b2b",
       "bgcolor": "#541717"
     },
@@ -2416,8 +2410,8 @@
       "inputs": [],
       "outputs": [
         {
-          "name": "info",
-          "type": "STRING",
+          "name": "*",
+          "type": "*",
           "links": [
             200
           ]
@@ -2459,8 +2453,8 @@
       "inputs": [],
       "outputs": [
         {
-          "name": "info",
-          "type": "STRING",
+          "name": "*",
+          "type": "*",
           "links": [
             199
           ]
@@ -2696,8 +2690,6 @@
           "version": "7.8"
         }
       },
-      "widgets_values": [],
-      "widgets_values_named": {},
       "color": "#682b2b",
       "bgcolor": "#541717"
     },
@@ -3060,9 +3052,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaPredictiveModelMerger",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3129,9 +3122,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaModelBlockMerger",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3208,9 +3202,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaCLIPBlockMerger",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3298,8 +3293,8 @@
       "inputs": [],
       "outputs": [
         {
-          "name": "info",
-          "type": "STRING",
+          "name": "*",
+          "type": "*",
           "links": [
             202
           ]
@@ -3372,9 +3367,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "e938e61f365f62fb026cd7686d59027cb8419256",
         "Node name for S&R": "HaDeSAnimaPredictiveMultiLoraLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3492,9 +3488,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaKSampler",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3598,9 +3595,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaKSampler",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3704,9 +3702,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaKSampler",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3810,9 +3809,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaKSampler",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3887,9 +3887,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -3954,9 +3955,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4021,9 +4023,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4088,9 +4091,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaVAEDecode",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4144,9 +4148,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaModelLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4202,9 +4207,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaModelLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4260,9 +4266,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaCLIPLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4316,9 +4323,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaVAELoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4368,9 +4376,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaCLIPLoader",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4460,9 +4469,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaPromptStudio",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4476,11 +4486,11 @@
         1,
         "souryuu asuka langley",
         "ekubo (ciaobero)",
-        "masterpiece, best quality, absurdres, score_7, low angle dramatic shot, tilted dutch angle, 1girl, seated inside the dark cramped cockpit of eva unit 02, intense fiery glare looking down at the viewer, tangled red hair floating weightlessly in LCL fluid, red plugsuit with matte mechanical seams and glowing green interface nodes, holographic tactical displays and hexagonal warning glyphs casting hard cyan and crimson shadows across her face, heavy ink lineart, high contrast shadows",
-        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature",
         "Canonical (1 Trigger + Title)",
         "ye-pop",
-        ""
+        "",
+        "masterpiece, best quality, absurdres, score_7, low angle dramatic shot, tilted dutch angle, 1girl, seated inside the dark cramped cockpit of eva unit 02, intense fiery glare looking down at the viewer, tangled red hair floating weightlessly in LCL fluid, red plugsuit with matte mechanical seams and glowing green interface nodes, holographic tactical displays and hexagonal warning glyphs casting hard cyan and crimson shadows across her face, heavy ink lineart, high contrast shadows",
+        "worst quality, low quality, bad anatomy, bad hands, blurry, jpeg artifacts, artist name, watermark, signature"
       ],
       "widgets_values_named": {
         "model_variant": "Anima Base 2B (Keep Quality Tags)",
@@ -4553,9 +4563,10 @@
         }
       ],
       "properties": {
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
+        "cnr_id": "hades-anima-suite",
         "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
         "Node name for S&R": "HaDeSAnimaLatentPipelineGuard",
+        "aux_id": "Devildonia/HaDeS-Anima-Suite",
         "ue_properties": {
           "widget_ue_connectable": {},
           "input_ue_unconnectable": {},
@@ -4665,13 +4676,15 @@
         }
       ],
       "properties": {
+        "cnr_id": "hades-anima-suite",
+        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
+        "Node name for S&R": "HaDeSAnimaSuiteTelemetry",
         "ue_properties": {
           "widget_ue_connectable": {},
-          "input_ue_unconnectable": {}
+          "input_ue_unconnectable": {},
+          "version": "7.8"
         },
-        "aux_id": "Devildonia/HaDeS-Anima-Suite",
-        "ver": "8501072d168c817a6cb65f918b4bc397cf8d14b7",
-        "Node name for S&R": "HaDeSAnimaSuiteTelemetry"
+        "aux_id": "Devildonia/HaDeS-Anima-Suite"
       },
       "widgets_values": [
         "Full Audit Report (Markdown)",
@@ -4716,19 +4729,20 @@
         }
       ],
       "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {}
-        },
         "cnr_id": "comfyui-custom-scripts",
         "ver": "609f3afaa74b2f88ef9ce8d939626065e3247469",
-        "Node name for S&R": "ShowText|pysssss"
+        "Node name for S&R": "ShowText|pysssss",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
       },
       "widgets_values": [
         "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
       ],
       "widgets_values_named": {
-        "text_undefined": "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
+        "text_0": "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
       },
       "color": "#ebdcdc",
       "bgcolor": "#d7c8c8"
@@ -4960,14 +4974,6 @@
       "LATENT"
     ],
     [
-      154,
-      52,
-      0,
-      127,
-      5,
-      "INT"
-    ],
-    [
       157,
       34,
       0,
@@ -4998,22 +5004,6 @@
       128,
       1,
       "CONDITIONING"
-    ],
-    [
-      161,
-      50,
-      0,
-      128,
-      5,
-      "INT"
-    ],
-    [
-      162,
-      51,
-      0,
-      129,
-      5,
-      "INT"
     ],
     [
       163,
@@ -5078,14 +5068,6 @@
       130,
       3,
       "LATENT"
-    ],
-    [
-      171,
-      109,
-      0,
-      130,
-      5,
-      "INT"
     ],
     [
       172,
@@ -5286,6 +5268,38 @@
       145,
       0,
       "STRING"
+    ],
+    [
+      154,
+      52,
+      0,
+      127,
+      5,
+      "INT"
+    ],
+    [
+      161,
+      50,
+      0,
+      128,
+      5,
+      "INT"
+    ],
+    [
+      162,
+      51,
+      0,
+      129,
+      5,
+      "INT"
+    ],
+    [
+      171,
+      109,
+      0,
+      130,
+      5,
+      "INT"
     ]
   ],
   "groups": [
@@ -5384,10 +5398,10 @@
   "extra": {
     "ue_links": [],
     "ds": {
-      "scale": 0.2357947691000316,
+      "scale": 0.2853116706110391,
       "offset": [
-        -2913.836243252661,
-        -452.8081327262461
+        -2715.697792678012,
+        -1070.3621003011117
       ]
     },
     "links_added_by_ue": [],
@@ -5396,6 +5410,15 @@
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
     "VHS_KeepIntermediate": true
+  },
+  "extensions": {
+    "seed_widgets": {
+      "48": 0,
+      "127": 3,
+      "128": 3,
+      "129": 3,
+      "130": 3
+    }
   },
   "version": 0.4,
   "seed_widgets": {
