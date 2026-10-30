@@ -9,6 +9,7 @@ import {
     createSpectralSliderWidget,
     createStyledTextRowWidget,
     createStyledToggleWidget,
+    finalizeHadesNode,
 } from "./hades_widgets.js";
 
 // =============================================================================
@@ -80,23 +81,27 @@ export function setupPromptStudioUI(node) {
                     tooltip: `<strong>Anima Aesthetic Profile</strong><br>Enables Slop Guard to strip score_* tags and low-quality tokens for pure artistic prompt interpretation.`,
                     onClick: () =>
                         setWidgetValue(wVariant, "Anima Aesthetic (Strip score_* & Slop Guard)", node),
+                    isActive: () => wVariant?.value === "Anima Aesthetic (Strip score_* & Slop Guard)",
                 },
                 {
                     label: "2.9B/3.8B",
                     tooltip: `<strong>Anima 2.9B / 3.8B Expanded Profile</strong><br>Preserves quality tags and enables expanded vocabulary for deep DiT architectures.`,
                     onClick: () =>
                         setWidgetValue(wVariant, "Anima 2.9B / 3.8B Expanded (Keep Quality Tags)", node),
+                    isActive: () => wVariant?.value === "Anima 2.9B / 3.8B Expanded (Keep Quality Tags)",
                 },
                 {
                     label: "Base 2B",
                     tooltip: `<strong>Anima Base 2B Profile</strong><br>Standard training baseline with full quality tag retention.`,
                     onClick: () => setWidgetValue(wVariant, "Anima Base 2B (Keep Quality Tags)", node),
+                    isActive: () => wVariant?.value === "Anima Base 2B (Keep Quality Tags)",
                 },
                 {
                     label: "Vector",
                     tooltip: `<strong>Flat Vector / Graphic Style</strong><br>Applies official CircleStone 3-line header format (ye-pop trigger + optional title).`,
                     onClick: () =>
                         setWidgetValue(wStyle, "Flat Vector / Graphic (Non-Anime Dataset Header)", node),
+                    isActive: () => wStyle?.value === "Flat Vector / Graphic (Non-Anime Dataset Header)",
                 },
             ],
             drawCustomHUD(ctx, rect) {
@@ -106,7 +111,7 @@ export function setupPromptStudioUI(node) {
                 const posText = String(wPos?.value || "");
                 const hasSlop = /score_\d|masterpiece|best quality/i.test(posText);
 
-                ctx.font = "bold 9px monospace";
+                ctx.font = "600 9px ui-monospace, Consolas, monospace";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
 
@@ -197,7 +202,7 @@ export function setupPromptStudioUI(node) {
             visMax: 2.5,
             step: 0.05,
             defaultVal: 1.0,
-            tooltip: `<strong>T5 Query Emphasis Multiplier</strong><br>Scales token-level attention weight scaling exiting the llm_adapter bridge.<br><span style="color:#fbbf24">• 1.00:</span> Standard balanced emphasis.<br><span style="color:#fbbf24">• > 1.00:</span> Amplifies tag weights for stronger visual feature compliance.`,
+            tooltip: `<strong>T5 Query Emphasis Multiplier</strong><br>Scales token-level attention weight scaling exiting the llm_adapter bridge.<br><span style="color:#8fb4f0">• 1.00:</span> Standard balanced emphasis.<br><span style="color:#8fb4f0">• > 1.00:</span> Amplifies tag weights for stronger visual feature compliance.`,
         })
     );
 
@@ -208,7 +213,7 @@ export function setupPromptStudioUI(node) {
                   color: HADES_THEME.cyan,
                   tagWidth: TAG_W,
                   promptTitle: "Enter Character Tag(s) (e.g. frieren, sousou no frieren)",
-                  emptyPlaceholder: "— Optional character & series injection —",
+                  emptyPlaceholder: "Optional: character, series",
                   allowClearOnRightClick: true,
                   tooltip: `<strong>Character & Series Tags</strong><br>Enter character names and franchises (e.g. frieren, sousou no frieren). Automatically formatted into canonical character position.`,
               })
@@ -222,12 +227,46 @@ export function setupPromptStudioUI(node) {
                   color: HADES_THEME.blue,
                   tagWidth: TAG_W,
                   promptTitle: "Enter Artist Tag(s) (e.g. @zocehuy, (@zocehuy:1.2), wlop)",
-                  emptyPlaceholder: "— Optional @artist / style injection —",
+                  emptyPlaceholder: "Optional: @artist tags",
                   allowClearOnRightClick: true,
                   tooltip: `<strong>Artist & Style Tags</strong><br>Enter artist handles with optional weights (e.g. @zocehuy, (@zocehuy:1.2)). Automatically prefixed with '@' and placed in canonical artist position.`,
               })
           )
         : null;
+
+    // Dataset header controls (used by the Flat Vector style) share the same row style as the rest of the node
+    const wArtTitle = findW("artwork_title");
+    [wHeaderMode, wHeaderTrig, wArtTitle].forEach(hideBackingWidget);
+    if (wHeaderMode) {
+        node.addCustomWidget(
+            createStyledComboWidget(node, wHeaderMode, {
+                tag: "HEADER",
+                tagWidth: TAG_W,
+                tooltip: `<strong>Dataset header format</strong><br>Used by the Flat Vector style. Canonical: trigger on line 1, optional title on line 2, prompt on line 3. Dual Legacy: ye-pop + deviantart.`,
+            })
+        );
+    }
+    if (wHeaderTrig) {
+        node.addCustomWidget(
+            createStyledComboWidget(node, wHeaderTrig, {
+                tag: "TRIGGER",
+                tagWidth: TAG_W,
+                tooltip: `<strong>Dataset trigger</strong><br>Line 1 of the canonical header (ye-pop or deviantart).`,
+            })
+        );
+    }
+    if (wArtTitle) {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, wArtTitle, {
+                tag: "TITLE",
+                tagWidth: TAG_W,
+                promptTitle: "Artwork title / alt-text (header line 2)",
+                emptyPlaceholder: "Optional artwork title (header line 2)",
+                allowClearOnRightClick: true,
+                tooltip: `<strong>Artwork title</strong><br>Optional line 2 of the canonical header. Leave empty to omit it. Right-click to clear.`,
+            })
+        );
+    }
 
     // Keep multiline prompt textboxes at the bottom of the node
     if (Array.isArray(node.widgets) && (wPos || wNeg)) {
@@ -270,9 +309,6 @@ export function setupPromptStudioUI(node) {
             }
         }
 
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -283,11 +319,7 @@ export function setupPromptStudioUI(node) {
         this.setDirtyCanvas?.(true, true);
     };
 
-    const minW = 440;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 12) : Math.max(418, sz[1] + 12);
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 440);
 }
 
 export function setupAttentionGuidanceUI(node) {
@@ -300,8 +332,9 @@ export function setupAttentionGuidanceUI(node) {
     const wTau = findW("nag_tau");
     const wStart = findW("start_percent");
     const wEnd = findW("end_percent");
+    const wOnlyAnima = findW("only_anima");
 
-    [wPreset, wScale, wAlpha, wTau, wStart, wEnd].forEach(hideBackingWidget);
+    [wPreset, wScale, wAlpha, wTau, wStart, wEnd, wOnlyAnima].forEach(hideBackingWidget);
 
     const NAG_PRESET_MAP = {
         "Turbo / Lightning Negative Enabler": [3.5, 0.45, 2.5, 0.0, 0.70],
@@ -351,7 +384,7 @@ export function setupAttentionGuidanceUI(node) {
             title: "",
             accentColor: HADES_THEME.amber,
             customHeight: 66,
-            tooltip: `<strong>NAG Attention Guidance & L1 Guard</strong><br>Normalized Attention Guidance providing CFG=1.0 negative prompting on Turbo/Lightning and anti-burn stabilization on Base.<br><span style="color:#fbbf24">• Guidance Window:</span> Active percentage of the diffusion trajectory.<br><span style="color:#38bdf8">• L1 Ceiling (τ):</span> Bounds guided attention to prevent oversaturation and edge frying.`,
+            tooltip: `<strong>NAG Attention Guidance & L1 Guard</strong><br>Normalized Attention Guidance providing CFG=1.0 negative prompting on Turbo/Lightning and anti-burn stabilization on Base.<br><span style="color:#8fb4f0">• Guidance Window:</span> Active percentage of the diffusion trajectory.<br><span style="color:#8fb4f0">• L1 Ceiling (τ):</span> Bounds guided attention to prevent oversaturation and edge frying.`,
             drawCustomHUD(ctx, rect) {
                 const startP = Math.max(0, Math.min(1, Number(wStart?.value ?? 0.0)));
                 const endP = Math.max(0, Math.min(1, Number(wEnd?.value ?? 0.65)));
@@ -365,23 +398,23 @@ export function setupAttentionGuidanceUI(node) {
                 const trackH = 12;
 
                 drawRoundedRect(ctx, trackX, trackY, trackW, trackH, 4);
-                ctx.fillStyle = "#181b22";
+                ctx.fillStyle = HADES_THEME.bgPanel;
                 ctx.fill();
 
                 if (endP > startP && scale > 1.0) {
                     const winX = trackX + startP * trackW;
                     const winW = Math.max(4, (endP - startP) * trackW);
                     drawRoundedRect(ctx, winX, trackY, winW, trackH, 4);
-                    ctx.fillStyle = `${HADES_THEME.amber}66`;
+                    ctx.fillStyle = `${HADES_THEME.accent}40`;
                     ctx.fill();
-                    ctx.strokeStyle = HADES_THEME.amber;
+                    ctx.strokeStyle = HADES_THEME.borderActive;
                     ctx.stroke();
                 }
 
-                ctx.font = "bold 9px monospace";
+                ctx.font = "600 9px ui-monospace, Consolas, monospace";
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "left";
-                ctx.fillStyle = HADES_THEME.amber;
+                ctx.fillStyle = HADES_THEME.textSecondary;
                 const leftTxt = `WINDOW: ${Math.round(startP * 100)}% → ${Math.round(endP * 100)}%`;
                 const leftW = ctx.measureText(leftTxt).width;
                 ctx.fillText(leftTxt, trackX, rect.y + 9);
@@ -402,16 +435,19 @@ export function setupAttentionGuidanceUI(node) {
                     tooltip: `<strong>Turbo / Lightning Preset</strong><br>Sets Scale 3.5, Alpha 0.45, Tau 2.5, Window 0% - 70%. Enables negative prompt steering on CFG=1 models.`,
                     onClick: () =>
                         applyPresetValues("Turbo / Lightning Negative Enabler", 3.5, 0.45, 2.5, 0.0, 0.7),
+                    isActive: () => wPreset?.value === "Turbo / Lightning Negative Enabler",
                 },
                 {
                     label: "Anti-Burn",
                     tooltip: `<strong>Aesthetic Crispness (Anti-Burn)</strong><br>Sets Scale 2.2, Alpha 0.30, Tau 2.0, Window 0% - 60%. Smooth high-contrast control without oversaturation.`,
                     onClick: () => applyPresetValues("Aesthetic Crispness (Anti-Burn)", 2.2, 0.3, 2.0, 0.0, 0.6),
+                    isActive: () => wPreset?.value === "Aesthetic Crispness (Anti-Burn)",
                 },
                 {
                     label: "High",
                     tooltip: `<strong>High Adherence Preset</strong><br>Sets Scale 4.5, Alpha 0.50, Tau 3.0, Window 0% - 75%. Strongest prompt adherence guidance.`,
                     onClick: () => applyPresetValues("High Adherence Extrapolation", 4.5, 0.5, 3.0, 0.0, 0.75),
+                    isActive: () => wPreset?.value === "High Adherence Extrapolation",
                 },
             ],
         })
@@ -425,11 +461,22 @@ export function setupAttentionGuidanceUI(node) {
         })
     );
 
+    if (wOnlyAnima) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wOnlyAnima, {
+                tag: "SCOPE",
+                label: "Apply only to Anima models",
+                onText: "ANIMA ONLY",
+                offText: "ANY MODEL",
+                tooltip: `<strong>Model scope</strong><br>On: non-Anima models pass through untouched. Off: force the guidance on any model (experimental).`,
+            })
+        );
+    }
+
     node.addCustomWidget(
         createSpectralSliderWidget(node, wScale, {
             tag: "SCALE",
-            rangeTag: "NAG s",
-            label: "Guidance Extrapolation Scale",
+            label: "Guidance scale",
             color: HADES_THEME.amber,
             min: 1.0,
             max: 15.0,
@@ -444,8 +491,7 @@ export function setupAttentionGuidanceUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wAlpha, {
             tag: "ALPHA",
-            rangeTag: "BLEND",
-            label: "Guided Attention Blend (α)",
+            label: "Blend (α)",
             color: HADES_THEME.emerald,
             min: 0.0,
             max: 1.0,
@@ -460,8 +506,7 @@ export function setupAttentionGuidanceUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wTau, {
             tag: "TAU",
-            rangeTag: "L1 MAX",
-            label: "L1-Norm Ceiling (Anti-Burn τ)",
+            label: "Norm ceiling (τ)",
             color: HADES_THEME.cyan,
             min: 1.0,
             max: 10.0,
@@ -476,7 +521,6 @@ export function setupAttentionGuidanceUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wStart, {
             tag: "START",
-            rangeTag: "STEP %",
             label: "Start Denoise Percent",
             color: HADES_THEME.blue,
             min: 0.0,
@@ -492,7 +536,6 @@ export function setupAttentionGuidanceUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wEnd, {
             tag: "END",
-            rangeTag: "STEP %",
             label: "End Denoise Percent",
             color: HADES_THEME.purple,
             min: 0.0,
@@ -505,8 +548,7 @@ export function setupAttentionGuidanceUI(node) {
         })
     );
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 430);
 }
 
 const PRESET_DIMS = {
@@ -607,13 +649,13 @@ export function setupLatentPipelineGuardUI(node) {
                 ctx.strokeStyle = HADES_THEME.cyan;
                 ctx.stroke();
 
-                ctx.font = isNarrow ? "9.5px monospace" : "bold 10px monospace";
+                ctx.font = isNarrow ? "9.5px ui-monospace, Consolas, monospace" : "600 10px ui-monospace, Consolas, monospace";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
                 ctx.fillText(`${w} × ${h} px  (${mp.toFixed(2)} MP)`, rect.x + boxAreaW + 8, rect.y + 11);
 
-                ctx.font = isNarrow ? "8.5px monospace" : "9px monospace";
+                ctx.font = isNarrow ? "8.5px ui-monospace, Consolas, monospace" : "9px ui-monospace, Consolas, monospace";
                 ctx.fillStyle = isOptimal ? HADES_THEME.emerald : HADES_THEME.amber;
                 const line2 = isOptimal
                     ? (isNarrow ? "16CH WAN21 · 32PX · OPTIMAL" : "16CH WAN21 · 32PX ALIGNED · OPTIMAL MP")
@@ -712,7 +754,7 @@ export function setupLatentPipelineGuardUI(node) {
                   label: "",
                   onText: "GUARD ON",
                   offText: "BYPASSED",
-                  tooltip: `<strong>Anima 2.9B White-BG Guard</strong><br>Prevents the known Anima-2.9B (Preview 3) dataset artifact where 1280×1280 causes a blank white background or loss of contrast.<br><span style="color:#6ee7b7">When active, 1280×1280 automatically shifts to 1216×1216 (32px-grid aligned).</span>`,
+                  tooltip: `<strong>Anima 2.9B White-BG Guard</strong><br>Prevents the known Anima-2.9B (Preview 3) dataset artifact where 1280×1280 causes a blank white background or loss of contrast.<br><span style="color:#8fb4f0">When active, 1280×1280 automatically shifts to 1216×1216 (32px-grid aligned).</span>`,
               })
           )
         : null;
@@ -731,8 +773,7 @@ export function setupLatentPipelineGuardUI(node) {
         wGuard29b,
     ].filter(Boolean);
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupUniversalLoraLoaderUI(node) {
@@ -754,13 +795,13 @@ export function setupUniversalLoraLoaderUI(node) {
             title: "",
             accentColor: HADES_THEME.purple,
             customHeight: 58,
-            tooltip: `<strong>Universal 24-Rule LoRA Remapper</strong><br>Translates external LoRA architectures into native ComfyUI MiniTrainDIT format on-the-fly.<br><span style="color:#c084fc">• Cross-Format Compatibility:</span> Diffusers, Kohya (lora_unet_*), Musubi, and OneTrainer.<br><span style="color:#34d399">• Strip llm_adapter:</span> Strips dirty text-conditioner keys (lr=0 golden rule) to protect prompt adherence.<br><span style="color:#fbbf24">• Outlier Clamp:</span> Cleans NaN/Inf and clamps extreme >10σ weights.`,
+            tooltip: `<strong>Universal 24-Rule LoRA Remapper</strong><br>Translates external LoRA architectures into native ComfyUI MiniTrainDIT format on-the-fly.<br><span style="color:#8fb4f0">• Cross-Format Compatibility:</span> Diffusers, Kohya (lora_unet_*), Musubi, and OneTrainer.<br><span style="color:#8fb4f0">• Strip llm_adapter:</span> Strips dirty text-conditioner keys (lr=0 golden rule) to protect prompt adherence.<br><span style="color:#8fb4f0">• Outlier Clamp:</span> Cleans NaN/Inf and clamps extreme >10σ weights.`,
             drawCustomHUD(ctx, rect) {
                 const stripOn = wStrip ? Boolean(wStrip.value) : true;
                 const clampOn = wClamp ? Boolean(wClamp.value) : false;
                 const saveOn = wSave ? Boolean(wSave.value) : false;
 
-                ctx.font = "bold 9px monospace";
+                ctx.font = "600 9px ui-monospace, Consolas, monospace";
                 ctx.textBaseline = "middle";
                 ctx.textAlign = "left";
                 ctx.fillStyle = HADES_THEME.purple;
@@ -806,7 +847,6 @@ export function setupUniversalLoraLoaderUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wStrM, {
             tag: "MODEL",
-            rangeTag: "DIT STR",
             label: "Model LoRA Strength",
             color: HADES_THEME.blue,
             min: -4.0,
@@ -823,7 +863,6 @@ export function setupUniversalLoraLoaderUI(node) {
         node.addCustomWidget(
             createSpectralSliderWidget(node, wStrC, {
                 tag: "CLIP",
-                rangeTag: "QWEN STR",
                 label: "CLIP LoRA Strength",
                 color: HADES_THEME.cyan,
                 min: -4.0,
@@ -881,8 +920,7 @@ export function setupUniversalLoraLoaderUI(node) {
         })
     );
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 430);
 }
 
 function migrateOutputSlot(node, oldName, newName) {
@@ -928,7 +966,7 @@ export function setupCornerScribbleShieldUI(node) {
             title: "",
             accentColor: HADES_THEME.rose,
             customHeight: 66,
-            tooltip: `<strong>Corner Scribble Shield & Watermark Healer</strong><br>Detects and heals Anima's ~20% corner signature scribbles and watermarks.<br><span style="color:#f43f5e">• Perimeter Box:</span> Inspects corner regions for high-frequency stroke energy.<br><span style="color:#34d399">• Smart Auto-Heal:</span> Inward edge continuation avoiding central pixel corruption.`,
+            tooltip: `<strong>Corner Scribble Shield & Watermark Healer</strong><br>Detects and heals Anima's ~20% corner signature scribbles and watermarks.<br><span style="color:#8fb4f0">• Perimeter Box:</span> Inspects corner regions for high-frequency stroke energy.<br><span style="color:#8fb4f0">• Smart Auto-Heal:</span> Inward edge continuation avoiding central pixel corruption.`,
             drawCustomHUD(ctx, rect) {
                 const act = String(wCorners?.value || "All 4 Corners");
                 const mode = String(wHeal?.value || "");
@@ -952,13 +990,13 @@ export function setupCornerScribbleShieldUI(node) {
                 const hasBL = act === "All 4 Corners" || act.includes("Bottom Corners") || act.includes("Bottom-Left");
                 const hasBR = act === "All 4 Corners" || act.includes("Bottom Corners") || act.includes("Bottom-Right");
 
-                ctx.fillStyle = HADES_THEME.rose;
+                ctx.fillStyle = HADES_THEME.accent;
                 if (hasTL) ctx.fillRect(fx + 2, fy + 2, cw, ch);
                 if (hasTR) ctx.fillRect(fx + fw - cw - 2, fy + 2, cw, ch);
                 if (hasBL) ctx.fillRect(fx + 2, fy + fh - ch - 2, cw, ch);
                 if (hasBR) ctx.fillRect(fx + fw - cw - 2, fy + fh - ch - 2, cw, ch);
 
-                ctx.font = "bold 9px monospace";
+                ctx.font = "600 9px ui-monospace, Consolas, monospace";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
@@ -980,26 +1018,31 @@ export function setupCornerScribbleShieldUI(node) {
                     label: "All 4",
                     tooltip: `<strong>All 4 Corners</strong><br>Inspects and processes all four corner margins of the image canvas.`,
                     onClick: () => setWidgetValue(wCorners, "All 4 Corners", node),
+                    isActive: () => wCorners?.value === "All 4 Corners",
                 },
                 {
                     label: "Bottom",
                     tooltip: `<strong>Bottom Corners Only</strong><br>Restricts scanning to bottom-left and bottom-right corners (most common location for Anima signatures).`,
                     onClick: () => setWidgetValue(wCorners, "Bottom Corners Only (Left & Right)", node),
+                    isActive: () => wCorners?.value === "Bottom Corners Only (Left & Right)",
                 },
                 {
                     label: "Auto-Heal",
                     tooltip: `<strong>Smart Edge-Inward Blend</strong><br>Intelligently blends edge pixels inward across detected stroke areas to remove scribbles seamlessly.`,
                     onClick: () => setWidgetValue(wHeal, "Smart Edge-Inward Blend (Auto-Heal)", node),
+                    isActive: () => wHeal?.value === "Smart Edge-Inward Blend (Auto-Heal)",
                 },
                 {
                     label: "Forced",
                     tooltip: `<strong>Aggressive Corner Fill</strong><br>Forces inward edge fill across corner boxes regardless of stroke detection threshold.`,
                     onClick: () => setWidgetValue(wHeal, "Aggressive Corner Fill (Forced)", node),
+                    isActive: () => wHeal?.value === "Aggressive Corner Fill (Forced)",
                 },
                 {
                     label: "Mask Only",
                     tooltip: `<strong>Mask Only (No Pixel Modification)</strong><br>Outputs a feathered soft mask of affected corners without altering the RGB image pixels.`,
                     onClick: () => setWidgetValue(wHeal, "Mask Only (No Pixel Modification)", node),
+                    isActive: () => wHeal?.value === "Mask Only (No Pixel Modification)",
                 },
             ],
         })
@@ -1070,8 +1113,7 @@ export function setupCornerScribbleShieldUI(node) {
         })
     );
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupSuiteTelemetryUI(node) {
@@ -1092,14 +1134,14 @@ export function setupSuiteTelemetryUI(node) {
             title: "",
             accentColor: HADES_THEME.cyan,
             customHeight: 58,
-            tooltip: `<strong>Anima Suite Telemetry & Flight Auditor</strong><br>Aggregates, semantically classifies, and performs automated diagnostic health checks across all HaDeS Suite nodes in the active workflow.<br><span style="color:#38bdf8">• Health Checks:</span> Flow Shift sync, 32px grid alignment, 16ch Wan2.1 VAE, and llm_adapter locks.<br><span style="color:#34d399">• Clipboard Export:</span> Quick-copy full audit reports or structured JSON payload directly to clipboard.`,
+            tooltip: `<strong>Anima Suite Telemetry & Flight Auditor</strong><br>Aggregates, semantically classifies, and performs automated diagnostic health checks across all HaDeS Suite nodes in the active workflow.<br><span style="color:#8fb4f0">• Health Checks:</span> Flow Shift sync, 32px grid alignment, 16ch Wan2.1 VAE, and llm_adapter locks.<br><span style="color:#8fb4f0">• Clipboard Export:</span> Quick-copy full audit reports or structured JSON payload directly to clipboard.`,
             drawCustomHUD(ctx, rect) {
                 const diag = node._latestDiag || "STATUS: READY / STANDBY (CONNECT INFO SLOTS)";
                 const isWarning = diag.includes("WARNING") || diag.includes("DEGRADED");
                 const isError = diag.includes("ERROR") || diag.includes("CRITICAL");
                 const statusColor = isError ? HADES_THEME.rose : (isWarning ? HADES_THEME.amber : HADES_THEME.cyan);
 
-                ctx.font = "bold 9px monospace";
+                ctx.font = "600 9px ui-monospace, Consolas, monospace";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
 
@@ -1194,8 +1236,7 @@ export function setupSuiteTelemetryUI(node) {
         }
     };
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(440, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 440);
 }
 
 export const PIPELINE_NODE_DISPATCH = {

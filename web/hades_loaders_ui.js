@@ -9,6 +9,7 @@ import {
     createSpectralSliderWidget,
     createStyledComboWidget,
     createStyledToggleWidget,
+    finalizeHadesNode,
 } from "./hades_widgets.js";
 
 // =============================================================================
@@ -16,7 +17,7 @@ import {
 // =============================================================================
 
 function drawPill(ctx, x, y, text, color, tooltip = "", pillBounds = null) {
-    ctx.font = "bold 9px monospace";
+    ctx.font = "600 9px ui-monospace, Consolas, monospace";
     const tw = ctx.measureText(text).width + 12;
     drawRoundedRect(ctx, x, y, tw, 16, 4);
     ctx.fillStyle = `${color}22`;
@@ -75,16 +76,19 @@ export function setupAnimaModelLoaderUI(node) {
                     label: "Default",
                     tooltip: `<strong>Native Checkpoint Precision</strong><br>Loads model weights with their original precision (bfloat16, fp16, or fp8).`,
                     onClick: (n) => setWidgetValue(wDtype, "default", n),
+                    isActive: () => wDtype?.value === "default",
                 },
                 {
                     label: "BF16",
                     tooltip: `<strong>Bfloat16 Precision</strong><br>16-bit brain float for high dynamic range and numerical stability.`,
                     onClick: (n) => setWidgetValue(wDtype, "bfloat16", n),
+                    isActive: () => wDtype?.value === "bfloat16",
                 },
                 {
                     label: "FP8",
                     tooltip: `<strong>FP8 e4m3fn Quantization</strong><br>8-bit floating point format for ultra-low VRAM GPUs.`,
                     onClick: (n) => setWidgetValue(wDtype, "fp8_e4m3fn", n),
+                    isActive: () => wDtype?.value === "fp8_e4m3fn",
                 },
             ],
             drawCustomHUD: (ctx, rect, n, pillBounds) => {
@@ -155,7 +159,7 @@ export function setupAnimaModelLoaderUI(node) {
                   tagColor: HADES_THEME.cyan,
                   tagWidth: TAG_W,
                   label: "",
-                  tooltip: `<strong>Weight Precision</strong><br>Precision for loading the DiT weights into VRAM.<br><span style="color:#38bdf8">• default:</span> Preserves checkpoint native precision.<br><span style="color:#38bdf8">• bfloat16:</span> Native 16-bit brain float.<br><span style="color:#38bdf8">• fp8_e4m3fn:</span> Low-VRAM 8-bit quantization.`,
+                  tooltip: `<strong>Weight Precision</strong><br>Precision for loading the DiT weights into VRAM.<br><span style="color:#8fb4f0">• default:</span> Preserves checkpoint native precision.<br><span style="color:#8fb4f0">• bfloat16:</span> Native 16-bit brain float.<br><span style="color:#8fb4f0">• fp8_e4m3fn:</span> Low-VRAM 8-bit quantization.`,
               })
           )
         : null;
@@ -173,7 +177,7 @@ export function setupAnimaModelLoaderUI(node) {
                   visMax: 6.0,
                   step: 0.05,
                   defaultVal: 3.0,
-                  tooltip: `<strong>Rectified Flow Shift (multiplier=1.0)</strong><br>Time-step density warping for Anima's continuous flow formulation.<br><span style="color:#fbbf24">• Default: 3.00</span> calibrated baseline for optimal contrast and anatomy.`,
+                  tooltip: `<strong>Rectified Flow Shift (multiplier=1.0)</strong><br>Time-step density warping for Anima's continuous flow formulation.<br><span style="color:#8fb4f0">• Default: 3.00</span> calibrated baseline for optimal contrast and anatomy.`,
               })
           )
         : null;
@@ -225,9 +229,6 @@ export function setupAnimaModelLoaderUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateOutputSlot(this, "model_info", "info");
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -238,11 +239,7 @@ export function setupAnimaModelLoaderUI(node) {
         this.setDirtyCanvas?.(true, true);
     };
 
-    const minW = 420;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 420);
 }
 
 export function setupAnimaCLIPLoaderUI(node) {
@@ -264,21 +261,25 @@ export function setupAnimaCLIPLoaderUI(node) {
                     label: "GPU Dyn",
                     tooltip: `<strong>GPU Dynamic Offload</strong><br>Loads Qwen3 into GPU VRAM for conditioning and offloads when idle.`,
                     onClick: (n) => setWidgetValue(wDevice, "default (GPU Dynamic)", n),
+                    isActive: () => wDevice?.value === "default (GPU Dynamic)",
                 },
                 {
                     label: "CPU Safe",
                     tooltip: `<strong>CPU Low-VRAM Safe</strong><br>Keeps Qwen3 in system RAM to preserve maximum GPU memory for generation.`,
-                    onClick: (n) => setWidgetValue(wDevice, "cpu (Low-VRAM Safe)", n),
+                    onClick: (n) => setWidgetValue(wDevice, "cpu (Low-VRAM 6GB Safe)", n),
+                    isActive: () => wDevice?.value === "cpu (Low-VRAM 6GB Safe)",
                 },
                 {
                     label: "Auto Prec",
                     tooltip: `<strong>Auto Precision</strong><br>Automatically matches text encoder precision to GPU hardware capability.`,
                     onClick: (n) => setWidgetValue(wPrec, "auto", n),
+                    isActive: () => wPrec?.value === "auto",
                 },
                 {
                     label: "BF16",
                     tooltip: `<strong>Bfloat16 Precision</strong><br>Computes embeddings in 16-bit brain float.`,
                     onClick: (n) => setWidgetValue(wPrec, "bfloat16", n),
+                    isActive: () => wPrec?.value === "bfloat16",
                 },
             ],
             drawCustomHUD: (ctx, rect, n, pillBounds) => {
@@ -338,7 +339,7 @@ export function setupAnimaCLIPLoaderUI(node) {
                   tagColor: HADES_THEME.blue,
                   tagWidth: TAG_W,
                   label: "",
-                  tooltip: `<strong>Execution Device Mode</strong><br><span style="color:#38bdf8">• default (GPU Dynamic):</span> Moves text encoder to GPU during prompt conditioning, then offloads when idle.<br><span style="color:#a855f7">• cpu:</span> Keeps text encoder in system RAM to preserve maximum GPU VRAM.`,
+                  tooltip: `<strong>Execution Device Mode</strong><br><span style="color:#8fb4f0">• default (GPU Dynamic):</span> Moves text encoder to GPU during prompt conditioning, then offloads when idle.<br><span style="color:#8fb4f0">• cpu:</span> Keeps text encoder in system RAM to preserve maximum GPU VRAM.`,
               })
           )
         : null;
@@ -387,9 +388,6 @@ export function setupAnimaCLIPLoaderUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateOutputSlot(this, "clip_info", "info");
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -400,11 +398,7 @@ export function setupAnimaCLIPLoaderUI(node) {
         this.setDirtyCanvas?.(true, true);
     };
 
-    const minW = 420;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 420);
 }
 
 export function setupAnimaVAELoaderUI(node) {
@@ -424,16 +418,19 @@ export function setupAnimaVAELoaderUI(node) {
                     label: "BF16 (Rec)",
                     tooltip: `<strong>Bfloat16 Native Precision</strong><br>Officially recommended native precision for 16-channel Wan2.1 VAE.`,
                     onClick: (n) => setWidgetValue(wPrec, "bfloat16 (Recommended Wan21)", n),
+                    isActive: () => wPrec?.value === "bfloat16 (Recommended Wan21)",
                 },
                 {
-                    label: "FP32 HiPrec",
+                    label: "FP32",
                     tooltip: `<strong>Float32 High Precision</strong><br>Forces 32-bit floating point to eliminate potential rounding artifacts.`,
-                    onClick: (n) => setWidgetValue(wPrec, "float32 (High Precision)", n),
+                    onClick: (n) => setWidgetValue(wPrec, "float32", n),
+                    isActive: () => wPrec?.value === "float32",
                 },
                 {
                     label: "FP16",
                     tooltip: `<strong>Float16 Precision</strong><br>Standard 16-bit half precision.`,
                     onClick: (n) => setWidgetValue(wPrec, "float16", n),
+                    isActive: () => wPrec?.value === "float16",
                 },
             ],
             drawCustomHUD: (ctx, rect, n, pillBounds) => {
@@ -497,7 +494,7 @@ export function setupAnimaVAELoaderUI(node) {
                   tagColor: HADES_THEME.blue,
                   tagWidth: TAG_W,
                   label: "",
-                  tooltip: `<strong>Wan2.1 RMSNorm Precision</strong><br>Precision for VAE RMSNorm and convolutional layers.<br><span style="color:#38bdf8">• bfloat16:</span> Officially recommended native precision for Wan2.1 VAE.`,
+                  tooltip: `<strong>Wan2.1 RMSNorm Precision</strong><br>Precision for VAE RMSNorm and convolutional layers.<br><span style="color:#8fb4f0">• bfloat16:</span> Officially recommended native precision for Wan2.1 VAE.`,
               })
           )
         : null;
@@ -516,9 +513,6 @@ export function setupAnimaVAELoaderUI(node) {
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateOutputSlot(this, "vae_info", "info");
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
         this.setDirtyCanvas?.(true, true);
     };
 
@@ -529,11 +523,7 @@ export function setupAnimaVAELoaderUI(node) {
         this.setDirtyCanvas?.(true, true);
     };
 
-    const minW = 420;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 420);
 }
 
 export function setupAnimaVAEDecodeUI(node) {
@@ -615,7 +605,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   defaultVal: 512,
                   decimals: 0,
                   isInt: true,
-                  tooltip: `<strong>Spatial Tile Size (px)</strong><br>Pixel dimension of each square patch decoded independently.<br><span style="color:#38bdf8">• Smaller (256–512px):</span> Drastically reduces VRAM usage (safe for 6GB–8GB GPUs).<br><span style="color:#38bdf8">• Larger (768–1024px):</span> Faster decoding and fewer tile boundaries if VRAM permits.`,
+                  tooltip: `<strong>Spatial Tile Size (px)</strong><br>Pixel dimension of each square patch decoded independently.<br><span style="color:#8fb4f0">• Smaller (256–512px):</span> Drastically reduces VRAM usage (safe for 6GB–8GB GPUs).<br><span style="color:#8fb4f0">• Larger (768–1024px):</span> Faster decoding and fewer tile boundaries if VRAM permits.`,
               })
           )
         : null;
@@ -636,7 +626,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   defaultVal: 64,
                   decimals: 0,
                   isInt: true,
-                  tooltip: `<strong>Tile Blend Overlap (px)</strong><br>Margin of overlapping pixels between adjacent tiles.<br><span style="color:#60a5fa">• Edge Feathering:</span> Blends boundaries with smooth cosine/linear weighting.<br>Prevents visible seams, grid artifacts, or luminance lines across tile borders.`,
+                  tooltip: `<strong>Tile Blend Overlap (px)</strong><br>Margin of overlapping pixels between adjacent tiles.<br><span style="color:#8fb4f0">• Edge Feathering:</span> Blends boundaries with smooth cosine/linear weighting.<br>Prevents visible seams, grid artifacts, or luminance lines across tile borders.`,
               })
           )
         : null;
@@ -655,7 +645,7 @@ export function setupAnimaVAEDecodeUI(node) {
                   visMax: 4.0,
                   step: 0.05,
                   defaultVal: 1.35,
-                  tooltip: `<strong>Auto-Tile Resolution Threshold (Megapixels)</strong><br>Resolution cutoff (W × H / 1M) triggering tiled decoding in Auto mode.<br><span style="color:#34d399">• Below threshold (e.g. 1024×1024 = 1.05 MP):</span> Direct fast decode.<br><span style="color:#34d399">• Above threshold (e.g. 1536×1536 = 2.36 MP):</span> Activates seamless tiling to prevent VRAM OOM.`,
+                  tooltip: `<strong>Auto-Tile Resolution Threshold (Megapixels)</strong><br>Resolution cutoff (W × H / 1M) triggering tiled decoding in Auto mode.<br><span style="color:#8fb4f0">• Below threshold (e.g. 1024×1024 = 1.05 MP):</span> Direct fast decode.<br><span style="color:#8fb4f0">• Above threshold (e.g. 1536×1536 = 2.36 MP):</span> Activates seamless tiling to prevent VRAM OOM.`,
               })
           )
         : null;
@@ -672,26 +662,7 @@ export function setupAnimaVAEDecodeUI(node) {
         wThresh,
     ].filter(Boolean);
 
-    const origConfigure = node.configure;
-    node.configure = function (info) {
-        if (origConfigure) origConfigure.apply(this, arguments);
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
-        this.setDirtyCanvas?.(true, true);
-    };
-
-    const origOnConfigure = node.onConfigure;
-    node.onConfigure = function () {
-        if (origOnConfigure) origOnConfigure.apply(this, arguments);
-        this.setDirtyCanvas?.(true, true);
-    };
-
-    const minW = 420;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 420);
 }
 
 export const LOADER_NODE_DISPATCH = {

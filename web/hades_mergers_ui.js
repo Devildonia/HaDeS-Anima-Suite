@@ -13,6 +13,7 @@ import {
     createStyledTextRowWidget,
     createStyledToggleWidget,
     createSlotRowWidget,
+    finalizeHadesNode,
 } from "./hades_widgets.js";
 
 // =============================================================================
@@ -157,6 +158,7 @@ export function setupManualBlockMergerUI(node) {
                 rangeTag: meta.range,
                 label: friendlyLabels[k],
                 color: meta.color,
+                marker: k === "base_ratio" ? null : meta.color,
                 min: -10.0,
                 max: 10.0,
                 visMin: 0.0,
@@ -174,27 +176,14 @@ export function setupManualBlockMergerUI(node) {
                 tag: "RECIPE",
                 color: HADES_THEME.cyan,
                 promptTitle: "Paste 34-Block CSV Vector or Predictive JSON Recipe (Right-click to clear)",
-                emptyPlaceholder: "— Manual Sliders Active (Click to paste CSV/JSON) —",
+                emptyPlaceholder: "None (sliders active). Click to paste a CSV / JSON recipe",
                 allowClearOnRightClick: true,
                 tooltip: `<strong>CSV / JSON Recipe Vector</strong><br>Paste a custom 34-element vector or predictive recipe to override sliders. Right-click to clear.`,
             })
         );
     }
 
-    const origConfigure = node.configure;
-    node.configure = function (info) {
-        if (origConfigure) origConfigure.apply(this, arguments);
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
-        this.setDirtyCanvas?.(true, true);
-    };
-
-    const minW = 430;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupPredictiveModelMergerUI(node) {
@@ -276,8 +265,7 @@ export function setupPredictiveModelMergerUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wAgg, {
             tag: "AGGR",
-            rangeTag: "REACT",
-            label: "Spectral Aggressiveness",
+            label: "Aggressiveness",
             color: HADES_THEME.amber,
             min: 0.1,
             max: 2.5,
@@ -294,7 +282,7 @@ export function setupPredictiveModelMergerUI(node) {
             createStyledToggleWidget(node, wProtect, {
                 tag: "BRIDGE",
                 color: HADES_THEME.cyan,
-                label: "Lock llm_adapter (Model 1 Bridge)",
+                label: "Keep llm_adapter from Model 1",
                 onText: "LOCKED (0.0)",
                 offText: "ADAPTIVE",
                 tooltip: `<strong>Lock llm_adapter Bridge (Blocks 28–33)</strong><br>Ensures Anima's text adapter layers remain locked to Model 1 (0.0) per official guidelines to prevent prompt drift.`,
@@ -302,20 +290,7 @@ export function setupPredictiveModelMergerUI(node) {
         );
     }
 
-    const origConfigure = node.configure;
-    node.configure = function (info) {
-        if (origConfigure) origConfigure.apply(this, arguments);
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
-        this.setDirtyCanvas?.(true, true);
-    };
-
-    const minW = 430;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupMultiLoraLoaderUI(node) {
@@ -346,7 +321,7 @@ export function setupMultiLoraLoaderUI(node) {
         createSpectralBannerWidget(node, {
             title: "",
             accentColor: HADES_THEME.emerald,
-            tooltip: `<strong>Predictive Subspace Multi-LoRA</strong><br>Concurrent multi-LoRA stacking with dynamic subspace task-vector projection.<br><span style="color:#34d399">• Primary Slot (PRI):</span> Full DiT influence baseline.<br><span style="color:#60a5fa">• Secondary Slots (S2..S4):</span> Dynamically projected onto non-interfering Grassmann angle subspaces.<br><span style="color:#38bdf8">• llm_adapter Lock:</span> Golden rule protection for Anima's 6-layer text conditioner bridge.`,
+            tooltip: `<strong>Predictive Subspace Multi-LoRA</strong><br>Concurrent multi-LoRA stacking with dynamic subspace task-vector projection.<br><span style="color:#8fb4f0">• Primary Slot (PRI):</span> Full DiT influence baseline.<br><span style="color:#8fb4f0">• Secondary Slots (S2..S4):</span> Dynamically projected onto non-interfering Grassmann angle subspaces.<br><span style="color:#8fb4f0">• llm_adapter Lock:</span> Golden rule protection for Anima's 6-layer text conditioner bridge.`,
             actions: [
                 {
                     label: "Master",
@@ -398,8 +373,7 @@ export function setupMultiLoraLoaderUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wAgg, {
             tag: "AGGR",
-            rangeTag: "REACT",
-            label: "Spectral Aggressiveness",
+            label: "Aggressiveness",
             color: HADES_THEME.amber,
             min: 0.1,
             max: 2.5,
@@ -416,7 +390,7 @@ export function setupMultiLoraLoaderUI(node) {
             createStyledToggleWidget(node, wProtect, {
                 tag: "BRIDGE",
                 color: HADES_THEME.cyan,
-                label: "Strip Dirty llm_adapter LoRA Keys",
+                label: "Strip llm_adapter keys from LoRAs",
                 onText: "PROTECTED",
                 offText: "ALLOW ALL",
                 tooltip: `<strong>Protect llm_adapter Bridge</strong><br>Strips secondary text adapter weights from LoRAs to keep Anima's Qwen3 conditioner stable.`,
@@ -430,8 +404,7 @@ export function setupMultiLoraLoaderUI(node) {
         );
     }
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupStandaloneLoraMergerUI(node) {
@@ -456,7 +429,7 @@ export function setupStandaloneLoraMergerUI(node) {
         createSpectralBannerWidget(node, {
             title: "",
             accentColor: HADES_THEME.purple,
-            tooltip: `<strong>QR-SVD LoRA Subspace Exporter</strong><br>High-speed mathematical fusion of Donor A and Donor B into a standalone LoRA.<br><span style="color:#c084fc">• QR-Reduced SVD:</span> Orthogonal Grassmann projection maintaining rank fidelity under 6ms.<br><span style="color:#34d399">• Spectrum Topology:</span> Canonical 34-band allocation (0..27 DiT blocks + 28..33 Bridge blocks).<br><span style="color:#38bdf8">• llm_adapter Lock:</span> Locks text conditioner modifications to prevent prompt drift.`,
+            tooltip: `<strong>QR-SVD LoRA Subspace Exporter</strong><br>High-speed mathematical fusion of Donor A and Donor B into a standalone LoRA.<br><span style="color:#8fb4f0">• QR-Reduced SVD:</span> Orthogonal Grassmann projection maintaining rank fidelity under 6ms.<br><span style="color:#8fb4f0">• Spectrum Topology:</span> Canonical 34-band allocation (0..27 DiT blocks + 28..33 Bridge blocks).<br><span style="color:#8fb4f0">• llm_adapter Lock:</span> Locks text conditioner modifications to prevent prompt drift.`,
             getBars() {
                 return estimatePredictiveCurve(
                     wPreset?.value,
@@ -550,8 +523,7 @@ export function setupStandaloneLoraMergerUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wAgg, {
             tag: "AGGR",
-            rangeTag: "REACT",
-            label: "Spectral Aggressiveness",
+            label: "Aggressiveness",
             color: HADES_THEME.amber,
             min: 0.1,
             max: 2.5,
@@ -566,7 +538,6 @@ export function setupStandaloneLoraMergerUI(node) {
     node.addCustomWidget(
         createSpectralSliderWidget(node, wRank, {
             tag: "RANK",
-            rangeTag: "SVD k",
             label: "Target SVD Rank",
             color: HADES_THEME.cyan,
             min: 4,
@@ -585,7 +556,7 @@ export function setupStandaloneLoraMergerUI(node) {
             createStyledToggleWidget(node, wProtect, {
                 tag: "BRIDGE",
                 color: HADES_THEME.cyan,
-                label: "Strip Dirty llm_adapter Keys",
+                label: "Strip llm_adapter keys",
                 onText: "STRIP",
                 offText: "KEEP",
                 tooltip: `<strong>llm_adapter Protection</strong><br>Prevents dirty text conditioner weights from corrupting prompt understanding.`,
@@ -617,8 +588,7 @@ export function setupStandaloneLoraMergerUI(node) {
         })
     );
 
-    const sz = node.computeSize();
-    node.setSize([Math.max(430, sz[0]), sz[1] + 8]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupCLIPBlockMergerUI(node) {
@@ -727,20 +697,7 @@ export function setupCLIPBlockMergerUI(node) {
         );
     }
 
-    const origConfigure = node.configure;
-    node.configure = function (info) {
-        if (origConfigure) origConfigure.apply(this, arguments);
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [info.size[0], info.size[1]];
-        }
-        this.setDirtyCanvas?.(true, true);
-    };
-
-    const minW = 430;
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 430);
 }
 
 export function setupModelSaverUI(node) {
@@ -768,6 +725,7 @@ export function setupModelSaverUI(node) {
             actions: [
                 {
                     label: "BF16 Master",
+                    isActive: () => wPrecision?.value === "bfloat16 (Original Master)",
                     tooltip: `<strong>Master Precision (BF16)</strong><br>Saves in full unquantized bfloat16 master format with complete numeric fidelity (~4.8 GB).`,
                     onClick: () => {
                         setWidgetValue(wPrecision, "bfloat16 (Original Master)", node);
@@ -775,6 +733,7 @@ export function setupModelSaverUI(node) {
                 },
                 {
                     label: "ConvRot INT8",
+                    isActive: () => wPrecision?.value === "convrot_int8 (Hadamard Rotated INT8)",
                     tooltip: `<strong>ConvRot INT8 (ComfyUI native)</strong><br>Hadamard-rotated per-channel INT8 on the DiT block linears via comfy.quant_ops (~2.3 GB). Loads in the stock Load Diffusion Model node; fast matmul needs an int8-capable GPU.`,
                     onClick: () => {
                         setWidgetValue(wPrecision, "convrot_int8 (Hadamard Rotated INT8)", node);
@@ -782,6 +741,7 @@ export function setupModelSaverUI(node) {
                 },
                 {
                     label: "ConvRot INT4",
+                    isActive: () => wPrecision?.value === "convrot_int4 (Hadamard Rotated INT4)",
                     tooltip: `<strong>ConvRot W4A4 (ComfyUI native)</strong><br>Hadamard-rotated 4-bit weights on the DiT block linears via comfy.quant_ops (~1.4 GB). Noticeably lossier than INT8.`,
                     onClick: () => {
                         setWidgetValue(wPrecision, "convrot_int4 (Hadamard Rotated INT4)", node);
@@ -789,6 +749,7 @@ export function setupModelSaverUI(node) {
                 },
                 {
                     label: "Diffusers HF",
+                    isActive: () => wFormat?.value === "Diffusers (HuggingFace / Trainer)",
                     tooltip: `<strong>Hugging Face Diffusers Format</strong><br>Applies 24-rule inverse conversion to transformer_blocks.*, attn1.*, and text_conditioner.* for training scripts and Hugging Face distribution.`,
                     onClick: () => {
                         setWidgetValue(wFormat, "Diffusers (HuggingFace / Trainer)", node);
@@ -805,7 +766,7 @@ export function setupModelSaverUI(node) {
                 const isNarrow = rect.w < 350;
                 const maxRowW = Math.max(60, rect.w - 16);
 
-                ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
+                ctx.font = isNarrow ? "600 8.5px ui-monospace, Consolas, monospace" : "600 9px ui-monospace, Consolas, monospace";
                 ctx.textBaseline = "middle";
 
                 const badgeY = rect.y + 11;
@@ -971,35 +932,7 @@ export function setupModelSaverUI(node) {
         );
     }
 
-    const minW = 390;
-
-    const origComputeSize = node.computeSize;
-    node.computeSize = function () {
-        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
-        return [Math.max(sz[0], minW), sz[1]];
-    };
-
-    const origOnResize = node.onResize;
-    node.onResize = function (size) {
-        if (origOnResize) origOnResize.apply(this, arguments);
-        if (size && Array.isArray(size)) {
-            size[0] = Math.max(size[0], minW);
-        }
-    };
-
-    const origConfigure = node.configure;
-    node.configure = function (info) {
-        if (origConfigure) origConfigure.apply(this, arguments);
-        if (info?.size && Array.isArray(info.size)) {
-            this.size = [Math.max(info.size[0], minW), info.size[1]];
-        }
-        this.setDirtyCanvas?.(true, true);
-    };
-
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 10) : sz[1] + 10;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 390);
 }
 
 export const MERGER_NODE_DISPATCH = {

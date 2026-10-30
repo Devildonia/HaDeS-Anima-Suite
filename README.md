@@ -2,7 +2,7 @@
 
 **HaDeS Anima Suite** is a specialized **19-node toolkit** engineered specifically for the **Anima** generative architecture (*CircleStone Labs / Comfy Org*: `MiniTrainDIT` + `Qwen3-0.6B` / `Qwen3.5-4B` + `AnimaTextConditioner` + `Wan21 16-Channel VAE`).
 
-It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, the **Multi-Format Anima Model Saver**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified **HaDeS Spectral Canvas UI**.
+It combines **native Diffusers-aware Anima Model/CLIP/16ch-VAE Loaders & Smart Tiled VAE Decode**, **subspace-aware block merging** (`28L / 40L / 52L` DiT + `6L` `llm_adapter`), **end-to-end Anima pipeline guards**, the **Anima Rectified Flow KSampler Trilogy (Single, Dual-Pass, and Triple-Pass)**, the **Multi-Format Anima Model Saver**, and the **Anima Suite Telemetry & Flight Auditor**—solving every major architectural pitfall of Anima in ComfyUI under a unified HaDeS node UI.
 
 ---
 
@@ -230,26 +230,11 @@ HaDeS Anima Suite v0.1.9
 
 ---
 
-## HaDeS Spectral Canvas UX vs. Vanilla ComfyUI Theme
+## HaDeS Node UI vs. Standard ComfyUI Widgets
 
-HaDeS Anima Suite features a custom front-end architecture (`web/hades_widgets.js`, `web/hades_suite.js`) engineered for high clarity, rapid prototyping, and real-time diagnostic visibility:
+The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark palette with one accent color (green / amber / red only signal state), quiet uppercase row labels, preset buttons that highlight the active preset, and a compact status panel per node. Every node enforces a minimum width so nothing clips or overlaps, and hover tooltips explain each control.
 
-- **HaDeS Spectral UX (Default):**
-  - **Dynamic Visual Badges:** Real-time feedback badges (e.g., `16CH WAN2.1 ONLY`, `1024d LOCKED`, `24-RULE REMAP`, `DIT: 3.00`).
-  - **Interactive Presets:** One-click recipe buttons (`Character + Style Fusion`, `HiRes Standard 1.5x`, `TDM Lightning`, `Progressive Staircase`).
-  - **Telemetry HUD Monitors:** Visual spectral bars, real-time staircase flow monitors, and Corner Shield perimeter indicators directly embedded into node canvases.
-  - **Contextual Hover Tooltips:** Granular, technical explanations when hovering over controls, buttons, and switches across all 18 nodes.
-
-- **Vanilla ComfyUI Mode (Classic Theme Switch):**
-  - Designed for minimalists or purists who prefer standard native ComfyUI controls and input widgets without custom canvas overlays.
-  - **How to Toggle:**
-    1. Open the **ComfyUI Settings** dialog (click the `⚙` **Gear Icon** in the top navigation panel).
-    2. Scroll to the **HaDeS Anima Suite** section and locate:
-       `HaDeS Suite: Force Classic ComfyUI Theme (Vanilla)`
-    3. Toggle the switch:
-       - **OFF (Default):** Full HaDeS Spectral Cyberpunk UX with interactive widgets, HUD monitors, and preset chips.
-       - **ON (Vanilla):** Hides custom canvas widgets and restores standard ComfyUI text/number inputs across all 18 nodes.
-    4. The setting updates immediately and persists automatically across sessions in browser storage (`HaDeS.ClassicUI`).
+To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 19 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
 ---
 
@@ -289,7 +274,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 ├── web/
 │   ├── icon.png              # 128x128 32-bit RGBA genuine PNG extension icon
 │   ├── hades_suite.js        # Lightweight ComfyUI extension orchestrator (18 nodes)
-│   ├── hades_widgets.js      # Reusable HaDeS Spectral Canvas UI components & theme tokens
+│   ├── hades_widgets.js      # Reusable HaDeS canvas widgets & design tokens
 │   ├── hades_mergers_ui.js   # UI installers for the 5 Merger & LoRA nodes
 │   ├── hades_pipeline_ui.js  # UI installers & custom telemetry HUDs for the 6 Pipeline nodes
 │   ├── hades_ksampler_ui.js  # UI installers & flow/staircase HUDs for the 3 Anima KSamplers

@@ -7,6 +7,8 @@ import {
     createSpectralBannerWidget,
     createSpectralSliderWidget,
     createStyledComboWidget,
+    createStyledTextRowWidget,
+    finalizeHadesNode,
 } from "./hades_widgets.js";
 
 // =============================================================================
@@ -81,6 +83,28 @@ const TRIPLE_PROFILES = {
         1.75, 6, 1.0, "euler", "normal", 0.28, 3.9,
     ],
 };
+
+// Seed + control_after_generate rendered as regular HaDeS rows. The native widgets stay in the list (hidden) so
+// ComfyUI's control_after_generate logic and serialization keep working unchanged.
+function createSeedRows(node, wSeed, wControl) {
+    const rows = [wSeed, wControl].filter(Boolean);
+    rows.forEach(hideBackingWidget);
+    if (wSeed) {
+        rows.push(node.addCustomWidget(createStyledTextRowWidget(node, wSeed, {
+            tag: "SEED",
+            numeric: true,
+            promptTitle: "Seed",
+            tooltip: "<strong>Seed</strong><br>Click to type a seed. Later passes use seed + 1 / seed + 2.",
+        })));
+    }
+    if (wControl) {
+        rows.push(node.addCustomWidget(createStyledComboWidget(node, wControl, {
+            tag: "AFTER RUN",
+            tooltip: "<strong>Control after generate</strong><br>fixed, increment, decrement or randomize the seed after each queued run.",
+        })));
+    }
+    return rows;
+}
 
 function bindPresetSync(node, wPreset, presetTable, orderedWidgets, manualLabel = "Manual (Use Widget Settings)") {
     let isApplying = false;
@@ -198,12 +222,12 @@ export function setupAnimaKSamplerUI(node) {
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
 
-                ctx.font = isNarrow ? "9px monospace" : "bold 10px monospace";
+                ctx.font = isNarrow ? "9px ui-monospace, Consolas, monospace" : "600 10px ui-monospace, Consolas, monospace";
                 ctx.fillStyle = HADES_THEME.textPrimary;
                 const line1 = isNarrow ? `${sampler.toUpperCase()} · ${sched}` : `${sampler.toUpperCase()}  |  ${sched}`;
                 ctx.fillText(line1, infoX, rect.y + 11);
 
-                ctx.font = isNarrow ? "8.5px monospace" : "9px monospace";
+                ctx.font = isNarrow ? "8.5px ui-monospace, Consolas, monospace" : "9px ui-monospace, Consolas, monospace";
                 ctx.fillStyle = HADES_THEME.emerald;
                 const line2 = isNarrow
                     ? `${steps}s · C:${cfg.toFixed(1)} · S:${shiftText}`
@@ -214,22 +238,27 @@ export function setupAnimaKSamplerUI(node) {
                 {
                     label: "Base/Rae",
                     onClick: () => applyProfile("Anima Base / Raehoshi"),
+                    isActive: () => wProfile?.value === "Anima Base / Raehoshi",
                 },
                 {
                     label: "Aesthetic",
                     onClick: () => applyProfile("Anima Aesthetic Crisp"),
+                    isActive: () => wProfile?.value === "Anima Aesthetic Crisp",
                 },
                 {
                     label: "Beta57",
                     onClick: () => applyProfile("Anima Aesthetic Painterly"),
+                    isActive: () => wProfile?.value === "Anima Aesthetic Painterly",
                 },
                 {
                     label: "Turbo",
                     onClick: () => applyProfile("Anima Turbo"),
+                    isActive: () => wProfile?.value === "Anima Turbo",
                 },
                 {
                     label: "TDM 4s",
                     onClick: () => applyProfile("Anima Lightning TDM"),
+                    isActive: () => wProfile?.value === "Anima Lightning TDM",
                 },
             ],
         })
@@ -250,15 +279,15 @@ export function setupAnimaKSamplerUI(node) {
             tag: "SAMPLER",
             tagColor: HADES_THEME.cyan,
             tagWidth: K_TAG_WIDTH,
-            tooltip: `<strong>ODE / SDE Solver</strong><br>Numerical solver for Anima's continuous-time Rectified Flow equations.<br><span style="color:#38bdf8">• er_sde:</span> Recommended stochastic SDE solver for Anima.<br><span style="color:#38bdf8">• euler / euler_ancestral:</span> Fast deterministic or ancestral solvers.`,
+            tooltip: `<strong>ODE / SDE Solver</strong><br>Numerical solver for Anima's continuous-time Rectified Flow equations.<br><span style="color:#8fb4f0">• er_sde:</span> Recommended stochastic SDE solver for Anima.<br><span style="color:#8fb4f0">• euler / euler_ancestral:</span> Fast deterministic or ancestral solvers.`,
         })
     );
     const schedWidget = node.addCustomWidget(
         createStyledComboWidget(node, wSched, {
-            tag: "SCHEDULER",
+            tag: "SCHED",
             tagColor: HADES_THEME.purple,
             tagWidth: K_TAG_WIDTH,
-            tooltip: `<strong>Sigma Noise Schedule</strong><br>Defines noise distribution curve across steps.<br><span style="color:#a855f7">• normal:</span> Linear Rectified Flow schedule.<br><span style="color:#a855f7">• anima_beta57:</span> Custom schedule (α=0.50, β=0.70) giving denser steps to fine texture & lineart.<br><span style="color:#a855f7">• anima_lightning_tdm:</span> Exact 4-step Trajectory Distribution Matching schedule.`,
+            tooltip: `<strong>Sigma Noise Schedule</strong><br>Defines noise distribution curve across steps.<br><span style="color:#8fb4f0">• normal:</span> Linear Rectified Flow schedule.<br><span style="color:#8fb4f0">• anima_beta57:</span> Custom schedule (α=0.50, β=0.70) giving denser steps to fine texture & lineart.<br><span style="color:#8fb4f0">• anima_lightning_tdm:</span> Exact 4-step Trajectory Distribution Matching schedule.`,
         })
     );
 
@@ -276,7 +305,7 @@ export function setupAnimaKSamplerUI(node) {
             step: 1,
             defaultVal: 32,
             isInt: true,
-            tooltip: `<strong>Sampling Steps</strong><br>Total iterative steps along the trajectory.<br><span style="color:#60a5fa">• Base / Aesthetic:</span> 30–36 steps.<br><span style="color:#60a5fa">• Turbo:</span> 8–10 steps.<br><span style="color:#60a5fa">• Lightning TDM:</span> Exactly 4 steps.`,
+            tooltip: `<strong>Sampling Steps</strong><br>Total iterative steps along the trajectory.<br><span style="color:#8fb4f0">• Base / Aesthetic:</span> 30–36 steps.<br><span style="color:#8fb4f0">• Turbo:</span> 8–10 steps.<br><span style="color:#8fb4f0">• Lightning TDM:</span> Exactly 4 steps.`,
         })
     );
     const cfgWidget = node.addCustomWidget(
@@ -292,7 +321,7 @@ export function setupAnimaKSamplerUI(node) {
             visMax: 8.0,
             step: 0.1,
             defaultVal: 4.5,
-            tooltip: `<strong>Classifier-Free Guidance (CFG Scale)</strong><br>Adherence strength to positive prompt vs unconditional trajectory.<br><span style="color:#34d399">• Standard Anima:</span> 4.0 – 4.5.<br><span style="color:#34d399">• Distilled (Turbo / Lightning):</span> Fixed at 1.0.`,
+            tooltip: `<strong>Classifier-Free Guidance (CFG Scale)</strong><br>Adherence strength to positive prompt vs unconditional trajectory.<br><span style="color:#8fb4f0">• Standard Anima:</span> 4.0 – 4.5.<br><span style="color:#8fb4f0">• Distilled (Turbo / Lightning):</span> Fixed at 1.0.`,
         })
     );
     const denoiseWidget = node.addCustomWidget(
@@ -308,7 +337,7 @@ export function setupAnimaKSamplerUI(node) {
             visMax: 1.0,
             step: 0.01,
             defaultVal: 1.0,
-            tooltip: `<strong>Denoising Strength (0.0 – 1.0)</strong><br>Fraction of total noise trajectory to denoise.<br><span style="color:#38bdf8">• 1.0:</span> Full txt2img generation from pure random noise.<br><span style="color:#38bdf8">• 0.25 – 0.60:</span> img2img / HiRes latent refinement.`,
+            tooltip: `<strong>Denoising Strength (0.0 – 1.0)</strong><br>Fraction of total noise trajectory to denoise.<br><span style="color:#8fb4f0">• 1.0:</span> Full txt2img generation from pure random noise.<br><span style="color:#8fb4f0">• 0.25 – 0.60:</span> img2img / HiRes latent refinement.`,
         })
     );
     const shiftWidget = node.addCustomWidget(
@@ -325,13 +354,11 @@ export function setupAnimaKSamplerUI(node) {
             step: 0.05,
             defaultVal: 0.0,
             zeroLabel: "INHERIT",
-            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br><span style="color:#fbbf24">• 0 (INHERIT):</span> Keeps the shift set upstream (Model Loader flow_shift / ModelSampling nodes).<br>Time-step density warping for Anima's Rectified Flow architecture.<br><span style="color:#fbbf24">• Calibrated default (3.0):</span> Native balance for optimal contrast & anatomy.<br><span style="color:#fbbf24">• Higher (3.5–5.0):</span> Allocates more steps to early high-noise structural formation (ideal for high-res).<br><span style="color:#fbbf24">• Lower (1.5–2.5):</span> Allocates more steps to late-stage fine detail refinement.`,
+            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br><span style="color:#8fb4f0">• 0 (INHERIT):</span> Keeps the shift set upstream (Model Loader flow_shift / ModelSampling nodes).<br>Time-step density warping for Anima's Rectified Flow architecture.<br><span style="color:#8fb4f0">• Calibrated default (3.0):</span> Native balance for optimal contrast & anatomy.<br><span style="color:#8fb4f0">• Higher (3.5–5.0):</span> Allocates more steps to early high-noise structural formation (ideal for high-res).<br><span style="color:#8fb4f0">• Lower (1.5–2.5):</span> Allocates more steps to late-stage fine detail refinement.`,
         })
     );
 
-    const seedWidgets = [];
-    if (wSeed) seedWidgets.push(wSeed);
-    if (wControl) seedWidgets.push(wControl);
+    const seedWidgets = createSeedRows(node, wSeed, wControl);
 
     node.widgets = [
         bannerWidget,
@@ -376,48 +403,15 @@ export function setupAnimaKSamplerUI(node) {
         }
     }
 
-    const minW = 440;
-
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         sanitizeSinglePassValues();
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [Math.max(minW, info.size[0]), info.size[1]];
-        }
         this.setDirtyCanvas(true, true);
     };
     sanitizeSinglePassValues();
 
-    const origOnConnectionsChange = node.onConnectionsChange;
-    node.onConnectionsChange = function (slotType, slot, isChangeConnect, link_info, input_info) {
-        if (origOnConnectionsChange) {
-            origOnConnectionsChange.apply(this, arguments);
-        }
-        this.setDirtyCanvas(true, true);
-    };
-
-    const origComputeSize = node.computeSize;
-    node.computeSize = function (out) {
-        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
-        const res = out || [0, 0];
-        res[0] = Math.max(sz[0], minW);
-        res[1] = sz[1];
-        return res;
-    };
-
-    const origOnResize = node.onResize;
-    node.onResize = function (size) {
-        if (origOnResize) origOnResize.apply(this, arguments);
-        if (size && Array.isArray(size)) {
-            size[0] = Math.max(size[0], minW);
-        }
-    };
-
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 440);
 }
 
 function migrateDualPassSlots(node) {
@@ -530,7 +524,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
                 const availForBoxes = totalW - badgeW - 8;
                 const boxW = Math.max(30, Math.floor(availForBoxes * 0.5));
 
-                ctx.font = totalW < 240 ? "bold 8px monospace" : "bold 9px monospace";
+                ctx.font = totalW < 240 ? "600 8px ui-monospace, Consolas, monospace" : "600 9px ui-monospace, Consolas, monospace";
 
                 // Pass 1 pill
                 const p1X = rect.x + padX;
@@ -566,7 +560,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
                 ctx.fillStyle = HADES_THEME.amber;
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.font = totalW < 220 ? "bold 8px monospace" : "bold 9px monospace";
+                ctx.font = totalW < 220 ? "600 8px ui-monospace, Consolas, monospace" : "600 9px ui-monospace, Consolas, monospace";
                 const badgeText = badgeW < 30 ? "→" : `×${scale.toFixed(badgeW < 40 ? 1 : 2)}`;
                 ctx.fillText(badgeText, midX, boxY + boxH * 0.5);
 
@@ -586,7 +580,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillStyle = HADES_THEME.textPrimary;
-                ctx.font = totalW < 240 ? "bold 8px monospace" : "bold 9px monospace";
+                ctx.font = totalW < 240 ? "600 8px ui-monospace, Consolas, monospace" : "600 9px ui-monospace, Consolas, monospace";
 
                 let p2Text = `PASS 2: ${s2}s | DEN ${d2.toFixed(2)} | S ${sh2 > 0 ? sh2.toFixed(1) : "INH"}`;
                 if (ctx.measureText(p2Text).width > p2W - 4) {
@@ -607,6 +601,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
                     tooltip: `<strong>HiRes Standard 1.5x</strong><br>30-step Pass 1 (er_sde) scaled 1.5x via 16ch bicubic bridge, refined in Pass 2 (16 steps, beta57, 0.42 denoise).`,
                     onClick: () =>
                         applyPreset("HiRes Standard 1.5x (er_sde 30s -> er_sde + beta57 16s @ 0.42 denoise)"),
+                    isActive: () => wPreset?.value === "HiRes Standard 1.5x (er_sde 30s -> er_sde + beta57 16s @ 0.42 denoise)",
                 },
                 {
                     label: "Painterly",
@@ -615,6 +610,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
                         applyPreset(
                             "Aesthetic Painterly 1.5x (er_sde 32s -> euler_a + beta57 18s @ 0.45 denoise)"
                         ),
+                    isActive: () => wPreset?.value === "Aesthetic Painterly 1.5x (er_sde 32s -> euler_a + beta57 18s @ 0.45 denoise)",
                 },
                 {
                     label: "Base→Turbo",
@@ -623,12 +619,14 @@ export function setupAnimaDualPassKSamplerUI(node) {
                         applyPreset(
                             "Base-to-Turbo Fast HiRes 1.5x (er_sde 30s CFG 4.5 -> euler 8s CFG 1.0 @ 0.38 denoise)"
                         ),
+                    isActive: () => wPreset?.value === "Base-to-Turbo Fast HiRes 1.5x (er_sde 30s CFG 4.5 -> euler 8s CFG 1.0 @ 0.38 denoise)",
                 },
                 {
                     label: "1.0x Polish",
                     tooltip: `<strong>Same-Res Texture & Lineart Polish</strong><br>Direct 1.0x pass-through refiner to sharpen lineart and surface textures without resolution upscaling.`,
                     onClick: () =>
                         applyPreset("Same-Res Texture & Lineart Refiner 1.0x (30s -> 12s @ 0.28 denoise)"),
+                    isActive: () => wPreset?.value === "Same-Res Texture & Lineart Refiner 1.0x (30s -> 12s @ 0.28 denoise)",
                 },
             ],
         })
@@ -645,42 +643,42 @@ export function setupAnimaDualPassKSamplerUI(node) {
     // Pass 1 Controls
     const samp1Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSamp1, {
-            tag: "P1 SAMP",
+            tag: "PASS 1", label: "Sampler",
             tagColor: HADES_THEME.blue,
             tooltip: `<strong>Pass 1 Sampler</strong><br>Sampling algorithm for initial composition (er_sde recommended for Anima).`,
         })
     );
     const sched1Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSched1, {
-            tag: "P1 SCHD",
+            tag: "PASS 1", label: "Scheduler",
             tagColor: HADES_THEME.blue,
             tooltip: `<strong>Pass 1 Scheduler</strong><br>Noise schedule curve for Pass 1 (normal or beta).`,
         })
     );
     const steps1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wSteps1, {
-            tag: "P1 STEP", rangeTag: "PASS 1", label: "Pass 1 Steps",
+            tag: "PASS 1", label: "Pass 1 Steps",
             color: HADES_THEME.blue, min: 1, max: 200, visMin: 4, visMax: 50, step: 1, defaultVal: 30, isInt: true,
             tooltip: `<strong>Pass 1 Steps</strong><br>Number of denoising iterations for the base composition pass (28–32 steps).`,
         })
     );
     const cfg1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg1, {
-            tag: "P1 CFG", rangeTag: "PASS 1", label: "Pass 1 CFG",
+            tag: "PASS 1", label: "Pass 1 CFG",
             color: HADES_THEME.blue, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 4.5,
             tooltip: `<strong>Pass 1 CFG Scale</strong><br>Classifier-Free Guidance scale for prompt adherence in Pass 1 (4.0–5.0 recommended).`,
         })
     );
     const den1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen1, {
-            tag: "P1 DEN", rangeTag: "PASS 1", label: "Pass 1 Denoise",
+            tag: "PASS 1", label: "Pass 1 Denoise",
             color: HADES_THEME.blue, min: 0.0, max: 1.0, visMin: 0.0, visMax: 1.0, step: 0.01, defaultVal: 1.0,
             tooltip: `<strong>Pass 1 Denoise Factor</strong><br>Initial denoising strength (1.0 for generating from pure latent noise).`,
         })
     );
     const shift1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift1, {
-            tag: "P1 SHFT", rangeTag: "M=1.0", label: "Pass 1 Flow Shift",
+            tag: "PASS 1", label: "Pass 1 Flow Shift",
             color: HADES_THEME.blue, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 0.0, zeroLabel: "INHERIT",
             tooltip: `<strong>Pass 1 Flow Shift</strong><br>Time-step warping parameter for Anima's Rectified Flow (multiplier=1.0). 0 = inherit the model's shift (Model Loader / ModelSampling).`,
         })
@@ -696,7 +694,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
     );
     const scaleWidget = node.addCustomWidget(
         createSpectralSliderWidget(node, wScale, {
-            tag: "SCALE", rangeTag: "32PX", label: "HiRes Scale Factor (32px Grid)",
+            tag: "SCALE", label: "Upscale factor",
             color: HADES_THEME.amber, min: 1.0, max: 2.5, visMin: 1.0, visMax: 2.0, step: 0.05, defaultVal: 1.5,
             tooltip: `<strong>HiRes Magnification Scale</strong><br>Resolution multiplier relative to initial latent. Automatically snaps pixel dimensions to the nearest 32px grid required by Anima DiT.`,
         })
@@ -705,50 +703,48 @@ export function setupAnimaDualPassKSamplerUI(node) {
     // Pass 2 Controls
     const samp2Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSamp2, {
-            tag: "P2 SAMP",
+            tag: "PASS 2", label: "Sampler",
             tagColor: HADES_THEME.emerald,
             tooltip: `<strong>Pass 2 Refiner Sampler</strong><br>Sampling algorithm for the high-resolution refinement pass.`,
         })
     );
     const sched2Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSched2, {
-            tag: "P2 SCHD",
+            tag: "PASS 2", label: "Scheduler",
             tagColor: HADES_THEME.emerald,
             tooltip: `<strong>Pass 2 Refiner Scheduler</strong><br>Noise schedule for Pass 2 (anima_beta57 recommended to prevent high-frequency noise blowout).`,
         })
     );
     const steps2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wSteps2, {
-            tag: "P2 STEP", rangeTag: "PASS 2", label: "Pass 2 Refiner Steps",
+            tag: "PASS 2", label: "Pass 2 Refiner Steps",
             color: HADES_THEME.emerald, min: 1, max: 200, visMin: 4, visMax: 40, step: 1, defaultVal: 16, isInt: true,
             tooltip: `<strong>Pass 2 Refiner Steps</strong><br>Number of denoising steps in the refinement pass (12–18 steps typical).`,
         })
     );
     const cfg2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg2, {
-            tag: "P2 CFG", rangeTag: "PASS 2", label: "Pass 2 Refiner CFG",
+            tag: "PASS 2", label: "Pass 2 Refiner CFG",
             color: HADES_THEME.emerald, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 4.0,
             tooltip: `<strong>Pass 2 Refiner CFG</strong><br>Guidance scale during refinement (lower than Pass 1 to prevent contrast burns).`,
         })
     );
     const den2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen2, {
-            tag: "P2 DEN", rangeTag: "PASS 2", label: "Pass 2 Refiner Denoise",
+            tag: "PASS 2", label: "Pass 2 Refiner Denoise",
             color: HADES_THEME.emerald, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.8, step: 0.01, defaultVal: 0.42,
             tooltip: `<strong>Pass 2 Refiner Denoise</strong><br>Fraction of noise added to the upscaled latent (0.35–0.48 preserves anatomy while enriching fine details).`,
         })
     );
     const shift2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift2, {
-            tag: "P2 SHFT", rangeTag: "M=1.0", label: "Pass 2 High-Res Flow Shift",
+            tag: "PASS 2", label: "Pass 2 High-Res Flow Shift",
             color: HADES_THEME.emerald, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.6, zeroLabel: "INHERIT",
             tooltip: `<strong>Pass 2 High-Res Flow Shift</strong><br>Rectified Flow time-step shift for high-resolution refinement (3.5–4.0 focuses compute on fine details).`,
         })
     );
 
-    const seedWidgets = [];
-    if (wSeed) seedWidgets.push(wSeed);
-    if (wControl) seedWidgets.push(wControl);
+    const seedWidgets = createSeedRows(node, wSeed, wControl);
 
     node.widgets = [
         bannerWidget,
@@ -792,16 +788,11 @@ export function setupAnimaDualPassKSamplerUI(node) {
         }
     }
 
-    const minW = 460;
-
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateDualPassSlots(this);
         sanitizeDualPassValues();
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [Math.max(minW, info.size[0]), info.size[1]];
-        }
         this.setDirtyCanvas(true, true);
     };
 
@@ -809,42 +800,11 @@ export function setupAnimaDualPassKSamplerUI(node) {
     node.onConfigure = function () {
         if (origOnConfigure) origOnConfigure.apply(this, arguments);
         migrateDualPassSlots(this);
-        if (this.size && Array.isArray(this.size)) {
-            this.size[0] = Math.max(minW, this.size[0]);
-        }
         this.setDirtyCanvas?.(true, true);
     };
     sanitizeDualPassValues();
 
-    const origOnConnectionsChange = node.onConnectionsChange;
-    node.onConnectionsChange = function (slotType, slot, isChangeConnect, link_info, input_info) {
-        if (origOnConnectionsChange) {
-            origOnConnectionsChange.apply(this, arguments);
-        }
-        this.setDirtyCanvas(true, true);
-    };
-
-    const origComputeSize = node.computeSize;
-    node.computeSize = function (out) {
-        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
-        const res = out || [0, 0];
-        res[0] = Math.max(sz[0], minW);
-        res[1] = sz[1];
-        return res;
-    };
-
-    const origOnResize = node.onResize;
-    node.onResize = function (size) {
-        if (origOnResize) origOnResize.apply(this, arguments);
-        if (size && Array.isArray(size)) {
-            size[0] = Math.max(size[0], minW);
-        }
-    };
-
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 460);
 }
 
 function migrateTriplePassSlots(node) {
@@ -983,7 +943,7 @@ export function setupAnimaTriplePassKSamplerUI(node) {
                     { tag: "S3", scale: sc3.toFixed(2), steps: s3, den: d3, col: HADES_THEME.purple },
                 ];
 
-                ctx.font = totalW < 260 ? "bold 8px monospace" : "bold 9px monospace";
+                ctx.font = totalW < 260 ? "600 8px ui-monospace, Consolas, monospace" : "600 9px ui-monospace, Consolas, monospace";
 
                 stages.forEach((st, i) => {
                     const cx = rect.x + padX + i * (cardW + gap);
@@ -1022,24 +982,28 @@ export function setupAnimaTriplePassKSamplerUI(node) {
                     tooltip: `<strong>Progressive Staircase (1.0x -> 1.35x -> 1.75x)</strong><br>Curated 3-stage poster pipeline: 28-step draft, 1.35x bridge at 0.48 denoise, and 1.75x final surface polish.`,
                     onClick: () =>
                         applyPreset("Progressive Staircase 1.0x -> 1.35x -> 1.75x (Ultra-Res Poster Pipeline)"),
+                    isActive: () => wPreset?.value === "Progressive Staircase 1.0x -> 1.35x -> 1.75x (Ultra-Res Poster Pipeline)",
                 },
                 {
                     label: "1.5→2.0x",
                     tooltip: `<strong>Progressive 2x Master (1.0x -> 1.5x -> 2.0x)</strong><br>Studio illustration pipeline reaching 4 Megapixels with zero anatomy drift or limb duplication.`,
                     onClick: () =>
                         applyPreset("Progressive 2x Master 1.0x -> 1.5x -> 2.0x (4 MP Studio Illustration)"),
+                    isActive: () => wPreset?.value === "Progressive 2x Master 1.0x -> 1.5x -> 2.0x (4 MP Studio Illustration)",
                 },
                 {
                     label: "1.5x Lock",
                     tooltip: `<strong>Aesthetic Bridge & Micro-Polish (1.5x Lock)</strong><br>Upscales to 1.5x at Stage 2 and locks resolution, using Stage 3 for delicate micro-lineart sharpening.`,
                     onClick: () =>
                         applyPreset("Concept -> Aesthetic Bridge 1.5x -> Micro-Polish 1.5x (Lock Res at Stage 2)"),
+                    isActive: () => wPreset?.value === "Concept -> Aesthetic Bridge 1.5x -> Micro-Polish 1.5x (Lock Res at Stage 2)",
                 },
                 {
                     label: "Turbo S3",
                     tooltip: `<strong>Hybrid Base -> Aesthetic -> Turbo Polish</strong><br>Drafts with Base, styles with Aesthetic, and rapidly polishes final high-res surface with Turbo in 6 steps.`,
                     onClick: () =>
                         applyPreset("Hybrid Base -> Aesthetic -> Turbo Polish (Fast 3-Stage Studio)"),
+                    isActive: () => wPreset?.value === "Hybrid Base -> Aesthetic -> Turbo Polish (Fast 3-Stage Studio)",
                 },
             ],
         })
@@ -1063,42 +1027,42 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     // Stage 1
     const samp1Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSamp1, {
-            tag: "S1 SAMP",
+            tag: "STAGE 1", label: "Sampler",
             tagColor: HADES_THEME.blue,
             tooltip: `<strong>Stage 1 Draft Sampler</strong><br>Sampling algorithm for draft layout and character pose lock.`,
         })
     );
     const sched1Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSched1, {
-            tag: "S1 SCHD",
+            tag: "STAGE 1", label: "Scheduler",
             tagColor: HADES_THEME.blue,
             tooltip: `<strong>Stage 1 Draft Scheduler</strong><br>Noise schedule for initial base stage (normal standard).`,
         })
     );
     const steps1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wSteps1, {
-            tag: "S1 STEP", rangeTag: "STAGE 1", label: "Stage 1 Draft Steps",
+            tag: "STAGE 1", label: "Stage 1 Draft Steps",
             color: HADES_THEME.blue, min: 1, max: 200, visMin: 4, visMax: 50, step: 1, defaultVal: 28, isInt: true,
             tooltip: `<strong>Stage 1 Draft Steps</strong><br>Denoising iterations for base composition (24–32 steps).`,
         })
     );
     const cfg1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg1, {
-            tag: "S1 CFG", rangeTag: "STAGE 1", label: "Stage 1 CFG",
+            tag: "STAGE 1", label: "Stage 1 CFG",
             color: HADES_THEME.blue, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 4.5,
             tooltip: `<strong>Stage 1 CFG Scale</strong><br>Prompt guidance for the draft stage (4.0–4.8).`,
         })
     );
     const den1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen1, {
-            tag: "S1 DEN", rangeTag: "STAGE 1", label: "Stage 1 Denoise",
+            tag: "STAGE 1", label: "Stage 1 Denoise",
             color: HADES_THEME.blue, min: 0.0, max: 1.0, visMin: 0.0, visMax: 1.0, step: 0.01, defaultVal: 1.0,
             tooltip: `<strong>Stage 1 Denoise</strong><br>Full denoise (1.0) from raw latent noise.`,
         })
     );
     const shift1Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift1, {
-            tag: "S1 SHFT", rangeTag: "M=1.0", label: "Stage 1 Flow Shift",
+            tag: "STAGE 1", label: "Stage 1 Flow Shift",
             color: HADES_THEME.blue, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 0.0, zeroLabel: "INHERIT",
             tooltip: `<strong>Stage 1 Flow Shift</strong><br>Rectified Flow shift for base resolution. 0 = inherit the model's shift (Model Loader / ModelSampling).`,
         })
@@ -1107,49 +1071,49 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     // Stage 2
     const scale2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wScale2, {
-            tag: "S2 SCAL", rangeTag: "32PX", label: "Stage 2 Scale (vs Base)",
+            tag: "STAGE 2", label: "Stage 2 Scale (vs Base)",
             color: HADES_THEME.cyan, min: 1.0, max: 2.5, visMin: 1.0, visMax: 2.0, step: 0.05, defaultVal: 1.35,
             tooltip: `<strong>Stage 2 Scale Factor</strong><br>Intermediate resolution magnification relative to Stage 1 (e.g. 1.35x–1.50x).`,
         })
     );
     const samp2Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSamp2, {
-            tag: "S2 SAMP",
+            tag: "STAGE 2", label: "Sampler",
             tagColor: HADES_THEME.cyan,
             tooltip: `<strong>Stage 2 Bridge Sampler</strong><br>Sampler for structural refinement and color harmony.`,
         })
     );
     const sched2Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSched2, {
-            tag: "S2 SCHD",
+            tag: "STAGE 2", label: "Scheduler",
             tagColor: HADES_THEME.cyan,
             tooltip: `<strong>Stage 2 Bridge Scheduler</strong><br>Scheduler for intermediate bridge pass (beta recommended).`,
         })
     );
     const steps2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wSteps2, {
-            tag: "S2 STEP", rangeTag: "STAGE 2", label: "Stage 2 Bridge Steps",
+            tag: "STAGE 2", label: "Stage 2 Bridge Steps",
             color: HADES_THEME.cyan, min: 1, max: 200, visMin: 4, visMax: 40, step: 1, defaultVal: 16, isInt: true,
             tooltip: `<strong>Stage 2 Bridge Steps</strong><br>Iterations for the intermediate structural bridge (14–18 steps).`,
         })
     );
     const cfg2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg2, {
-            tag: "S2 CFG", rangeTag: "STAGE 2", label: "Stage 2 Bridge CFG",
+            tag: "STAGE 2", label: "Stage 2 Bridge CFG",
             color: HADES_THEME.cyan, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 4.0,
             tooltip: `<strong>Stage 2 Bridge CFG</strong><br>Guidance scale during intermediate stage.`,
         })
     );
     const den2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen2, {
-            tag: "S2 DEN", rangeTag: "STAGE 2", label: "Stage 2 Bridge Denoise",
+            tag: "STAGE 2", label: "Stage 2 Bridge Denoise",
             color: HADES_THEME.cyan, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.8, step: 0.01, defaultVal: 0.48,
             tooltip: `<strong>Stage 2 Bridge Denoise</strong><br>Denoise strength for Stage 2 (0.42–0.50).`,
         })
     );
     const shift2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift2, {
-            tag: "S2 SHFT", rangeTag: "M=1.0", label: "Stage 2 Flow Shift",
+            tag: "STAGE 2", label: "Stage 2 Flow Shift",
             color: HADES_THEME.cyan, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.5, zeroLabel: "INHERIT",
             tooltip: `<strong>Stage 2 Flow Shift</strong><br>Rectified Flow shift for intermediate resolution (3.40–3.60).`,
         })
@@ -1158,57 +1122,55 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     // Stage 3
     const scale3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wScale3, {
-            tag: "S3 SCAL", rangeTag: "32PX", label: "Stage 3 Final Scale (vs Base)",
+            tag: "STAGE 3", label: "Stage 3 Final Scale (vs Base)",
             color: HADES_THEME.purple, min: 1.0, max: 3.0, visMin: 1.0, visMax: 2.5, step: 0.05, defaultVal: 1.75,
             tooltip: `<strong>Stage 3 Final Scale Factor</strong><br>Final output scale calculated directly against Stage 1 base dimensions to prevent cumulative rounding errors.`,
         })
     );
     const samp3Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSamp3, {
-            tag: "S3 SAMP",
+            tag: "STAGE 3", label: "Sampler",
             tagColor: HADES_THEME.purple,
             tooltip: `<strong>Stage 3 Polish Sampler</strong><br>Fast high-frequency sampler for final polish (euler or er_sde).`,
         })
     );
     const sched3Widget = node.addCustomWidget(
         createStyledComboWidget(node, wSched3, {
-            tag: "S3 SCHD",
+            tag: "STAGE 3", label: "Scheduler",
             tagColor: HADES_THEME.purple,
             tooltip: `<strong>Stage 3 Polish Scheduler</strong><br>High-detail noise schedule (anima_beta57 recommended).`,
         })
     );
     const steps3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wSteps3, {
-            tag: "S3 STEP", rangeTag: "STAGE 3", label: "Stage 3 Polish Steps",
+            tag: "STAGE 3", label: "Stage 3 Polish Steps",
             color: HADES_THEME.purple, min: 1, max: 200, visMin: 4, visMax: 30, step: 1, defaultVal: 12, isInt: true,
             tooltip: `<strong>Stage 3 Polish Steps</strong><br>Final micro-lineart and texture polish steps (10–14 steps).`,
         })
     );
     const cfg3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg3, {
-            tag: "S3 CFG", rangeTag: "STAGE 3", label: "Stage 3 Polish CFG",
+            tag: "STAGE 3", label: "Stage 3 Polish CFG",
             color: HADES_THEME.purple, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 3.4,
             tooltip: `<strong>Stage 3 Polish CFG</strong><br>Final polish guidance scale (3.0–3.5 to avoid over-saturation).`,
         })
     );
     const den3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen3, {
-            tag: "S3 DEN", rangeTag: "STAGE 3", label: "Stage 3 Polish Denoise",
+            tag: "STAGE 3", label: "Stage 3 Polish Denoise",
             color: HADES_THEME.purple, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.6, step: 0.01, defaultVal: 0.26,
             tooltip: `<strong>Stage 3 Polish Denoise</strong><br>Gentle denoise (0.22–0.28) preserving structure while adding micro-acuity.`,
         })
     );
     const shift3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift3, {
-            tag: "S3 SHFT", rangeTag: "M=1.0", label: "Stage 3 Flow Shift",
+            tag: "STAGE 3", label: "Stage 3 Flow Shift",
             color: HADES_THEME.purple, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 4.0, zeroLabel: "INHERIT",
             tooltip: `<strong>Stage 3 Flow Shift</strong><br>Flow shift for high resolution (3.80–4.20).`,
         })
     );
 
-    const seedWidgets = [];
-    if (wSeed) seedWidgets.push(wSeed);
-    if (wControl) seedWidgets.push(wControl);
+    const seedWidgets = createSeedRows(node, wSeed, wControl);
 
     node.widgets = [
         bannerWidget,
@@ -1259,16 +1221,11 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         }
     }
 
-    const minW = 470;
-
     const origConfigure = node.configure;
     node.configure = function (info) {
         if (origConfigure) origConfigure.apply(this, arguments);
         migrateTriplePassSlots(this);
         sanitizeTriplePassValues();
-        if (info?.size && Array.isArray(info.size) && info.size[0] > 0 && info.size[1] > 0) {
-            this.size = [Math.max(minW, info.size[0]), info.size[1]];
-        }
         this.setDirtyCanvas(true, true);
     };
 
@@ -1276,42 +1233,11 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     node.onConfigure = function () {
         if (origOnConfigure) origOnConfigure.apply(this, arguments);
         migrateTriplePassSlots(this);
-        if (this.size && Array.isArray(this.size)) {
-            this.size[0] = Math.max(minW, this.size[0]);
-        }
         this.setDirtyCanvas?.(true, true);
     };
     sanitizeTriplePassValues();
 
-    const origOnConnectionsChange = node.onConnectionsChange;
-    node.onConnectionsChange = function (slotType, slot, isChangeConnect, link_info, input_info) {
-        if (origOnConnectionsChange) {
-            origOnConnectionsChange.apply(this, arguments);
-        }
-        this.setDirtyCanvas(true, true);
-    };
-
-    const origComputeSize = node.computeSize;
-    node.computeSize = function (out) {
-        const sz = origComputeSize ? origComputeSize.apply(this, arguments) : [minW, 200];
-        const res = out || [0, 0];
-        res[0] = Math.max(sz[0], minW);
-        res[1] = sz[1];
-        return res;
-    };
-
-    const origOnResize = node.onResize;
-    node.onResize = function (size) {
-        if (origOnResize) origOnResize.apply(this, arguments);
-        if (size && Array.isArray(size)) {
-            size[0] = Math.max(size[0], minW);
-        }
-    };
-
-    const sz = node.computeSize();
-    const initW = (Array.isArray(node.size) && node.size[0] > 0) ? Math.max(minW, node.size[0]) : Math.max(minW, sz[0]);
-    const initH = (Array.isArray(node.size) && node.size[1] > 0) ? Math.max(node.size[1], sz[1] + 8) : sz[1] + 8;
-    node.setSize([initW, initH]);
+    finalizeHadesNode(node, 470);
 }
 
 export const KSAMPLER_NODE_DISPATCH = {

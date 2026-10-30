@@ -1,45 +1,119 @@
 import { app } from "../../scripts/app.js";
 
 // =============================================================================
-// HADES SPECTRAL UI - DESIGN TOKENS & CORE CANVAS HELPERS
+// HADES UI - DESIGN TOKENS & CORE CANVAS HELPERS
 // =============================================================================
+// One neutral surface scale and a single accent. Green / amber / red are reserved for state (ok / warning / error);
+// the legacy hue names map onto that small palette so every node shares the same restrained look.
+const ACCENT = "#6d9eeb";
 export const HADES_THEME = {
-    bgNode: "#131519",
-    bgPanel: "#181b22",
-    bgControl: "#12141a",
-    bgControlHover: "#1e232d",
-    borderSubtle: "#282d37",
-    borderActive: "#3b82f688",
-    textPrimary: "#e5e7eb",
-    textSecondary: "#9da5b4",
-    textMuted: "#5c6370",
-    blue: "#3b82f6",
-    cyan: "#06b6d4",
-    emerald: "#10b981",
-    purple: "#a855f7",
-    amber: "#f59e0b",
-    rose: "#f43f5e",
+    bgNode: "#17191e",
+    bgPanel: "#1e2127",
+    bgControl: "#15171b",
+    bgControlHover: "#24282f",
+    borderSubtle: "#2a2e36",
+    borderActive: "#6d9eeb66",
+    textPrimary: "#e4e7ec",
+    textSecondary: "#a0a7b3",
+    textMuted: "#6b717c",
+    accent: ACCENT,
+    ok: "#62b58f",
+    warn: "#d6a24e",
+    danger: "#d9706a",
+    blue: ACCENT,
+    cyan: ACCENT,
+    purple: ACCENT,
+    emerald: "#62b58f",
+    amber: "#d6a24e",
+    rose: "#d9706a",
 };
 
+export const HADES_FONT = {
+    label: "600 9px Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+    text: "11px Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+    value: "11px ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace",
+    small: "500 9.5px Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
+};
+
+// Block-group hues encode data (they match the 34-block bar chart), so they stay distinct but desaturated.
 export const GROUP_META = {
-    base_ratio:                { tag: "BASE", range: "GLOBAL", color: "#94a3b8", indices: [] },
-    BLOCKS_Layout_Geometry:    { tag: "GEOM", range: "B00–04", color: "#3b82f6", indices: [0, 1, 2, 3, 4] },
-    BLOCKS_Global_Composition: { tag: "COMP", range: "B05–09", color: "#06b6d4", indices: [5, 6, 7, 8, 9] },
-    BLOCKS_Subject_Identity:   { tag: "IDEN", range: "B10–14", color: "#6366f1", indices: [10, 11, 12, 13, 14] },
-    BLOCKS_Material_Substance: { tag: "MATS", range: "B15–19", color: "#10b981", indices: [15, 16, 17, 18, 19] },
-    BLOCKS_Art_Style_Medium:   { tag: "STYL", range: "B20–23", color: "#a855f7", indices: [20, 21, 22, 23] },
-    BLOCKS_Lighting_Sharpness: { tag: "LIGH", range: "B24–27", color: "#f59e0b", indices: [24, 25, 26, 27] },
-    ADAPTER_Text_Alignment:    { tag: "ADPT", range: "B28–33", color: "#ec4899", indices: [28, 29, 30, 31, 32, 33] },
+    base_ratio:                { tag: "BASE", range: "GLOBAL", color: "#8b93a1", indices: [] },
+    BLOCKS_Layout_Geometry:    { tag: "GEOM", range: "B00–04", color: "#6d8fd6", indices: [0, 1, 2, 3, 4] },
+    BLOCKS_Global_Composition: { tag: "COMP", range: "B05–09", color: "#5fa3b5", indices: [5, 6, 7, 8, 9] },
+    BLOCKS_Subject_Identity:   { tag: "IDEN", range: "B10–14", color: "#8a84cf", indices: [10, 11, 12, 13, 14] },
+    BLOCKS_Material_Substance: { tag: "MATS", range: "B15–19", color: "#62a88a", indices: [15, 16, 17, 18, 19] },
+    BLOCKS_Art_Style_Medium:   { tag: "STYL", range: "B20–23", color: "#a786c4", indices: [20, 21, 22, 23] },
+    BLOCKS_Lighting_Sharpness: { tag: "LIGH", range: "B24–27", color: "#c49a5a", indices: [24, 25, 26, 27] },
+    ADAPTER_Text_Alignment:    { tag: "ADPT", range: "B28–33", color: "#c07a98", indices: [28, 29, 30, 31, 32, 33] },
 };
 
 export const CLIP_GROUP_META = {
-    base_ratio:        { tag: "BASE", range: "GLOBAL", label: "Base Fallback Ratio", color: "#94a3b8" },
-    vocab_embeddings:  { tag: "TOKS", range: "EMBED",  label: "Vocab & Token Embeddings", color: "#3b82f6" },
-    syntax_rigidity:   { tag: "SYNT", range: "0–35%",  label: "Syntax & Tag Rigidity", color: "#06b6d4" },
-    semantic_focus:    { tag: "SEMA", range: "35–72%", label: "Semantic & Concept Focus", color: "#10b981" },
-    style_abstraction: { tag: "STYL", range: "72%+",   label: "Style & Mood Abstraction", color: "#a855f7" },
-    final_projections: { tag: "NORM", range: "OUT",    label: "Final Norm Projections", color: "#f59e0b" },
+    base_ratio:        { tag: "BASE", range: "GLOBAL", label: "Base Fallback Ratio", color: "#8b93a1" },
+    vocab_embeddings:  { tag: "TOKS", range: "EMBED",  label: "Vocab & Token Embeddings", color: "#6d8fd6" },
+    syntax_rigidity:   { tag: "SYNT", range: "0–35%",  label: "Syntax & Tag Rigidity", color: "#5fa3b5" },
+    semantic_focus:    { tag: "SEMA", range: "35–72%", label: "Semantic & Concept Focus", color: "#62a88a" },
+    style_abstraction: { tag: "STYL", range: "72%+",   label: "Style & Mood Abstraction", color: "#a786c4" },
+    final_projections: { tag: "NORM", range: "OUT",    label: "Final Norm Projections", color: "#c49a5a" },
 };
+
+// Shared row furniture: flat row surface + quiet uppercase label column (+ optional data-color marker).
+function drawRowSurface(ctx, x, y, w, h, highlight = false) {
+    drawRoundedRect(ctx, x, y, w, h, 4);
+    ctx.fillStyle = HADES_THEME.bgPanel;
+    ctx.fill();
+    ctx.strokeStyle = highlight ? HADES_THEME.borderActive : HADES_THEME.borderSubtle;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+}
+
+function drawRowLabel(ctx, x, y, h, labelW, text, marker = null) {
+    if (marker) {
+        drawRoundedRect(ctx, x + 4, y + 6, 3, h - 12, 1.5);
+        ctx.fillStyle = marker;
+        ctx.fill();
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, labelW, h);
+    ctx.clip();
+    ctx.font = HADES_FONT.label;
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "0.6px";
+    ctx.fillStyle = HADES_THEME.textMuted;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(text).toUpperCase(), x + (marker ? 12 : 9), y + h * 0.5 + 0.5);
+    ctx.restore();
+}
+
+// Snap a free-form drag value onto the widget step grid (relative to min) before clamping.
+function snapToStep(value, min, step) {
+    if (!step) return value;
+    return min + Math.round((value - min) / step) * step;
+}
+
+// Shared layout finalizer: enforce a real minimum width (computeSize drives LiteGraph's resize handle),
+// keep saved workflow sizes, and never shrink below the content height. Call after all widgets are added.
+export function finalizeHadesNode(node, minW) {
+    const origComputeSize = node.computeSize;
+    node.computeSize = function () {
+        const sz = origComputeSize.apply(this, arguments);
+        sz[0] = Math.max(sz[0], minW);
+        return sz;
+    };
+    const origOnResize = node.onResize;
+    node.onResize = function (size) {
+        origOnResize?.apply(this, arguments);
+        size[0] = Math.max(size[0], minW);
+    };
+    const origOnConfigure = node.onConfigure;
+    node.onConfigure = function () {
+        origOnConfigure?.apply(this, arguments);
+        this.size[0] = Math.max(this.size[0], minW);
+        this.size[1] = Math.max(this.size[1], this.computeSize()[1]);
+    };
+    const sz = node.computeSize();
+    node.setSize([Math.max(minW, node.size?.[0] || 0), sz[1] + 8]);
+}
 
 export function formatCleanLabel(rawName, emptyText = "— None —") {
     if (!rawName || rawName === "None") return emptyText;
@@ -176,11 +250,11 @@ export function showHadesTooltip(htmlContent, clientX, clientY, accentColor = HA
             position: "fixed",
             zIndex: "99999",
             pointerEvents: "none",
-            backgroundColor: "#161920",
-            color: "#e5e7eb",
+            backgroundColor: "#1b1e23",
+            color: "#e4e7ec",
             padding: "8px 12px",
             borderRadius: "6px",
-            fontFamily: "system-ui, -apple-system, sans-serif",
+            fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif",
             fontSize: "11px",
             lineHeight: "1.45",
             maxWidth: "320px",
@@ -193,7 +267,7 @@ export function showHadesTooltip(htmlContent, clientX, clientY, accentColor = HA
         document.body.appendChild(_hadesTooltipEl);
     }
     _hadesTooltipEl.innerHTML = htmlContent;
-    _hadesTooltipEl.style.borderLeft = `3px solid ${accentColor}`;
+    _hadesTooltipEl.style.borderLeft = `2px solid ${HADES_THEME.accent}`;
     _hadesTooltipEl.style.display = "block";
 
     const pad = 14;
@@ -302,8 +376,8 @@ export function setNodeClassicUI(node, enableClassic, skipResize = false, isUser
         node.color = node._defaultHadesColor || undefined;
         node.bgcolor = node._defaultHadesBgcolor || undefined;
     } else {
-        node.color = "#1b2028";
-        node.bgcolor = "#12151a";
+        node.color = "#1f2228";
+        node.bgcolor = "#17191e";
     }
 
     // 4. Resize and repaint
@@ -387,7 +461,7 @@ export function enableNodeHeaderIcon(node, options = {}) {
             const isClassic = isNodeClassicUI(this);
             const subOptions = [
                 {
-                    content: isClassic ? "Enable Spectral Theme" : "Disable UX (Classic ComfyUI View)",
+                    content: isClassic ? "Use HaDeS widgets" : "Use standard ComfyUI widgets",
                     callback: () => {
                         setNodeClassicUI(this, !isClassic, false, true);
                     },
@@ -428,7 +502,7 @@ export function enableNodeHeaderIcon(node, options = {}) {
                 return;
             }
             const h = title_height || 30;
-            ctx.font = titleFontStyle || this.titleFontStyle || "bold 12px sans-serif";
+            ctx.font = titleFontStyle || this.titleFontStyle || "600 12px Inter, system-ui, sans-serif";
             ctx.fillStyle = selected ? "#ffffff" : (this.constructor.title_text_color || "#e5e7eb");
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
@@ -441,7 +515,7 @@ export function enableNodeHeaderIcon(node, options = {}) {
             return;
         }
 
-        ctx.font = titleFontStyle || this.titleFontStyle || "bold 12px sans-serif";
+        ctx.font = titleFontStyle || this.titleFontStyle || "600 12px Inter, system-ui, sans-serif";
         let rawTitle = this.getTitle?.() ?? this.title ?? `❌ ${this.type}`;
         if (stripPrefix) {
             rawTitle = String(rawTitle).replace(/^HaDeS\s+/i, "");
@@ -496,10 +570,10 @@ export function enableNodeHeaderIcon(node, options = {}) {
 export function applyNodeFrameStyle(node) {
     if (!node) return;
     node._hasHadesFrameStyle = true;
-    if (!node._defaultHadesColor && node.color !== "#1b2028") {
+    if (!node._defaultHadesColor && node.color !== "#1f2228") {
         node._defaultHadesColor = node.color;
     }
-    if (!node._defaultHadesBgcolor && node.bgcolor !== "#12151a") {
+    if (!node._defaultHadesBgcolor && node.bgcolor !== "#17191e") {
         node._defaultHadesBgcolor = node.bgcolor;
     }
 
@@ -518,8 +592,8 @@ export function applyNodeFrameStyle(node) {
         };
     }
 
-    node.color = "#1b2028";
-    node.bgcolor = "#12151a";
+    node.color = "#1f2228";
+    node.bgcolor = "#17191e";
     enableNodeHeaderIcon(node);
 
     if (isNodeClassicUI(node)) {
@@ -659,12 +733,12 @@ export function createSpectralBannerWidget(node, config) {
             if (labelText) {
                 const ledColor = getStatusColor ? getStatusColor() : accentColor;
                 ctx.beginPath();
-                ctx.arc(x + 11, topY + 12, 4, 0, Math.PI * 2);
+                ctx.arc(x + 11, topY + 12, 3, 0, Math.PI * 2);
                 ctx.fillStyle = ledColor;
                 ctx.fill();
 
-                ctx.font = "bold 10px sans-serif";
-                ctx.fillStyle = "#abb2bf";
+                ctx.font = HADES_FONT.small;
+                ctx.fillStyle = HADES_THEME.textSecondary;
                 ctx.textAlign = "left";
                 ctx.textBaseline = "middle";
                 ctx.fillText(labelText, x + 20, topY + 12);
@@ -674,14 +748,14 @@ export function createSpectralBannerWidget(node, config) {
             const btnGap = 4;
             this._btnBounds = [];
 
-            ctx.font = "10px sans-serif";
+            ctx.font = HADES_FONT.small;
             ctx.textAlign = "center";
 
             if (!labelText && actions.length > 0) {
                 const maxAvailableW = w - 8;
                 const isNarrow = w < 280;
                 const btnGap = isNarrow ? 2 : 4;
-                ctx.font = isNarrow ? "9px sans-serif" : "10px sans-serif";
+                ctx.font = isNarrow ? "500 9px Inter, system-ui, sans-serif" : HADES_FONT.small;
 
                 let naturalTotal = 0;
                 const naturalWidths = actions.map((act) => {
@@ -702,10 +776,11 @@ export function createSpectralBannerWidget(node, config) {
                     const bx = cursorLeft;
                     const by = topY + 4;
 
+                    const isActive = Boolean(act.isActive?.(n));
                     drawRoundedRect(ctx, bx, by, btnW, btnH, 3);
-                    ctx.fillStyle = "#232731";
+                    ctx.fillStyle = isActive ? `${HADES_THEME.accent}26` : HADES_THEME.bgControl;
                     ctx.fill();
-                    ctx.strokeStyle = "#363c49";
+                    ctx.strokeStyle = isActive ? HADES_THEME.borderActive : HADES_THEME.borderSubtle;
                     ctx.stroke();
 
                     let lbl = act.label;
@@ -733,7 +808,7 @@ export function createSpectralBannerWidget(node, config) {
                     ctx.beginPath();
                     ctx.rect(bx + 1, by, btnW - 2, btnH);
                     ctx.clip();
-                    ctx.fillStyle = "#9da5b4";
+                    ctx.fillStyle = isActive ? HADES_THEME.textPrimary : HADES_THEME.textSecondary;
                     ctx.fillText(lbl, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
                     ctx.restore();
 
@@ -748,12 +823,13 @@ export function createSpectralBannerWidget(node, config) {
                     const bx = cursorRight - btnW;
                     const by = topY + 4;
 
+                    const isActive = Boolean(act.isActive?.(n));
                     drawRoundedRect(ctx, bx, by, btnW, btnH, 3);
-                    ctx.fillStyle = "#232731";
+                    ctx.fillStyle = isActive ? `${HADES_THEME.accent}26` : HADES_THEME.bgControl;
                     ctx.fill();
-                    ctx.strokeStyle = "#363c49";
+                    ctx.strokeStyle = isActive ? HADES_THEME.borderActive : HADES_THEME.borderSubtle;
                     ctx.stroke();
-                    ctx.fillStyle = "#9da5b4";
+                    ctx.fillStyle = isActive ? HADES_THEME.textPrimary : HADES_THEME.textSecondary;
                     ctx.fillText(act.label, bx + btnW * 0.5, by + btnH * 0.5 + 0.5);
 
                     this._btnBounds.push({ x: bx, y: by, w: btnW, h: btnH, onClick: act.onClick, tooltip: act.tooltip, color: act.color });
@@ -769,7 +845,7 @@ export function createSpectralBannerWidget(node, config) {
                 const graphH = hasTopRow ? h - 28 : h - 8;
 
                 drawRoundedRect(ctx, graphX, graphY, graphW, graphH, 4);
-                ctx.fillStyle = "#101217";
+                ctx.fillStyle = HADES_THEME.bgControl;
                 ctx.fill();
 
                 this._hudBounds = { x: graphX, y: graphY, w: graphW, h: graphH };
@@ -784,7 +860,7 @@ export function createSpectralBannerWidget(node, config) {
                 } else if (typeof getBars === "function") {
                     const bars = getBars() || [];
                     const midY = graphY + graphH * 0.5;
-                    ctx.strokeStyle = "#222630";
+                    ctx.strokeStyle = HADES_THEME.borderSubtle;
                     ctx.beginPath();
                     ctx.moveTo(graphX + 2, midY);
                     ctx.lineTo(graphX + graphW - 2, midY);
@@ -835,6 +911,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
         tagWidth = null,
         label = "",
         cleanFileNames = false,
+        marker = null,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -863,25 +940,11 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             const rowY = y + 2;
 
             ctx.save();
-            drawRoundedRect(ctx, x, rowY, w, h, 5);
-            ctx.fillStyle = HADES_THEME.bgPanel;
-            ctx.fill();
-            ctx.strokeStyle = HADES_THEME.borderSubtle;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            ctx.font = "bold 9px sans-serif";
-            const tagW = tagWidth || Math.max(52, Math.round(ctx.measureText(tag).width + 12));
-            drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
-            ctx.fillStyle = `${tagColor}22`;
-            ctx.fill();
-            ctx.strokeStyle = `${tagColor}66`;
-            ctx.stroke();
-
-            ctx.fillStyle = tagColor;
-            ctx.textAlign = "center";
+            drawRowSurface(ctx, x, rowY, w, h, this._isHovered);
+            ctx.font = HADES_FONT.label;
+            const tagW = tagWidth || Math.max(52, Math.round(ctx.measureText(tag).width + 18));
+            drawRowLabel(ctx, x, rowY, h, tagW, tag, marker);
             ctx.textBaseline = "middle";
-            ctx.fillText(tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
             const rawVal = backingWidget?.value ?? "";
             const valText = cleanFileNames ? formatCleanLabel(rawVal) : String(rawVal);
@@ -894,7 +957,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             ctx.rect(textStartX, rowY, textMaxW, h);
             ctx.clip();
 
-            ctx.font = "11px sans-serif";
+            ctx.font = HADES_FONT.text;
             ctx.textAlign = "left";
             if (label) {
                 ctx.fillStyle = HADES_THEME.textSecondary;
@@ -908,8 +971,8 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             }
             ctx.restore();
 
-            ctx.fillStyle = HADES_THEME.textSecondary;
-            ctx.font = "10px sans-serif";
+            ctx.fillStyle = HADES_THEME.textMuted;
+            ctx.font = HADES_FONT.small;
             ctx.textAlign = "center";
             ctx.fillText("▾", x + w - 10, rowY + h * 0.5 + 0.5);
 
@@ -981,6 +1044,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
         decimals = 2,
         isInt = false,
         zeroLabel = null,
+        marker = null,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -1016,27 +1080,14 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
             const curVal = clampNum(backingWidget?.value ?? defaultVal, min, max, isInt ? 0 : decimals);
 
             ctx.save();
-            drawRoundedRect(ctx, x, rowY, w, h, 5);
-            ctx.fillStyle = HADES_THEME.bgPanel;
-            ctx.fill();
-            ctx.strokeStyle = HADES_THEME.borderSubtle;
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            drawRowSurface(ctx, x, rowY, w, h, this._isHovered);
 
             const isNarrow = w < 280;
             const hasLabel = Boolean(label);
-            ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
-            const tagW = tagWidth || Math.max(isNarrow ? 42 : 50, Math.round(ctx.measureText(rangeTag || tag).width + (isNarrow ? 8 : 12)));
-            drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
-            ctx.fillStyle = `${color}22`;
-            ctx.fill();
-            ctx.strokeStyle = `${color}66`;
-            ctx.stroke();
-
-            ctx.fillStyle = color;
-            ctx.textAlign = "center";
+            ctx.font = HADES_FONT.label;
+            const tagW = tagWidth || Math.max(isNarrow ? 44 : 52, Math.round(ctx.measureText(rangeTag || tag).width + 18));
+            drawRowLabel(ctx, x, rowY, h, tagW, rangeTag || tag, marker);
             ctx.textBaseline = "middle";
-            ctx.fillText(rangeTag || tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
             // Right numeric box [ −  val  + ]
             const ctrlW = hasLabel ? (isNarrow ? 96 : 114) : (isNarrow ? 74 : 82);
@@ -1045,31 +1096,24 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
             const ctrlH = h - 6;
             const btnW = isNarrow ? 15 : 17;
 
-            drawRoundedRect(ctx, ctrlX, ctrlY, ctrlW, ctrlH, 4);
+            drawRoundedRect(ctx, ctrlX, ctrlY, ctrlW, ctrlH, 3);
             ctx.fillStyle = HADES_THEME.bgControl;
             ctx.fill();
-            ctx.strokeStyle = "#2b303c";
+            ctx.strokeStyle = HADES_THEME.borderSubtle;
             ctx.stroke();
 
             const trackX = ctrlX + btnW;
             const trackW = ctrlW - btnW * 2;
             const norm = Math.max(0, Math.min(1, (curVal - visMin) / (visMax - visMin || 1)));
 
-            if (hasLabel) {
-                const fillW = norm * trackW;
-                if (fillW > 0.5) {
-                    ctx.fillStyle = `${color}44`;
-                    ctx.fillRect(trackX, ctrlY + 1, fillW, ctrlH - 2);
-                }
-            }
 
-            ctx.font = isNarrow ? "bold 10px monospace" : "bold 11px monospace";
+            ctx.font = HADES_FONT.text;
             ctx.textAlign = "center";
-            ctx.fillStyle = HADES_THEME.textSecondary;
+            ctx.fillStyle = HADES_THEME.textMuted;
             ctx.fillText("−", ctrlX + btnW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
             ctx.fillText("+", ctrlX + ctrlW - btnW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
 
-            ctx.font = isNarrow ? "10px monospace" : "11px monospace";
+            ctx.font = HADES_FONT.value;
             ctx.fillStyle = HADES_THEME.textPrimary;
             const valStr = zeroLabel && curVal === 0 ? zeroLabel : (isInt ? String(Math.round(curVal)) : curVal.toFixed(decimals));
             ctx.fillText(valStr, trackX + trackW * 0.5, ctrlY + ctrlH * 0.5 + 0.5);
@@ -1084,8 +1128,8 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                 ctx.beginPath();
                 ctx.rect(labelX, rowY, Math.max(0, labelMaxW), h);
                 ctx.clip();
-                ctx.font = isNarrow ? "10.5px sans-serif" : "11px sans-serif";
-                ctx.fillStyle = "#d1d5db";
+                ctx.font = HADES_FONT.text;
+                ctx.fillStyle = HADES_THEME.textPrimary;
                 ctx.textAlign = "left";
 
                 let displayLabel = label;
@@ -1110,41 +1154,32 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                 railW = railEndX - railStartX;
 
                 if (railW > 14) {
-                    const railH = 4.5;
+                    const railH = 3;
                     const railY = rowY + Math.round((h - railH) * 0.5);
 
                     // Track background rail
-                    drawRoundedRect(ctx, railStartX, railY, railW, railH, 2.25);
-                    ctx.fillStyle = "#151820";
+                    drawRoundedRect(ctx, railStartX, railY, railW, railH, 1.5);
+                    ctx.fillStyle = HADES_THEME.borderSubtle;
                     ctx.fill();
-                    ctx.strokeStyle = "#252b37";
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
 
                     // Active progress fill
                     const fillRailW = norm * railW;
                     if (fillRailW > 0.5) {
-                        drawRoundedRect(ctx, railStartX, railY, fillRailW, railH, 2.25);
-                        ctx.fillStyle = `${color}cc`;
+                        drawRoundedRect(ctx, railStartX, railY, fillRailW, railH, 1.5);
+                        ctx.fillStyle = HADES_THEME.accent;
                         ctx.fill();
                     }
 
                     // Precision thumb indicator
                     const thumbX = Math.round(railStartX + fillRailW);
                     const thumbY = rowY + h * 0.5;
-                    const thumbH = 11;
-                    const thumbW = 4;
-
-                    ctx.save();
-                    ctx.shadowColor = color;
-                    ctx.shadowBlur = 4;
-                    drawRoundedRect(ctx, thumbX - thumbW * 0.5, thumbY - thumbH * 0.5, thumbW, thumbH, 2);
-                    ctx.fillStyle = "#ffffff";
+                    ctx.beginPath();
+                    ctx.arc(thumbX, thumbY, 4.5, 0, Math.PI * 2);
+                    ctx.fillStyle = HADES_THEME.textPrimary;
                     ctx.fill();
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = HADES_THEME.bgControl;
+                    ctx.lineWidth = 1.5;
                     ctx.stroke();
-                    ctx.restore();
                 }
             }
 
@@ -1196,7 +1231,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                     this._dragRail = true;
                     const ratio = Math.max(0, Math.min(1, (mx - z.rail.x) / z.rail.w));
                     const rawVal = visMin + ratio * (visMax - visMin);
-                    const stepped = isInt ? Math.round(rawVal / step) * step : rawVal;
+                    const stepped = snapToStep(rawVal, min, step);
                     const next = clampNum(stepped, min, max, isInt ? 0 : decimals);
                     setWidgetValue(backingWidget, next, n);
                     return true;
@@ -1220,7 +1255,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                 if (this._dragRail && z?.rail) {
                     const ratio = Math.max(0, Math.min(1, (mx - z.rail.x) / z.rail.w));
                     const rawVal = visMin + ratio * (visMax - visMin);
-                    const stepped = isInt ? Math.round(rawVal / step) * step : rawVal;
+                    const stepped = snapToStep(rawVal, min, step);
                     const next = clampNum(stepped, min, max, isInt ? 0 : decimals);
                     setWidgetValue(backingWidget, next, n);
                     return true;
@@ -1232,7 +1267,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
                         this._didDrag = true;
                         const sensitivity = isInt ? (visMax - visMin) / 160 : (visMax - visMin) / 140;
                         const rawNext = this._dragStartVal + dx * sensitivity;
-                        const stepped = isInt ? Math.round(rawNext / step) * step : rawNext;
+                        const stepped = snapToStep(rawNext, min, step);
                         const next = clampNum(stepped, min, max, isInt ? 0 : decimals);
                         setWidgetValue(backingWidget, next, n);
                     }
@@ -1283,6 +1318,7 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
         suffix = "",
         emptyPlaceholder = "— None —",
         allowClearOnRightClick = false,
+        numeric = false,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -1311,29 +1347,16 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             const rowY = y + 2;
 
             ctx.save();
-            drawRoundedRect(ctx, x, rowY, w, h, 5);
-            ctx.fillStyle = HADES_THEME.bgPanel;
-            ctx.fill();
-            ctx.strokeStyle = HADES_THEME.borderSubtle;
-            ctx.stroke();
+            drawRowSurface(ctx, x, rowY, w, h);
 
             const isNarrow = w < 280;
-            const tagW = tagWidth || (isNarrow ? 48 : 52);
-            drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
-            ctx.fillStyle = `${color}22`;
-            ctx.fill();
-            ctx.strokeStyle = `${color}66`;
-            ctx.stroke();
-
-            ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
-            ctx.fillStyle = color;
-            ctx.textAlign = "center";
+            const tagW = tagWidth || (isNarrow ? 48 : 56);
+            drawRowLabel(ctx, x, rowY, h, tagW, tag);
             ctx.textBaseline = "middle";
-            ctx.fillText(tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
             let sfxW = 0;
             if (suffix) {
-                ctx.font = "10px monospace";
+                ctx.font = HADES_FONT.small;
                 sfxW = ctx.measureText(suffix).width + 10;
                 ctx.fillStyle = HADES_THEME.textMuted;
                 ctx.textAlign = "right";
@@ -1347,7 +1370,7 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             ctx.beginPath();
             ctx.rect(x + tagW + 8, rowY, w - tagW - sfxW - 14, h);
             ctx.clip();
-            ctx.font = displayVal ? "11px monospace" : "italic 11px sans-serif";
+            ctx.font = displayVal ? HADES_FONT.text : `italic ${HADES_FONT.text}`;
             ctx.fillStyle = displayVal ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
             ctx.textAlign = "left";
             ctx.fillText(displayVal || emptyPlaceholder, x + tagW + 10, rowY + h * 0.5 + 0.5);
@@ -1373,6 +1396,11 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
                         promptTitle,
                         String(backingWidget.value || ""),
                         (val) => {
+                            if (numeric) {
+                                const parsed = Number.parseInt(String(val ?? "").trim(), 10);
+                                if (!Number.isNaN(parsed)) setWidgetValue(backingWidget, Math.max(0, parsed), n);
+                                return;
+                            }
                             setWidgetValue(backingWidget, String(val ?? "").trim(), n);
                         },
                         event
@@ -1422,28 +1450,15 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
             const isOn = Boolean(backingWidget?.value);
 
             ctx.save();
-            drawRoundedRect(ctx, x, rowY, w, h, 5);
-            ctx.fillStyle = HADES_THEME.bgPanel;
-            ctx.fill();
-            ctx.strokeStyle = isOn ? `${color}66` : HADES_THEME.borderSubtle;
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            drawRowSurface(ctx, x, rowY, w, h, this._isHovered);
 
             const isNarrow = w < 280;
-            ctx.font = isNarrow ? "bold 8.5px monospace" : "bold 9px monospace";
-            const tagW = tagWidth || Math.max(isNarrow ? 42 : 50, Math.round(ctx.measureText(tag).width + (isNarrow ? 8 : 12)));
-            drawRoundedRect(ctx, x + 3, rowY + 3, tagW, h - 6, 3);
-            ctx.fillStyle = `${color}22`;
-            ctx.fill();
-            ctx.strokeStyle = `${color}66`;
-            ctx.stroke();
-
-            ctx.fillStyle = color;
-            ctx.textAlign = "center";
+            ctx.font = HADES_FONT.label;
+            const tagW = tagWidth || Math.max(isNarrow ? 44 : 52, Math.round(ctx.measureText(tag).width + 18));
+            drawRowLabel(ctx, x, rowY, h, tagW, tag);
             ctx.textBaseline = "middle";
-            ctx.fillText(tag, x + 3 + tagW * 0.5, rowY + h * 0.5 + 0.5);
 
-            ctx.font = isNarrow ? "bold 9px monospace" : "bold 9.5px monospace";
+            ctx.font = HADES_FONT.label;
             const currentPillText = isOn ? onText : offText;
             const naturalPillW = Math.round(ctx.measureText(currentPillText).width + (isNarrow ? 10 : 14));
             const pillW = Math.max(isNarrow ? 66 : 76, naturalPillW);
@@ -1461,8 +1476,8 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
                     ctx.rect(labelStartX, rowY, labelMaxW, h);
                     ctx.clip();
 
-                    ctx.font = isNarrow ? "10px sans-serif" : "11px sans-serif";
-                    ctx.fillStyle = "#d1d5db";
+                    ctx.font = HADES_FONT.text;
+                    ctx.fillStyle = HADES_THEME.textPrimary;
                     ctx.textAlign = "left";
                     ctx.textBaseline = "middle";
 
@@ -1486,14 +1501,14 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
                 }
             }
 
-            drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 4);
-            ctx.fillStyle = isOn ? `${color}33` : "#1e222b";
+            drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 3);
+            ctx.fillStyle = isOn ? `${HADES_THEME.accent}26` : HADES_THEME.bgControl;
             ctx.fill();
-            ctx.strokeStyle = isOn ? color : "#333947";
+            ctx.strokeStyle = isOn ? HADES_THEME.borderActive : HADES_THEME.borderSubtle;
             ctx.stroke();
 
-            ctx.font = isNarrow ? "bold 9px monospace" : "bold 9.5px monospace";
-            ctx.fillStyle = isOn ? color : HADES_THEME.textMuted;
+            ctx.font = HADES_FONT.label;
+            ctx.fillStyle = isOn ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(currentPillText, pillX + pillW * 0.5, pillY + pillH * 0.5 + 0.5);
@@ -1570,12 +1585,7 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
 
             ctx.save();
 
-            drawRoundedRect(ctx, x, rowY, w, h, 6);
-            ctx.fillStyle = effectiveActive ? "#1e242d" : "#15181e";
-            ctx.fill();
-            ctx.strokeStyle = effectiveActive ? (slotIndex === 1 ? "#3b82f688" : "#10b98177") : "#262a34";
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            drawRowSurface(ctx, x, rowY, w, h, effectiveActive);
 
             const toggleX = x + 6;
             const toggleY = rowY + 5;
@@ -1583,7 +1593,7 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
             const toggleH = 16;
 
             drawRoundedRect(ctx, toggleX, toggleY, toggleW, toggleH, 8);
-            ctx.fillStyle = isOn && masterOn ? (slotIndex === 1 ? HADES_THEME.blue : HADES_THEME.emerald) : "#2d323e";
+            ctx.fillStyle = isOn && masterOn ? HADES_THEME.accent : HADES_THEME.borderSubtle;
             ctx.fill();
 
             const knobR = 6;
@@ -1591,11 +1601,11 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
             const knobY = toggleY + toggleH * 0.5;
             ctx.beginPath();
             ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2);
-            ctx.fillStyle = isOn && masterOn ? "#ffffff" : "#8b92a5";
+            ctx.fillStyle = isOn && masterOn ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
             ctx.fill();
 
-            ctx.font = "bold 9px sans-serif";
-            ctx.fillStyle = effectiveActive ? (slotIndex === 1 ? "#60a5fa" : "#34d399") : HADES_THEME.textMuted;
+            ctx.font = HADES_FONT.label;
+            ctx.fillStyle = effectiveActive ? HADES_THEME.textSecondary : HADES_THEME.textMuted;
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
             ctx.fillText(slotIndex === 1 ? "PRI" : `S${slotIndex}`, toggleX + toggleW + 5, rowY + h * 0.5);
@@ -1609,7 +1619,7 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
             drawRoundedRect(ctx, strZoneX, strZoneY, strZoneW, strZoneH, 4);
             ctx.fillStyle = HADES_THEME.bgControl;
             ctx.fill();
-            ctx.strokeStyle = "#2c313a";
+            ctx.strokeStyle = HADES_THEME.borderSubtle;
             ctx.stroke();
 
             const centerX = strZoneX + btnW;
@@ -1618,18 +1628,18 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
             const midX = centerX + centerW * 0.5;
             const barW = Math.abs(norm) * (centerW * 0.5);
             if (barW > 0.5 && isOn && hasLora) {
-                ctx.fillStyle = strength >= 0 ? "#2563eb44" : "#ef444444";
+                ctx.fillStyle = strength >= 0 ? `${HADES_THEME.accent}33` : `${HADES_THEME.danger}33`;
                 ctx.fillRect(strength >= 0 ? midX : midX - barW, strZoneY + 1, barW, strZoneH - 2);
             }
 
-            ctx.font = "bold 11px monospace";
+            ctx.font = HADES_FONT.text;
             ctx.textAlign = "center";
-            ctx.fillStyle = isOn ? HADES_THEME.textSecondary : "#4b5263";
+            ctx.fillStyle = isOn ? HADES_THEME.textMuted : HADES_THEME.borderSubtle;
             ctx.fillText("−", strZoneX + btnW * 0.5, strZoneY + strZoneH * 0.5 + 0.5);
             ctx.fillText("+", strZoneX + strZoneW - btnW * 0.5, strZoneY + strZoneH * 0.5 + 0.5);
 
-            ctx.font = "11px monospace";
-            ctx.fillStyle = effectiveActive ? HADES_THEME.textPrimary : "#6b7280";
+            ctx.font = HADES_FONT.value;
+            ctx.fillStyle = effectiveActive ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
             const strText = (strength >= 0 ? "+" : "") + strength.toFixed(2);
             ctx.fillText(strText, centerX + centerW * 0.5, strZoneY + strZoneH * 0.5 + 0.5);
 
@@ -1639,9 +1649,9 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
             const comboH = h - 6;
 
             drawRoundedRect(ctx, comboX, comboY, comboW, comboH, 4);
-            ctx.fillStyle = "#14161b";
+            ctx.fillStyle = HADES_THEME.bgControl;
             ctx.fill();
-            ctx.strokeStyle = hasLora && isOn ? "#374151" : "#21252b";
+            ctx.strokeStyle = HADES_THEME.borderSubtle;
             ctx.stroke();
 
             ctx.save();
@@ -1649,14 +1659,14 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
             ctx.rect(comboX + 6, comboY, comboW - 20, comboH);
             ctx.clip();
 
-            ctx.font = hasLora ? "11px sans-serif" : "italic 11px sans-serif";
-            ctx.fillStyle = !isOn || !masterOn ? HADES_THEME.textMuted : hasLora ? "#d1d5db" : "#6b7280";
+            ctx.font = hasLora ? HADES_FONT.text : `italic ${HADES_FONT.text}`;
+            ctx.fillStyle = !isOn || !masterOn ? HADES_THEME.textMuted : hasLora ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
             ctx.textAlign = "left";
             ctx.fillText(formatCleanLabel(loraVal), comboX + 7, comboY + comboH * 0.5 + 0.5);
             ctx.restore();
 
-            ctx.fillStyle = "#6b7280";
-            ctx.font = "9px sans-serif";
+            ctx.fillStyle = HADES_THEME.textMuted;
+            ctx.font = HADES_FONT.small;
             ctx.textAlign = "center";
             ctx.fillText("▾", comboX + comboW - 9, comboY + comboH * 0.5 + 0.5);
 

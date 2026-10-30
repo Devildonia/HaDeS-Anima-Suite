@@ -23,6 +23,16 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 - **`clamp_spectral_outliers`:** tensors with NaN/Inf are scrubbed and still outlier-clamped.
 - **Console noise:** loader/sampler/decode `print()` calls replaced by the suite logger (samplers and decode at debug level); removed the misleading `CLIPType.QWEN_IMAGE` fallback warning.
 
+### Changed (UI)
+- **Visual redesign:** one neutral surface scale with a single accent; green / amber / red reserved for state. Rainbow tag chips, neon tooltips and glows replaced by quiet uppercase row labels; block-group colors kept only as thin markers on the Block Merger rows (they match its 34-block chart).
+- **Shared layout:** every node uses `finalizeHadesNode` (real minimum width via `computeSize`, content-height on creation, saved sizes clamped on load), replacing 19 copy-pasted sizing blocks. Fixes clipped / overlapping text when narrowing nodes and the empty space at the bottom of new nodes.
+- **Remaining stock widgets restyled:** Prompt Studio header mode / trigger / artwork title, NAG `only_anima`, and the KSamplers' seed + control-after-generate (native widgets stay serialized underneath).
+- **Preset buttons show the active preset**; slider drags snap to the widget step; plain-English labels (e.g. "Aggressiveness", "Guidance scale", "Norm ceiling (τ)"); multi-pass KSampler rows labelled by pass / stage.
+- **Settings:** the classic-widgets option is declared through the extension `settings` API ("Use standard ComfyUI widgets on HaDeS nodes").
+
+### Fixed (UI)
+- Text Encoder Loader "CPU Safe" and VAE Loader "FP32" preset buttons set values that do not exist in the backend combos (prompt validation failed).
+
 ---
 
 ## [0.1.9] - 2026-10-30

@@ -6,7 +6,7 @@ import { KSAMPLER_NODE_DISPATCH } from "./hades_ksampler_ui.js";
 import { LOADER_NODE_DISPATCH } from "./hades_loaders_ui.js";
 
 // =============================================================================
-// HADES ANIMA SPECTRAL SUITE UI - EXTENSION ORCHESTRATOR (18 NODES)
+// HADES ANIMA SUITE UI - EXTENSION ORCHESTRATOR (19 NODES)
 // =============================================================================
 const NODE_SETUP_DISPATCH = {
     ...MERGER_NODE_DISPATCH,
@@ -17,24 +17,19 @@ const NODE_SETUP_DISPATCH = {
 
 app.registerExtension({
     name: "HaDeS.AnimaSpectralSuiteUI",
-    async setup() {
-        if (app?.ui?.settings?.addSetting) {
-            app.ui.settings.addSetting({
-                id: "HaDeS.ClassicUI",
-                name: "HaDeS Suite: Force Classic ComfyUI Theme (Vanilla)",
-                type: "boolean",
-                defaultValue: false,
-                tooltip: "When enabled, hides HaDeS spectral neon widgets and shows standard ComfyUI controls across all 18 nodes",
-                onChange(value) {
-                    setGlobalClassicUI(Boolean(value));
-                },
-            });
-            const savedVal = app.ui.settings.getSettingValue?.("HaDeS.ClassicUI");
-            if (savedVal !== undefined && savedVal !== null) {
-                setGlobalClassicUI(Boolean(savedVal));
-            }
-        }
-    },
+    settings: [
+        {
+            id: "HaDeS.ClassicUI",
+            category: ["HaDeS Anima Suite", "Appearance", "Classic widgets"],
+            name: "Use standard ComfyUI widgets on HaDeS nodes",
+            type: "boolean",
+            defaultValue: false,
+            tooltip: "Hides the HaDeS canvas widgets and shows the plain ComfyUI inputs on every HaDeS node.",
+            onChange(value) {
+                setGlobalClassicUI(Boolean(value));
+            },
+        },
+    ],
     async beforeRegisterNodeDef(nodeType, nodeData) {
         const installer = NODE_SETUP_DISPATCH[nodeData.name];
         if (!installer) return;
