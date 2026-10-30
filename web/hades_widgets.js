@@ -546,6 +546,16 @@ export function parseClientRecipePreview(recipeStr) {
             if (Array.isArray(obj.predicted_ratios_34) && obj.predicted_ratios_34.length === 34) {
                 return obj.predicted_ratios_34.map(Number);
             }
+            // Mirrors parse_recipe_override: groups-only recipes start from 0.5 DiT / 0.0 adapter
+            if (obj.groups && typeof obj.groups === "object") {
+                const ratios = new Array(28).fill(0.5).concat(new Array(6).fill(0.0));
+                for (const [name, meta] of Object.entries(GROUP_META)) {
+                    if (name in obj.groups) {
+                        for (const idx of meta.indices) ratios[idx] = Number(obj.groups[name]);
+                    }
+                }
+                return ratios;
+            }
         }
         const parts = text.split(",").map((s) => s.trim()).filter(Boolean);
         if (parts.length === 34) {

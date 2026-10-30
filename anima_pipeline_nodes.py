@@ -1208,15 +1208,17 @@ class HaDeSAnimaCornerScribbleShield:
                     # Robust reference: sample the guaranteed-clean outer ring (8-16px)
                     # just OUTSIDE the corner box and continue its content inward
                     # (edge continuation), instead of the old 2px inner strips.
+                    # Mirror the clean ring across the seam: the box row/col touching the seam takes the nearest
+                    # outside pixel, deeper rows/cols reach further out (up to `ring`, then hold).
                     ring = max(8, min(16, max(curr_bh, curr_bw) // 2))
                     if y0 > 0:
-                        v_rows = y0 - 1 - torch.arange(curr_bh, device=image.device).flip(0).clamp(max=ring - 1)
+                        v_rows = y0 - 1 - torch.arange(curr_bh, device=image.device).clamp(max=ring - 1)
                     else:
-                        v_rows = y1 + torch.arange(curr_bh, device=image.device).clamp(max=ring - 1)
+                        v_rows = y1 + torch.arange(curr_bh, device=image.device).flip(0).clamp(max=ring - 1)
                     if x0 > 0:
-                        h_cols = x0 - 1 - torch.arange(curr_bw, device=image.device).flip(0).clamp(max=ring - 1)
+                        h_cols = x0 - 1 - torch.arange(curr_bw, device=image.device).clamp(max=ring - 1)
                     else:
-                        h_cols = x1 + torch.arange(curr_bw, device=image.device).clamp(max=ring - 1)
+                        h_cols = x1 + torch.arange(curr_bw, device=image.device).flip(0).clamp(max=ring - 1)
                     ref_v = img_b[:, v_rows, x0:x1, :3]  # vertical edge continuation [1, curr_bh, curr_bw, 3]
                     ref_h = img_b[:, y0:y1, h_cols, :3]  # horizontal edge continuation [1, curr_bh, curr_bw, 3]
                     clean_fill = 0.5 * (ref_v + ref_h)

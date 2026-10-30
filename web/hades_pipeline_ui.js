@@ -249,7 +249,9 @@ export function setupPromptStudioUI(node) {
                 }
             } else if (Array.isArray(info.widgets_values) && info.widgets_values.length >= 11) {
                 const wv = info.widgets_values;
-                const isReordered = typeof wv[6] === "string" && (wv[6].includes("Canonical") || wv[6].includes("Dual"));
+                // Current layout stores header_mode / header_trigger at 6 / 7; legacy layout stores the prompts there.
+                const isReordered = (wHeaderMode?.options?.values || []).includes(wv[6])
+                    && (wHeaderTrig?.options?.values || []).includes(wv[7]);
                 if (isReordered) {
                     if (wHeaderMode) wHeaderMode.value = wv[6];
                     if (wHeaderTrig) wHeaderTrig.value = wv[7];

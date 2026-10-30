@@ -1,4 +1,5 @@
 import math
+import logging
 import torch
 import torch.nn.functional as F
 import comfy.sample
@@ -6,6 +7,8 @@ import comfy.samplers
 import comfy.utils
 import comfy.model_sampling
 import comfy.model_management
+
+logger = logging.getLogger("HaDeSAnimaSuite")
 
 try:
     import latent_preview
@@ -150,6 +153,11 @@ def clone_model_with_anima_shift(model, flow_shift: float):
                 m.model_options["transformer_options"]["_hades_nag_state"] = nag_state
 
     return m
+
+
+def _pass_seed(seed: int, offset: int) -> int:
+    """Per-pass seed for multi-pass samplers, wrapped so seed + offset stays inside torch.manual_seed's uint64 range."""
+    return (int(seed) + offset) % 0x10000000000000000
 
 
 def _resolve_flow_shift(model, flow_shift: float) -> float:
@@ -406,27 +414,17 @@ def run_anima_ksampler_pass(
     flow_shift <= 0 keeps the shift already set on the model (Model Loader, ModelSampling* nodes)."""
     patched_model = clone_model_with_anima_shift(model, flow_shift) if float(flow_shift) > 0.0 else model
 
-    latent_image = latent_dict["samples"]
-    if hasattr(comfy.sample, "fix_empty_latent_channels"):
-        try:
-            latent_image = comfy.sample.fix_empty_latent_channels(
-                patched_model,
-                latent_image,
-                latent_dict.get("downscale_ratio_spacial", None),
-                latent_dict.get("downscale_ratio_temporal", None),
-            )
-        except Exception:
-            pass
+    latent_image = comfy.sample.fix_empty_latent_channels(
+        patched_model,
+        latent_dict["samples"],
+        latent_dict.get("downscale_ratio_spacial", None),
+        latent_dict.get("downscale_ratio_temporal", None),
+    )
 
     if disable_noise:
         noise = torch.zeros_like(latent_image, device="cpu")
     else:
-        batch_inds = latent_dict.get("batch_index", None)
-        if hasattr(comfy.sample, "prepare_noise"):
-            noise = comfy.sample.prepare_noise(latent_image, int(seed), batch_inds)
-        else:
-            gen = torch.Generator(device="cpu").manual_seed(int(seed))
-            noise = torch.randn(latent_image.shape, generator=gen, dtype=torch.float32, device="cpu").to(dtype=latent_image.dtype)
+        noise = comfy.sample.prepare_noise(latent_image, int(seed), latent_dict.get("batch_index", None))
 
     noise_mask = latent_dict.get("noise_mask", None)
     sigmas = build_anima_sigmas(
@@ -578,7 +576,7 @@ class HaDeSAnimaKSampler:
             f"Denoise: {denoise:.2f} | Flow Shift (multiplier=1.0): {_resolve_flow_shift(model, flow_shift):.2f}{' (inherited)' if flow_shift <= 0 else ''} | "
             f"Sigmas[0..]: [{sig_head}]"
         )
-        print(f"\n[HaDeS Anima KSampler] {info}")
+        logger.debug(info)
         return (out_latent, decoded_img, info)
 
 
@@ -717,7 +715,7 @@ class HaDeSAnimaDualPassKSampler:
         model_p2 = model_pass2 if model_pass2 is not None else model
         final_latent, _ = run_anima_ksampler_pass(
             model=model_p2,
-            seed=int(seed) + 1,
+            seed=_pass_seed(seed, 1),
             steps=steps_pass2,
             cfg=cfg_pass2,
             sampler_name=sampler_pass2,
@@ -742,7 +740,7 @@ class HaDeSAnimaDualPassKSampler:
             f"Pass 2: {w2}x{h2}px ({sampler_pass2}/{scheduler_pass2}, {steps_pass2}s, CFG {cfg_pass2:.1f}, "
             f"Denoise {denoise_pass2:.2f}, Shift {_resolve_flow_shift(model_p2, shift_pass2):.2f}, HybridModel={'Yes' if model_pass2 is not None else 'No'})"
         )
-        print(f"\n[HaDeS Anima Dual-Pass KSampler] {info}")
+        logger.debug(info)
         return (final_latent, pass1_latent, decoded_img, info)
 
 
@@ -907,7 +905,7 @@ class HaDeSAnimaTriplePassKSampler:
         model_s2 = model_pass2 if model_pass2 is not None else model
         stage2_latent, _ = run_anima_ksampler_pass(
             model=model_s2,
-            seed=int(seed) + 1,
+            seed=_pass_seed(seed, 1),
             steps=steps_stage2,
             cfg=cfg_stage2,
             sampler_name=sampler_stage2,
@@ -928,7 +926,7 @@ class HaDeSAnimaTriplePassKSampler:
         model_s3 = model_pass3 if model_pass3 is not None else model_s2
         final_latent, _ = run_anima_ksampler_pass(
             model=model_s3,
-            seed=int(seed) + 2,
+            seed=_pass_seed(seed, 2),
             steps=steps_stage3,
             cfg=cfg_stage3,
             sampler_name=sampler_stage3,
@@ -952,5 +950,5 @@ class HaDeSAnimaTriplePassKSampler:
             f"S2 ({scale_stage2:.2f}x): {w2}x{h2}px ({sampler_stage2}/{scheduler_stage2}, {steps_stage2}s, CFG {cfg_stage2:.1f}, Denoise {denoise_stage2:.2f}, Shift {_resolve_flow_shift(model_s2, shift_stage2):.2f}) -> "
             f"S3 ({scale_stage3:.2f}x): {w3}x{h3}px ({sampler_stage3}/{scheduler_stage3}, {steps_stage3}s, CFG {cfg_stage3:.1f}, Denoise {denoise_stage3:.2f}, Shift {_resolve_flow_shift(model_s3, shift_stage3):.2f})"
         )
-        print(f"\n[HaDeS Anima Triple-Pass KSampler] {info}")
+        logger.debug(info)
         return (final_latent, stage1_latent, stage2_latent, decoded_img, info)

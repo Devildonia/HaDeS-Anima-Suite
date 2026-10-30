@@ -217,6 +217,11 @@ class DummyModelPatcher:
             return self.object_patches[name]
         if name == "model_sampling":
             return DummyModelSampling()
+        if name == "latent_format":
+            return types.SimpleNamespace(
+                latent_channels=16, spacial_downscale_ratio=8, temporal_downscale_ratio=1, latent_dimensions=2,
+                fix_empty_latent=lambda lat: lat,
+            )
         return None
 
     def add_patches(self, patches, strength_patch=1.0, strength_model=1.0):
@@ -1790,6 +1795,33 @@ def test_23_anima_model_saver():
     print("[OK] Test 23: HaDeS Anima Model Saver (Patch baking, prefix-free Native, Diffusers, FP8, Metadata ON/OFF, Adapter Separation) verified")
 
 
+def test_24_silent_bug_regressions():
+    ks_mod = hades.anima_ksampler_nodes
+
+    # Multi-pass seeds must stay inside torch.manual_seed's uint64 range at the max seed
+    max_seed = 0xffffffffffffffff
+    assert ks_mod._pass_seed(max_seed, 1) == 0 and ks_mod._pass_seed(max_seed, 2) == 1
+    torch.manual_seed(ks_mod._pass_seed(max_seed, 2))
+    assert ks_mod._pass_seed(41, 1) == 42
+
+    # clamp_outliers scrubs NaN/Inf AND still clamps the remaining >10 sigma outliers of the same tensor
+    t = torch.linspace(-1.0, 1.0, 4096)
+    t[0] = float("nan")
+    t[40] = 1000.0
+    out, stats = hades.canonicalize_anima_lora_sd({"lora_unet_blocks_0_mlp_layer1.lora_up.weight": t}, clamp_outliers=True)
+    v = next(iter(out.values()))
+    assert torch.isfinite(v).all() and float(v.abs().max()) < 1000.0 and stats["clamped_tensors"] == 1
+
+    # JSON recipes without known keys fail with a JSON-specific message instead of the CSV count error
+    try:
+        hades.parse_recipe_override('{"foo": 1}', hades.HaDeSAnimaModelBlockMerger.GROUP_MAP)
+        raise AssertionError("Expected ValueError")
+    except ValueError as e:
+        assert "predicted_ratios_34" in str(e)
+
+    print("[OK] Test 24: Silent bug regressions (seed wrap, NaN+outlier clamp, recipe JSON error) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1814,4 +1846,5 @@ if __name__ == "__main__":
     test_21_nag_dynamic_shift_propagation()
     test_22_anima_suite_telemetry()
     test_23_anima_model_saver()
-    print("\nALL 23 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_24_silent_bug_regressions()
+    print("\nALL 24 HADES ANIMA SUITE TEST SUITES PASSED!")

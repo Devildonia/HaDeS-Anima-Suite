@@ -1,4 +1,5 @@
 import os
+import logging
 import torch
 import folder_paths
 import comfy.sd
@@ -6,6 +7,8 @@ import comfy.utils
 import comfy.model_management
 
 from . import detect_anima_topology
+logger = logging.getLogger("HaDeSAnimaSuite")
+
 from .anima_ksampler_nodes import (
     clone_model_with_anima_shift,
     _validate_anima_16ch_vae_optional,
@@ -337,7 +340,7 @@ class HaDeSAnimaModelLoader:
             f"Dtype: {weight_dtype} | Flow Shift: {float(flow_shift):.2f} (mult=1.0) | "
             f"Diffusers Remapped: {remapped_count} keys | External Adapter Injected: {injected_count} keys"
         )
-        print(f"\n[HaDeS Anima Model Loader] {info}")
+        logger.info(info)
         return (model, info)
 
 
@@ -411,13 +414,8 @@ class HaDeSAnimaCLIPLoader:
         if model_options.get("custom_operations", None) is None and hasattr(comfy.utils, "convert_old_quants"):
             sd, metadata = comfy.utils.convert_old_quants(sd, model_prefix="", metadata=metadata)
 
-        if not hasattr(comfy.sd.CLIPType, "QWEN_IMAGE"):
-            print(
-                "[HaDeS Anima CLIP Loader] WARNING: CLIPType.QWEN_IMAGE not found in this ComfyUI build; "
-                "falling back to STABLE_DIFFUSION. Anima Text Encoder may misbehave — "
-                "please upgrade ComfyUI to a build with the qwen_image CLIP type."
-            )
-        clip_type = getattr(comfy.sd.CLIPType, "QWEN_IMAGE", comfy.sd.CLIPType.STABLE_DIFFUSION)
+        # The Anima TE pipeline is chosen from the detected Qwen3-0.6B weights; the clip type only has to be valid.
+        clip_type = comfy.sd.CLIPType.QWEN_IMAGE
         emb_dir = folder_paths.get_folder_paths("embeddings")
         clip = comfy.sd.load_text_encoder_state_dicts(
             [sd],
@@ -436,7 +434,7 @@ class HaDeSAnimaCLIPLoader:
             f"Architecture: {arch_label} ({n_layers}L, {hidden_dim}d) | "
             f"Device: {device_mode} | Precision: {precision}"
         )
-        print(f"\n[HaDeS Anima CLIP Loader] {info}")
+        logger.info(info)
         return (clip, info)
 
 
@@ -507,7 +505,7 @@ class HaDeSAnimaVAELoader:
             f"Arch: {diag['architecture']} | Channels: {diag['latent_channels']}ch | "
             f"Spatial Factor: {diag['spatial_compression']}x | Dtype: {active_dtype}"
         )
-        print(f"\n[HaDeS Anima VAE Loader] {info}")
+        logger.info(info)
         return (vae, info)
 
 
@@ -615,5 +613,5 @@ class HaDeSAnimaVAEDecode:
             f"HaDeS Anima VAE Decode | Output: {w_px}x{h_px}px ({mp:.2f} MP) | "
             f"Strategy: {tile_reason} (Tile {eff_tile_px}px / Overlap {eff_overlap_px}px)"
         )
-        print(f"\n[HaDeS Anima VAE Decode] {info}")
+        logger.debug(info)
         return (images, info)

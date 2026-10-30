@@ -15,6 +15,13 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 - **NAG guided every attention layer:** guidance now runs only on cross-attention (tagged via `attn1_patch` / `attn2_patch`), re-attending the positive queries over the negative prompt's keys/values, with the reference NAG formula (`nag_scale = 1.0` disables). The token-mean single-branch fallback was removed.
 - **KSamplers silently overrode the model's flow shift:** `flow_shift` / `shift_pass1` / `shift_stage1` accept `0` = inherit the shift already set on the model (Model Loader, ModelSampling nodes) and default to it. Profiles and presets that used the Anima default shift (3.0) now inherit. Info strings report the shift actually used.
 - **Telemetry false diagnostics:** `llm_adapter` protection is read from an explicit `Protect Adapter: <bool>` flag in every LoRA stream (the word "Stripped" in Prompt Studio no longer fakes it), and the Latent node stream is classified as SAMPLING so the resolution check runs.
+- **Dual/Triple-Pass seed overflow:** `seed + 1` / `seed + 2` wrap inside the uint64 range instead of crashing at the max seed.
+- **Swallowed sampling errors:** `fix_empty_latent_channels` is no longer wrapped in `except Exception: pass`; dead noise fallback removed.
+- **Corner Shield edge continuation was inverted:** the box row/column at the seam now copies the nearest clean pixel (mirror), avoiding a visible seam in Smart heal mode.
+- **Prompt Studio legacy restore:** the old/new `widgets_values` layout is detected by exact header combo values, not by `"Dual"`/`"Canonical"` substrings that a prompt could contain.
+- **Block Merger recipe preview:** groups-only JSON recipes are previewed like the backend applies them; unknown JSON recipes raise a JSON-specific error.
+- **`clamp_spectral_outliers`:** tensors with NaN/Inf are scrubbed and still outlier-clamped.
+- **Console noise:** loader/sampler/decode `print()` calls replaced by the suite logger (samplers and decode at debug level); removed the misleading `CLIPType.QWEN_IMAGE` fallback warning.
 
 ---
 

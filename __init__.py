@@ -200,16 +200,18 @@ def canonicalize_anima_lora_sd(sd, strip_llm_adapter=False, clamp_outliers=False
 
         t_out = tensor
         if clamp_outliers and isinstance(t_out, torch.Tensor) and t_out.is_floating_point():
-            if torch.isnan(t_out).any() or torch.isinf(t_out).any():
+            was_clamped = False
+            if not torch.isfinite(t_out).all():
                 t_out = torch.nan_to_num(t_out, nan=0.0, posinf=0.0, neginf=0.0)
-                clamped_count += 1
-            elif t_out.numel() > 16:
+                was_clamped = True
+            if t_out.numel() > 16:
                 std = float(t_out.float().std().item())
                 if std > 0.0:
                     limit = 10.0 * std
                     if float(t_out.abs().max().item()) > limit:
                         t_out = t_out.clamp(-limit, limit)
-                        clamped_count += 1
+                        was_clamped = True
+            clamped_count += int(was_clamped)
 
         out[new_k] = t_out
 
@@ -355,6 +357,7 @@ def parse_recipe_override(recipe_str, group_map):
                     for idx in indices:
                         ratios[idx] = val
             return ratios
+        raise ValueError("Invalid recipe_override JSON: expected a 34-value 'predicted_ratios_34' list or a 'groups' object.")
     parts = [p.strip() for p in text.split(",") if p.strip()]
     if len(parts) == 34:
         return [float(p) for p in parts]
