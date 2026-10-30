@@ -5,7 +5,9 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.1.10] - 2026-10-30
+## [0.2.0] - 2026-10-31
+
+> **Milestone Release v0.2.0:** Major architectural evolution of the HaDeS Anima Suite. Featuring Node #19 (Anima Model Saver with baked patches, Diffusers export & native ComfyUI ConvRot INT8/INT4), cross-attention-only NAG guidance, inherited Flow Shift across all KSamplers, comprehensive silent bug eradication (seed wrap, NaN+outlier clamp, seam continuation mirror), and a full UI design overhaul (restrained Linear-style dark aesthetic, active presets, and centralized `finalizeHadesNode` layout engine).
 
 ### Fixed
 - **Model Saver saved unmerged weights:** weights now go through ComfyUI's `model_state_dict_for_saving` lazy casters (same path as `comfy.sd.save_checkpoint`), so merge and LoRA patches are baked in even with dynamic VRAM. Already-quantized layers keep their weight + scale pieces.
