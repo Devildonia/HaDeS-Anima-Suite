@@ -187,7 +187,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 - **Purpose:** Picks artists, a character and a series from a local Danbooru tag catalog shipped in `web/data/` (83,355 artists, 57,653 characters, 12,405 series with at least 20 posts; nothing is downloaded) and outputs them in Anima prompt form for Prompt Studio's `artist` / `character` inputs or any text node.
 - **Inputs:** `artists` (comma-separated tags, optional `:weight`, e.g. `dairi:1.2, ebifurya`), `character`, `series`, `random_artists` (`0..4`, extra artists drawn by seed, never repeating a listed one), `random_min_posts` (default `200`), `seed`.
 - **Outputs:** `artist` (e.g. `(@hammer \(sunset beach\):1.2), @dairi`), `character` (character + series, e.g. `firefly \(honkai: star rail\), honkai: star rail`), `info`.
-- **UI:** click a row to open a search popup (prefix matches first, post counts shown; the catalog loads on first use); Shift+click edits the text; right-click clears.
+- **UI:** click a row to open a search popup (prefix matches first, post counts shown; the catalog loads on first use); the current entries appear on top of the popup with × to remove them; Shift+click edits the text.
 
 #### 7. `Anima Attention Guidance (NAG)`
 - **Class:** `HaDeSAnimaAttentionGuidance`

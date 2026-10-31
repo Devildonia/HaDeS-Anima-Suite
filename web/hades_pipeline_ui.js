@@ -224,7 +224,6 @@ export function setupPromptStudioUI(node) {
                   tagWidth: TAG_W,
                   promptTitle: "Enter Character Tag(s) (e.g. frieren, sousou no frieren)",
                   emptyPlaceholder: "Optional: character, series",
-                  allowClearOnRightClick: true,
                   isDisabled: () => isSocketLinked("character"),
                   disabledText: "From the linked character input",
                   tooltip: `<strong>Character & Series Tags</strong><br>Enter character names and franchises (e.g. frieren, sousou no frieren). Automatically formatted into canonical character position.`,
@@ -240,7 +239,6 @@ export function setupPromptStudioUI(node) {
                   tagWidth: TAG_W,
                   promptTitle: "Enter Artist Tag(s) (e.g. @zocehuy, (@zocehuy:1.2), wlop)",
                   emptyPlaceholder: "Optional: @artist tags",
-                  allowClearOnRightClick: true,
                   isDisabled: () => isSocketLinked("artist"),
                   disabledText: "From the linked artist input",
                   tooltip: `<strong>Artist & Style Tags</strong><br>Enter artist handles with optional weights (e.g. @zocehuy, (@zocehuy:1.2)). Automatically prefixed with '@' and placed in canonical artist position.`,
@@ -276,7 +274,6 @@ export function setupPromptStudioUI(node) {
                 tagWidth: TAG_W,
                 promptTitle: "Artwork title / alt-text (header line 2)",
                 emptyPlaceholder: "Optional artwork title (header line 2)",
-                allowClearOnRightClick: true,
                 tooltip: `<strong>Artwork title</strong><br>Optional line 2 of the canonical header. Leave empty to omit it. Right-click to clear.`,
             })
         );
@@ -1280,7 +1277,8 @@ function searchCatalog(cat, query, limit = 40) {
     return prefix.concat(inner).slice(0, limit);
 }
 
-function openCatalogSearch(kind, title, event, onPick) {
+// `selected` = { list: () => current entries, remove: (index) => void }; shown as removable chips above the search
+function openCatalogSearch(kind, title, event, onPick, selected) {
     document.getElementById("hades-catalog-search")?.remove();
     const box = document.createElement("div");
     box.id = "hades-catalog-search";
@@ -1300,7 +1298,31 @@ function openCatalogSearch(kind, title, event, onPick) {
     input.placeholder = "Loading catalog…";
     const list = document.createElement("div");
     Object.assign(list.style, { maxHeight: "300px", overflowY: "auto", marginTop: "6px" });
-    box.append(input, list);
+    const chips = document.createElement("div");
+    Object.assign(chips.style, { display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" });
+    const renderChips = () => {
+        chips.replaceChildren(
+            ...selected.list().map((entry, i) => {
+                const chip = document.createElement("span");
+                Object.assign(chip.style, {
+                    background: "#2a3140", border: "1px solid #3b4454", borderRadius: "10px", padding: "1px 4px 1px 8px",
+                    display: "inline-flex", alignItems: "center", gap: "4px", maxWidth: "100%",
+                });
+                chip.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span title="Remove" style="cursor:pointer;color:#a0a7b3;padding:0 3px">×</span>`;
+                chip.firstChild.textContent = tagLabel(entry);
+                chip.lastChild.addEventListener("pointerdown", (e) => {
+                    if (e.button !== 0) return;
+                    e.preventDefault(); // keep focus in the search box (Escape / Enter)
+                    selected.remove(i);
+                    renderChips();
+                });
+                return chip;
+            })
+        );
+        chips.style.display = chips.children.length ? "flex" : "none";
+    };
+    renderChips();
+    box.append(chips, input, list);
     document.body.append(box);
     for (const type of ["pointerdown", "wheel", "keydown"]) box.addEventListener(type, (e) => e.stopPropagation());
 
@@ -1319,7 +1341,7 @@ function openCatalogSearch(kind, title, event, onPick) {
         onPick(rows[i][0]);
         close();
     };
-    // Hover only restyles rows: rebuilding the list under the pointer re-fires pointerenter and swallows the press
+    // Hover only restyles rows: rebuilding the list under the pointer swallows the press
     const highlight = (i, scroll) => {
         list.children[active]?.style.setProperty("background", "transparent");
         active = i;
@@ -1336,7 +1358,10 @@ function openCatalogSearch(kind, title, event, onPick) {
                 });
                 row.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span style="color:#7d8592;flex:none">${formatCount(count)}</span>`;
                 row.firstChild.textContent = tagLabel(tag);
-                row.addEventListener("pointerenter", () => highlight(i, false));
+                // pointermove, not pointerenter: rows rendered under a resting cursor must not steal the highlight from typing
+                row.addEventListener("pointermove", () => {
+                    if (active !== i) highlight(i, false);
+                });
                 row.addEventListener("pointerdown", (e) => {
                     if (e.button === 0) choose(i);
                 });
@@ -1363,6 +1388,8 @@ function openCatalogSearch(kind, title, event, onPick) {
         }
     });
     input.focus();
+    // Vue nodes take focus in the default action of the press that opened the popup; take it back afterwards
+    setTimeout(() => input.focus(), 0);
 }
 
 export function setupArtistCharacterPickerUI(node) {
@@ -1415,7 +1442,6 @@ export function setupArtistCharacterPickerUI(node) {
             tag: "ARTISTS",
             color: HADES_THEME.purple,
             emptyPlaceholder: "Click to search and add",
-            allowClearOnRightClick: true,
             // Random draws only exist after a run, so the row also shows the last run's draw
             displayValue: (raw) => {
                 const drawn = Number(wRandom?.value) > 0 ? node._lastDrawn : null;
@@ -1428,12 +1454,16 @@ export function setupArtistCharacterPickerUI(node) {
                     editRaw(wArtists, "Artists (comma-separated, optional :weight, e.g. dairi:1.2)");
                     return;
                 }
-                openCatalogSearch("artists", "Add artist", event, (tag) => {
-                    const cur = String(wArtists.value || "").trim();
-                    setWidgetValue(wArtists, cur ? `${cur}, ${tag}` : tag, node);
+                const entries = () => String(wArtists.value || "").split(",").map((a) => a.trim()).filter(Boolean);
+                const add = (tag) => {
+                    if (!entries().some((a) => a.replace(/:[\d.]+$/, "") === tag)) setWidgetValue(wArtists, [...entries(), tag].join(", "), node);
+                };
+                openCatalogSearch("artists", "Add artist", event, add, {
+                    list: entries,
+                    remove: (i) => setWidgetValue(wArtists, entries().filter((_, j) => j !== i).join(", "), node),
                 });
             },
-            tooltip: `<strong>Artists</strong><br>Click to search and add one. Shift+click edits the list as text (weights as <code>name:1.2</code>). Right-click clears.`,
+            tooltip: `<strong>Artists</strong><br>Click to search and add one; the artists already listed appear on top with × to remove them. Shift+click edits the list as text (weights as <code>name:1.2</code>).`,
         })
     );
 
@@ -1446,16 +1476,18 @@ export function setupArtistCharacterPickerUI(node) {
                 tag,
                 color: HADES_THEME.cyan,
                 emptyPlaceholder: "Click to search",
-                allowClearOnRightClick: true,
                 displayValue: tagLabel,
                 onEdit: (event) => {
                     if (event.shiftKey) {
                         editRaw(w, `${label} (Danbooru tag)`);
                         return;
                     }
-                    openCatalogSearch(kind, label, event, (picked) => setWidgetValue(w, picked, node));
+                    openCatalogSearch(kind, label, event, (picked) => setWidgetValue(w, picked, node), {
+                        list: () => (String(w.value || "").trim() ? [String(w.value).trim()] : []),
+                        remove: () => setWidgetValue(w, "", node),
+                    });
                 },
-                tooltip: `<strong>${label}</strong><br>Click to search the catalog. Shift+click types a tag. Right-click clears.`,
+                tooltip: `<strong>${label}</strong><br>Click to search the catalog; the current tag appears on top with × to remove it. Shift+click types a tag.`,
             })
         );
     }

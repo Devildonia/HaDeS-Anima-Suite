@@ -177,7 +177,6 @@ export function setupManualBlockMergerUI(node) {
                 color: HADES_THEME.cyan,
                 promptTitle: "Paste 34-Block CSV Vector or Predictive JSON Recipe (Right-click to clear)",
                 emptyPlaceholder: "None (sliders active). Click to paste a CSV / JSON recipe",
-                allowClearOnRightClick: true,
                 tooltip: `<strong>CSV / JSON Recipe Vector</strong><br>Paste a custom 34-element vector or predictive recipe to override sliders. Right-click to clear.`,
             })
         );

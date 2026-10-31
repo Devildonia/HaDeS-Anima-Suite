@@ -1370,7 +1370,6 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
         promptTitle = "Enter Value",
         suffix = "",
         emptyPlaceholder = "— None —",
-        allowClearOnRightClick = false,
         numeric = false,
         onEdit = null,
         displayValue = null,
@@ -1448,10 +1447,6 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             const b = this._bounds;
             if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
                 if (isDisabled?.()) return true;
-                if (event.button === 2 && allowClearOnRightClick) {
-                    setWidgetValue(backingWidget, "", n);
-                    return true;
-                }
                 if (onEdit) {
                     onEdit(event, n);
                     return true;

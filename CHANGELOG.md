@@ -10,6 +10,8 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - **Artist & Character Picker search popup ignored clicks:** hovering rebuilt the result list under the pointer, so the press never reached a row. Hover now only moves the highlight and a row is picked on press.
 - **Picker random artists were invisible:** the draw only existed in the output. The ARTISTS row now shows the last run's random artists; the Random tooltip notes that AFTER RUN `fixed` repeats the same draw.
+- **Picker fields could not be cleared one by one:** clicking a row only ever added, and right-click clear never fired (ComfyUI opens its context menu first). The popup now lists the current entries with × to remove each, and adding an artist already listed is ignored. The broken right-click clear option was removed from all text rows.
+- **Picker search lost keyboard focus in Vue mode:** the node took focus right after the popup opened, so typing, Enter and Escape did nothing until the search box was clicked; a row under the resting cursor also stole the highlight from typing.
 
 ---
 
