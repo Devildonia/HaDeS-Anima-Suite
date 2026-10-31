@@ -5,6 +5,20 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.3] - 2026-10-31
+
+### Fixed
+- **Block / Predictive Merger silently skipped quantized layers:** with int8 / ConvRot checkpoints every DiT linear was left out of the merge (raw int8 weights are not floating point) while the node reported a merge. Both now raise a clear error asking for unquantized models, like the LoRA Extractor.
+- **Artist & Character Picker seed defaulted to randomize** (ComfyUI adds that control to any `seed` input), which re-ran Prompt Studio, encoding and sampling on every queue even with random artists off. It now defaults to fixed; random draws also never repeat a listed artist written with spaces or `@`.
+- **Telemetry ignored LoRA Block Weight** for the llm_adapter check, and reported `llm_adapter_safe: false` when no LoRA was present (now `null`).
+- **LoRA Resize resized DoRA layers** although they are documented as passed through unchanged.
+
+### Changed
+- Removed dead and old-ComfyUI fallbacks: Prompt Studio's unused `artist_in` / `character_in` parameters (the frontend already renames those sockets), the flow-shift clone's unreachable branches (single deepcopy path), optional `latent_preview` / `comfy.lora_convert` / sampler-list / scipy fallbacks, and the swallowed exception around VAE Decode's VRAM estimate. Discard-penultimate list is read from `comfy.samplers.KSampler`. `scipy` declared in dependencies and CI.
+- README: the Simple Pass example description matches its nodes; documented 30 test suites.
+
+---
+
 ## [0.3.2] - 2026-10-31
 
 ### Added
@@ -12,10 +26,6 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 - **Anima Artist & Character Picker (node 23):** local Danbooru tag catalog in `web/data/` (83k artists, 57k characters, 12k series, >= 20 posts) with a search popup; outputs `@artist` / character + series in Anima prompt form with parentheses escaped, optional weights and seeded random artists.
 
 ### Fixed
-- **Block / Predictive Merger silently skipped quantized layers:** with int8 / ConvRot checkpoints every DiT linear was left out of the merge (raw int8 weights are not floating point) while the node reported a merge. Both now raise a clear error asking for unquantized models, like the LoRA Extractor.
-- **Artist & Character Picker seed defaulted to randomize** (ComfyUI adds that control to any `seed` input), which re-ran Prompt Studio, encoding and sampling on every queue even with random artists off. It now defaults to fixed; random draws also never repeat a listed artist written with spaces or `@`.
-- **Telemetry ignored LoRA Block Weight** for the llm_adapter check, and reported `llm_adapter_safe: false` when no LoRA was present (now `null`).
-- **LoRA Resize resized DoRA layers** although they are documented as passed through unchanged.
 - **Prompt Studio artist names with parentheses** (e.g. `hammer_(sunset_beach)`) were passed unescaped, so the tokenizer read `(sunset beach)` as a weighted concept that leaked into the image; they are now escaped like character names.
 
 ---
@@ -29,8 +39,6 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 - **`tools/anima_ablation.py` `lora` / `lora_presets` modes:** per-group swap-in / leave-out for one LoRA (through LoRA Block Weight) and the Multi-LoRA presets against plain stacking. Results for two style LoRAs and a regional-prompt test in `tools/ABLATION_RESULTS.md`.
 
 ### Changed
-- Removed dead and old-ComfyUI fallbacks: Prompt Studio's unused `artist_in` / `character_in` parameters (the frontend already renames those sockets), the flow-shift clone's unreachable branches (one stored the shift on an attribute nothing read), optional `latent_preview` / `comfy.lora_convert` / sampler-list / scipy fallbacks, and the swallowed exception around VAE Decode's VRAM estimate. CI installs scipy, as ComfyUI does.
-- README: the Simple Pass example description matches its nodes.
 - The LoRA Merger's output-path handling is now the shared `lora_output_path` helper (same behavior); the Multi-LoRA loader helper is the shared `load_anima_lora_patches`.
 - **Multi-LoRA "Character + Style Fusion" is shown as "Favor Slot 1 (PRI)"** and the LoRA Merger's as "Favor Donor A": measured, it leans towards the first LoRA in composition and style alike. The other Multi-LoRA presets stay within 0.03 of plain stacking; tooltips say so. Stored values and math are unchanged.
 

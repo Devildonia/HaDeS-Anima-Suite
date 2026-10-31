@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.3.2
+# HaDeS Anima Suite v0.3.3
 
 23 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers and a telemetry node, with a shared canvas UI.
 
@@ -28,7 +28,7 @@ Claims about what block groups, presets and schedulers do are measured with [`to
 ## Nodes
 
 ```
-HaDeS Anima Suite v0.3.2
+HaDeS Anima Suite v0.3.3
 ├── HaDeS_Anima_Suite/Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader
@@ -325,7 +325,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
 │   └── ABLATION_RESULTS.md   # Measured results
 ├── tests/
-│   └── test_hades_suite.py   # 29 test suites (standalone stubs or real ComfyUI)
+│   └── test_hades_suite.py   # 30 test suites (standalone stubs or real ComfyUI)
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── LICENSE
