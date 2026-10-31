@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.3.4] - 2026-10-31
 
 ### Added
 - **Anima Sampler Metadata (node 24):** reads seed, steps, cfg, sampler, scheduler and denoise from a KSampler's `info` output for image-saver metadata. Values are the ones actually sampled with (profile / preset applied); Dual / Triple-Pass report pass 1.

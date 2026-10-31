@@ -1,7 +1,7 @@
 [project]
 name = "hades-anima-suite"
-description = "Complete 23-node Anima ecosystem suite for ComfyUI: Native Diffusers-aware Model/Qwen3-CLIP/16ch-VAE Loaders, Multi-Format ConvRot INT8/INT4 Model Saver, LoRA Extractor, Block Weight & SVD Resizer, Offline Danbooru Artist/Character Picker, Smart Tiled VAE Decode, Corner Scribble Shield, Block-level Model/CLIP/LoRA Mergers, QR-SVD Exporter, Prompt Studio & Aesthetic Slop Guard, NAG CFG-1.0 Attention Guidance, 16ch Latent/VAE Guard, Universal Diffusers LoRA Remapper, Single/Dual/Triple-Pass Anima Rectified Flow KSamplers, and Centralized Suite Telemetry & Flight Auditor."
-version = "0.3.3"
+description = "Complete 24-node Anima ecosystem suite for ComfyUI: Native Diffusers-aware Model/Qwen3-CLIP/16ch-VAE Loaders, Multi-Format ConvRot INT8/INT4 Model Saver, LoRA Extractor, Block Weight & SVD Resizer, Offline Danbooru Artist/Character Picker, Smart Tiled VAE Decode, Corner Scribble Shield, Block-level Model/CLIP/LoRA Mergers, QR-SVD Exporter, Prompt Studio & Aesthetic Slop Guard, NAG CFG-1.0 Attention Guidance, 16ch Latent/VAE Guard, Universal Diffusers LoRA Remapper, Single/Dual/Triple-Pass Anima Rectified Flow KSamplers, Image Saver Sampler Metadata, and Centralized Suite Telemetry & Flight Auditor."
+version = "0.3.4"
 authors = [
     { name = "Devildonia" }
 ]
