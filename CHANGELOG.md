@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.3.6] - 2026-10-31
 
 ### Added
 - **Picker weights:** each entry in the search popup has −/+ for its prompt weight (0.1–2.0); character and series accept `:weight` like artists. ComfyUI's weight parser reads the output correctly, colons in names included (e.g. `(firefly \(honkai: star rail\):1.3)`).
