@@ -5,6 +5,14 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Artist & Character Picker search popup ignored clicks:** hovering rebuilt the result list under the pointer, so the press never reached a row. Hover now only moves the highlight and a row is picked on press.
+- **Picker random artists were invisible:** the draw only existed in the output. The ARTISTS row now shows the last run's random artists; the Random tooltip notes that AFTER RUN `fixed` repeats the same draw.
+
+---
+
 ## [0.3.5] - 2026-10-31
 
 ### Fixed

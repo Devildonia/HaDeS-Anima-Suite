@@ -1319,31 +1319,36 @@ function openCatalogSearch(kind, title, event, onPick) {
         onPick(rows[i][0]);
         close();
     };
+    // Hover only restyles rows: rebuilding the list under the pointer re-fires pointerenter and swallows the press
+    const highlight = (i, scroll) => {
+        list.children[active]?.style.setProperty("background", "transparent");
+        active = i;
+        list.children[active]?.style.setProperty("background", "#2a3140");
+        if (scroll) list.children[active]?.scrollIntoView({ block: "nearest" });
+    };
     const render = () => {
         list.replaceChildren(
             ...rows.map(([tag, count], i) => {
                 const row = document.createElement("div");
                 Object.assign(row.style, {
                     display: "flex", justifyContent: "space-between", gap: "8px", padding: "4px 6px", borderRadius: "4px",
-                    cursor: "pointer", background: i === active ? "#2a3140" : "transparent",
+                    cursor: "pointer", background: "transparent",
                 });
                 row.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span style="color:#7d8592;flex:none">${formatCount(count)}</span>`;
                 row.firstChild.textContent = tagLabel(tag);
-                row.addEventListener("pointerenter", () => {
-                    active = i;
-                    render();
+                row.addEventListener("pointerenter", () => highlight(i, false));
+                row.addEventListener("pointerdown", (e) => {
+                    if (e.button === 0) choose(i);
                 });
-                row.addEventListener("click", () => choose(i));
                 return row;
             })
         );
-        list.children[active]?.scrollIntoView({ block: "nearest" });
+        highlight(0, true);
     };
     loadCatalog(kind).then((cat) => {
         input.placeholder = `Search ${cat.tags.length.toLocaleString()} tags…`;
         const update = () => {
             rows = searchCatalog(cat, input.value);
-            active = 0;
             render();
         };
         input.addEventListener("input", update);
@@ -1354,8 +1359,7 @@ function openCatalogSearch(kind, title, event, onPick) {
         else if (e.key === "Enter") choose(active);
         else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
-            active = Math.max(0, Math.min(rows.length - 1, active + (e.key === "ArrowDown" ? 1 : -1)));
-            render();
+            highlight(Math.max(0, Math.min(rows.length - 1, active + (e.key === "ArrowDown" ? 1 : -1))), true);
         }
     });
     input.focus();
@@ -1412,7 +1416,13 @@ export function setupArtistCharacterPickerUI(node) {
             color: HADES_THEME.purple,
             emptyPlaceholder: "Click to search and add",
             allowClearOnRightClick: true,
-            displayValue: tagLabel,
+            // Random draws only exist after a run, so the row also shows the last run's draw
+            displayValue: (raw) => {
+                const drawn = Number(wRandom?.value) > 0 ? node._lastDrawn : null;
+                if (!drawn?.length) return tagLabel(raw);
+                const random = `random: ${drawn.map(tagLabel).join(", ")}`;
+                return raw ? `${tagLabel(raw)}  + ${random}` : random;
+            },
             onEdit: (event) => {
                 if (event.shiftKey) {
                     editRaw(wArtists, "Artists (comma-separated, optional :weight, e.g. dairi:1.2)");
@@ -1463,7 +1473,7 @@ export function setupArtistCharacterPickerUI(node) {
             defaultVal: 0,
             isInt: true,
             zeroLabel: "OFF",
-            tooltip: `<strong>Random Artists</strong><br>Extra artists drawn from the catalog by seed, never repeating one already listed.`,
+            tooltip: `<strong>Random Artists</strong><br>Extra artists drawn from the catalog by seed, never repeating one already listed. The last draw is shown in the ARTISTS row. With AFTER RUN on <code>fixed</code> every run draws the same artists; set it to <code>randomize</code> for a new draw each run.`,
         })
     );
 
@@ -1482,6 +1492,14 @@ export function setupArtistCharacterPickerUI(node) {
             tooltip: `<strong>Minimum Danbooru posts</strong><br>Random artists are drawn only from tags with at least this many posts; well-known artists are more likely to be recognized by Anima.`,
         })
     );
+
+    node._lastDrawn = null;
+    const origOnExecuted = node.onExecuted;
+    node.onExecuted = function (output) {
+        origOnExecuted?.apply(this, arguments);
+        this._lastDrawn = (output?.ui || output)?.drawn ?? null;
+        this.setDirtyCanvas(true, true);
+    };
 
     if (wControl) {
         createSeedRows(node, wSeed, wControl);

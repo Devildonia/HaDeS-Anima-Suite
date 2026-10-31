@@ -2046,7 +2046,7 @@ def test_29_artist_character_picker():
     pipe = hades.anima_pipeline_nodes
     node = pipe.HaDeSAnimaArtistCharacterPicker()
 
-    artist, character, info = node.pick("hammer_(sunset_beach):1.2, dairi, qp:flapper", "firefly_(honkai:_star_rail)", "honkai:_star_rail", 0, 200, 0)
+    artist, character, info = node.pick("hammer_(sunset_beach):1.2, dairi, qp:flapper", "firefly_(honkai:_star_rail)", "honkai:_star_rail", 0, 200, 0)["result"]
     assert artist == r"(@hammer \(sunset beach\):1.2), @dairi, @qp:flapper", artist
     assert character == r"firefly \(honkai: star rail\), honkai: star rail", character
     meta = hades.parse_info_meta(info)
@@ -2061,9 +2061,9 @@ def test_29_artist_character_picker():
     with open(os.path.join(pipe._CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
         catalog = json.load(f)
     counts = dict(zip(catalog["tags"], catalog["counts"]))
-    a1, _, i1 = node.pick("dairi", "", "", 3, 2000, 42)
-    a2, _, _ = node.pick("dairi", "", "", 3, 2000, 42)
-    a3, _, _ = node.pick("dairi", "", "", 3, 2000, 43)
+    a1, _, i1 = node.pick("dairi", "", "", 3, 2000, 42)["result"]
+    a2, _, _ = node.pick("dairi", "", "", 3, 2000, 42)["result"]
+    a3, _, _ = node.pick("dairi", "", "", 3, 2000, 43)["result"]
     drawn = hades.parse_info_meta(i1)["artists"][1:]
     assert a1 == a2 and a1 != a3 and len(drawn) == 3
     assert all(counts[t] >= 2000 and t != "dairi" for t in drawn)
@@ -2093,7 +2093,7 @@ def test_30_audit_regressions():
         top = json.load(f)["tags"][:3]
     listed = ", ".join(["@" + top[0].replace("_", " "), top[1].replace("_", " ") + ":1.1", top[2]])
     for seed in range(20):
-        _, _, info = hades.anima_pipeline_nodes.HaDeSAnimaArtistCharacterPicker().pick(listed, "", "", 4, 100000, seed)
+        _, _, info = hades.anima_pipeline_nodes.HaDeSAnimaArtistCharacterPicker().pick(listed, "", "", 4, 100000, seed)["result"]
         drawn = hades.parse_info_meta(info)["artists"][3:]
         assert not set(drawn) & set(top), f"seed {seed} redrew a listed artist: {drawn}"
 

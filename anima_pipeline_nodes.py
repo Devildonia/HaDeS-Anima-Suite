@@ -677,9 +677,9 @@ class HaDeSAnimaArtistCharacterPicker:
         info = f"HaDeS Artist & Character Picker | Artist: {artist_out or '-'} | Character: {character_out or '-'}"
         if drawn:
             info += f" | Random ({random_artists}, >= {random_min_posts} posts, seed {seed}): {', '.join(drawn)}"
-        return (artist_out, character_out, format_info(
+        return {"ui": {"drawn": drawn}, "result": (artist_out, character_out, format_info(
             info, "artist_picker", artists=chosen + drawn, character=character.strip(), series=series.strip(), random_artists=len(drawn),
-        ))
+        ))}
 
 
 # ==============================================================================
