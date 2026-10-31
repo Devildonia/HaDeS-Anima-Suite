@@ -7,6 +7,9 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Example workflow `Artist Picker & Sampler Metadata`:** the Simple Pass graph with the picker wired into Prompt Studio and Sampler Metadata reading the KSampler's info (previews stand in for an image-saver node).
+
 ### Fixed
 - **Picker read some catalog tags as weights:** tags that end in `:digits` themselves (series `reverse:1999`, `yarofes:2023`; artists `7:08`, `re:1`, `code:074`) were split into a name plus a weight, so `reverse:1999` became weight 1999 and random draws could do the same. A tag that exists in the catalog as written is now always a name; weights still append (`reverse:1999:1.2`).
 - Removed leftover "Right-click to clear" hints (merger recipe, Prompt Studio title); that option no longer exists.
