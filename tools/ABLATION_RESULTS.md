@@ -89,3 +89,32 @@ Base model, stock `EmptySD3LatentImage` at exact sizes (no snapping), 8 samples 
 
 - The native grid is **16 px** (VAE 8x * patch 2). Sizes off that grid tend to get a band on the padded bottom edge.
 - Nothing separates 16-aligned from 32-aligned sizes; the "32 px macroblock" rule is not supported.
+
+## Can style be separated from structure? (in-process probe)
+
+Same prompts, seeds and metrics; position between A (0) and B (1). Run in-process with ComfyUI's own `KSampler`
+(er_sde / normal / 28 steps), because neither probe is expressible with the suite's nodes:
+- **sublayer**: A with one DiT sublayer type taken from B in all 28 blocks (`ModelPatcher.add_patches`, like `ModelMergeSimple`).
+- **switch**: one sampling run that calls B instead of A once sigma drops below the threshold
+  (`set_model_unet_function_wrapper` + `set_additional_models`).
+
+| Variant | pixelart layout / edges / texture / color | aesthetic layout / edges / texture / color |
+|---|---|---|
+| self_attn from B | 0.34 / 0.35 / 0.21 / 0.31 | 0.35 / 0.34 / 0.43 / 0.37 |
+| cross_attn from B | 0.24 / 0.25 / 0.14 / 0.12 | 0.26 / 0.25 / 0.37 / 0.14 |
+| mlp from B | 0.47 / 0.50 / 0.34 / 0.46 | 0.43 / 0.43 / 0.52 / 0.48 |
+| adaln_modulation from B | 0.37 / 0.38 / 0.34 / 0.33 | 0.45 / 0.47 / 0.53 / 0.54 |
+| B below sigma 0.90 | 0.31 / 0.35 / 0.52 / 0.23 | 0.29 / 0.28 / 0.57 / 0.27 |
+| B below sigma 0.75 | 0.12 / 0.10 / 0.36 / 0.09 | 0.10 / 0.06 / 0.20 / 0.09 |
+| B below sigma 0.50 | 0.04 / 0.01 / 0.15 / 0.03 | 0.03 / 0.01 / 0.09 / 0.03 |
+
+Findings:
+- No sublayer type carries style without structure; results also flip between the two pairs.
+- Switching to B late keeps A's composition **and** A's palette / lighting; B only re-renders fine detail (texture 0.52-0.57 at sigma 0.9).
+  Palette, lighting and pixel grid are decided in the same high-noise steps as composition.
+- Splitting the same schedule across two `KSamplerAdvanced` calls with er_sde produced heavy noise artifacts that the texture metric
+  scored as "style"; always check the contact sheets, not only the numbers.
+
+Conclusion: "A identity + B style" is not reachable by weight merging (per group or per sublayer) or by a late model switch
+for these pairs. The closest measurable effect is "A composition and palette + B detail" via a late switch, which the
+Dual-Pass / Triple-Pass KSamplers already offer through `model_pass2` / `model_pass3` at low denoise.
