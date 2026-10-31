@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.3.8] - 2026-10-31
 
 ### Added
 - **Example workflows `LoRA Toolkit` and `NAG, Corner Shield & Telemetry`:** every node of the suite now appears in at least one example.
