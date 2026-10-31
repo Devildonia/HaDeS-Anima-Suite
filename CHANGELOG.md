@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.3.9] - 2026-10-31
 
 ### Fixed
 - **LoRA Extractor failed with `"linalg_svd_cpu" not implemented for 'BFloat16'`** when the tuned model had patches (a LoRA or merge upstream) under dynamic VRAM: the lazily patched weights ignored the float32 cast. They are now materialized first, as the Model Saver already did.
