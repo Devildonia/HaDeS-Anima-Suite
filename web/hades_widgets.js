@@ -1374,6 +1374,8 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
         numeric = false,
         onEdit = null,
         displayValue = null,
+        isDisabled = null,
+        disabledText = "",
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -1400,8 +1402,10 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             const w = widgetWidth - margin * 2;
             const h = 24;
             const rowY = y + 2;
+            const disabled = Boolean(isDisabled?.());
 
             ctx.save();
+            if (disabled) ctx.globalAlpha = 0.45;
             drawRowSurface(ctx, x, rowY, w, h);
 
             const isNarrow = w < 280;
@@ -1425,10 +1429,11 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             ctx.beginPath();
             ctx.rect(x + tagW + 8, rowY, w - tagW - sfxW - 14, h);
             ctx.clip();
-            ctx.font = displayVal ? HADES_FONT.text : `italic ${HADES_FONT.text}`;
-            ctx.fillStyle = displayVal ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
+            const shown = disabled ? disabledText : displayVal;
+            ctx.font = shown && !disabled ? HADES_FONT.text : `italic ${HADES_FONT.text}`;
+            ctx.fillStyle = shown && !disabled ? HADES_THEME.textPrimary : HADES_THEME.textMuted;
             ctx.textAlign = "left";
-            ctx.fillText(displayVal || emptyPlaceholder, x + tagW + 10, rowY + h * 0.5 + 0.5);
+            ctx.fillText(shown || emptyPlaceholder, x + tagW + 10, rowY + h * 0.5 + 0.5);
             ctx.restore();
 
             this._bounds = { x, y: rowY, w, h };
@@ -1442,6 +1447,7 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             const [mx, my] = pos;
             const b = this._bounds;
             if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+                if (isDisabled?.()) return true;
                 if (event.button === 2 && allowClearOnRightClick) {
                     setWidgetValue(backingWidget, "", n);
                     return true;

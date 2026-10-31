@@ -5,6 +5,13 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Prompt Studio:** a linked `artist` / `character` socket now replaces the inline ARTIST / CHAR field instead of being merged with it, and the replaced row is drawn dimmed. Before, a stale inline value was silently added to the picker's output.
+
+---
+
 ## [0.3.4] - 2026-10-31
 
 ### Added

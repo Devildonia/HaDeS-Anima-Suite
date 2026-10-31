@@ -576,18 +576,9 @@ class HaDeSAnimaPromptStudio:
                        header_mode="Canonical (1 Trigger + Title)",
                        header_trigger="ye-pop",
                        artwork_title=""):
-        # Merge external sockets with inline widgets without duplicates
-        merged_chars = []
-        for src in (character, character_tag):
-            if src and str(src).strip():
-                merged_chars.append(str(src).strip())
-        effective_char = ", ".join(merged_chars)
-
-        merged_artists = []
-        for src in (artist, artist_tag):
-            if src and str(src).strip():
-                merged_artists.append(str(src).strip())
-        effective_artist = ", ".join(merged_artists)
+        # A linked socket replaces its inline widget (even when the upstream value is empty)
+        effective_char = str(character if character is not None else character_tag).strip()
+        effective_artist = str(artist if artist is not None else artist_tag).strip()
 
         fmt_pos, pos_stats = format_anima_prompt_text(
             positive_prompt,

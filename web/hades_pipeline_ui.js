@@ -208,6 +208,14 @@ export function setupPromptStudioUI(node) {
         })
     );
 
+    // A linked artist / character socket replaces its inline row (see process_prompt)
+    const isSocketLinked = (name) => node.inputs?.find((i) => i.name === name)?.link != null;
+    const origOnConnectionsChange = node.onConnectionsChange;
+    node.onConnectionsChange = function () {
+        origOnConnectionsChange?.apply(this, arguments);
+        this.setDirtyCanvas(true, true);
+    };
+
     const charWidget = wChar
         ? node.addCustomWidget(
               createStyledTextRowWidget(node, wChar, {
@@ -217,6 +225,8 @@ export function setupPromptStudioUI(node) {
                   promptTitle: "Enter Character Tag(s) (e.g. frieren, sousou no frieren)",
                   emptyPlaceholder: "Optional: character, series",
                   allowClearOnRightClick: true,
+                  isDisabled: () => isSocketLinked("character"),
+                  disabledText: "From the linked character input",
                   tooltip: `<strong>Character & Series Tags</strong><br>Enter character names and franchises (e.g. frieren, sousou no frieren). Automatically formatted into canonical character position.`,
               })
           )
@@ -231,6 +241,8 @@ export function setupPromptStudioUI(node) {
                   promptTitle: "Enter Artist Tag(s) (e.g. @zocehuy, (@zocehuy:1.2), wlop)",
                   emptyPlaceholder: "Optional: @artist tags",
                   allowClearOnRightClick: true,
+                  isDisabled: () => isSocketLinked("artist"),
+                  disabledText: "From the linked artist input",
                   tooltip: `<strong>Artist & Style Tags</strong><br>Enter artist handles with optional weights (e.g. @zocehuy, (@zocehuy:1.2)). Automatically prefixed with '@' and placed in canonical artist position.`,
               })
           )

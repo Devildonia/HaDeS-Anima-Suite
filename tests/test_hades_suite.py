@@ -654,14 +654,19 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
         "Flat Vector / Graphic (Non-Anime Dataset Header)",
         True,
         1.5,
-        "frieren, sousou no frieren",
-        "by zocehuy, (@zomzomzomsauce:1.2)",
+        "widget_char_ignored",
+        "@widget_artist_ignored",
         raw_pos,
         "worst_quality, low_quality, score_1, score_2, score_3, artist_name",
         clip=clip,
-        character="fern",
-        artist="(@yalmyu:1.0)",
+        character="fern, frieren, sousou no frieren",
+        artist="(@yalmyu:1.0), by zocehuy, (@zomzomzomsauce:1.2)",
     )
+    assert "ignored" not in fmt_pos, f"Linked artist / character sockets must replace the inline widgets, got: {fmt_pos}"
+    # Unlinked sockets (None) fall back to the widgets; a linked but empty socket still replaces its widget
+    _, _, fmt_w, _, _ = studio.process_prompt("Anima Base 2B (Keep Quality Tags)", "Standard Anime / Illustration", True, 1.0,
+                                              "frieren", "@zocehuy", "1girl", "", character="")
+    assert "frieren" not in fmt_w and "@zocehuy" in fmt_w, fmt_w
     assert "score_9" not in fmt_pos and "score_7_up" not in fmt_pos and "masterpiece" not in fmt_pos
     assert "score_1" not in fmt_neg and "worst quality" in fmt_neg, f"Expected score_* stripped from Aesthetic negative prompt, got: {fmt_neg}"
     assert r"hatsune miku \(vocaloid\)" in fmt_pos, f"Expected unescaped Booru parens to be escaped, got: {fmt_pos}"
