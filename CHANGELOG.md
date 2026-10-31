@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.3.7] - 2026-10-31
 
 ### Added
 - **Example workflow `Artist Picker & Sampler Metadata`:** the Simple Pass graph with the picker wired into Prompt Studio and Sampler Metadata reading the KSampler's info (previews stand in for an image-saver node).
