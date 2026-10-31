@@ -534,7 +534,8 @@ def test_4_subspace_multi_lora_per_secondary_slot():
             "diffusion_model.blocks.22.mlp.weight": FakeLoRAAdapter(u_s3_orth, d_s3_orth, 4.0),
         },
     }
-    loader._load_raw_lora = lambda name, model, clip, protect_llm_adapter=True: fake_loras[name]
+    orig_loader = hades.load_anima_lora_patches
+    hades.load_anima_lora_patches = lambda name, model, clip, protect_llm_adapter=True: fake_loras[name]
 
     _, _, info = loader.apply_predictive_multi_lora(
         m, c, True, "Anti-Overcook (Damped Safe Blend)", 1.5,
@@ -543,6 +544,7 @@ def test_4_subspace_multi_lora_per_secondary_slot():
         "orth_s3.safetensors", True, 1.0,
         "None", False, 1.0,
     )
+    hades.load_anima_lora_patches = orig_loader
     s2_vec = [float(x) for x in info.split("SECONDARY SLOT S2")[1].split("\n")[1].split(",")]
     s3_vec = [float(x) for x in info.split("SECONDARY SLOT S3")[1].split("\n")[1].split(",")]
     assert s2_vec[2] < s3_vec[2]
@@ -1941,6 +1943,37 @@ def test_26_lora_extractor():
     print("[OK] Test 26: HaDeSAnimaLoraExtractor (SVD reconstruction, 1D / bias diffs, adapter toggle, path containment) verified")
 
 
+def test_27_lora_block_weight():
+    sd = {f"diffusion_model.blocks.{i}.self_attn.q_proj.weight": torch.zeros(8, 8) for i in range(28)}
+    sd["diffusion_model.final_layer.linear.weight"] = torch.zeros(8, 8)
+    m = DummyModelPatcher(sd)
+    c = DummyCLIP({"transformer.model.layers.0.self_attn.q_proj.weight": torch.zeros(4, 4)})
+    fake = {k: ("diff", (torch.ones(8, 8),)) for k in ("diffusion_model.blocks.2.self_attn.q_proj.weight",
+                                                       "diffusion_model.blocks.12.self_attn.q_proj.weight",
+                                                       "diffusion_model.blocks.25.self_attn.q_proj.weight",
+                                                       "diffusion_model.final_layer.linear.weight")}
+    fake["transformer.model.layers.0.self_attn.q_proj.weight"] = ("diff", (torch.ones(4, 4),))
+
+    orig_loader = hades.load_anima_lora_patches
+    hades.load_anima_lora_patches = lambda name, model, clip, protect_llm_adapter=True: fake
+    try:
+        node = hades.HaDeSAnimaLoraBlockWeight()
+        new_m, new_c, info = node.apply_block_weight(m, "x.safetensors", 0.8, 1.0, 1.0, 0.5, 1.0, 1.0, 0.0, 2.0, clip=c, strength_clip=0.6)
+    finally:
+        hades.load_anima_lora_patches = orig_loader
+
+    strength = lambda k: [p[0] for p in new_m.patches.get(k, [])]
+    assert strength("diffusion_model.blocks.2.self_attn.q_proj.weight") == [0.8]
+    assert strength("diffusion_model.blocks.12.self_attn.q_proj.weight") == [0.4], "blocks 10-14 weight 0.5 x strength 0.8"
+    assert strength("diffusion_model.blocks.25.self_attn.q_proj.weight") == [], "weight 0 must not add a patch"
+    assert strength("diffusion_model.final_layer.linear.weight") == [1.6], "non-block layers use other_layers"
+    assert not m.patches, "input model must stay unpatched"
+    assert [p[0] for p in new_c.patcher.patches["transformer.model.layers.0.self_attn.q_proj.weight"]] == [0.6]
+    meta = hades.parse_info_meta(info)
+    assert meta["node"] == "lora_block_weight" and meta["weights"] == [1.0, 1.0, 0.5, 1.0, 1.0, 0.0]
+    print("[OK] Test 27: HaDeSAnimaLoraBlockWeight (per-group strength, zero groups skipped, other layers, CLIP strength) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1968,4 +2001,5 @@ if __name__ == "__main__":
     test_24_silent_bug_regressions()
     test_25_info_meta_contract()
     test_26_lora_extractor()
-    print("\nALL 26 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_27_lora_block_weight()
+    print("\nALL 27 HADES ANIMA SUITE TEST SUITES PASSED!")

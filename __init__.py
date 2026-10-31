@@ -39,6 +39,7 @@ HADES_META_SCHEMA = {
     "multi_lora": ("active_loras", "protect_adapter"),
     "lora_merger": ("saved_path", "rank", "protect_adapter"),
     "lora_extractor": ("saved_path", "rank", "layers", "energy_kept", "include_adapter"),
+    "lora_block_weight": ("lora", "strength_model", "weights", "other_layers", "protect_adapter"),
     "clip_merger": ("n_layers", "modified_tensors"),
     "model_saver": ("saved_path", "format", "precision", "topology"),
     "prompt_studio": ("variant", "tag_count", "stripped_tags"),
@@ -804,6 +805,19 @@ class HaDeSAnimaPredictiveModelMerger:
 # ==============================================================================
 # 3. HADES ANIMA PREDICTIVE MULTI LORA LOADER (SUBSPACE & ENERGY MODULATION)
 # ==============================================================================
+def load_anima_lora_patches(lora_name, model, clip, protect_llm_adapter=True):
+    """Load a LoRA file from models/loras into ComfyUI patch dicts keyed by model / CLIP weight keys."""
+    path = folder_paths.get_full_path_or_raise("loras", lora_name)
+    raw = comfy.utils.load_torch_file(path, safe_load=True)
+    canonical_sd, _ = canonicalize_anima_lora_sd(_convert_lora_fn(raw), strip_llm_adapter=protect_llm_adapter)
+    key_map = {}
+    if model is not None:
+        key_map = comfy.lora.model_lora_keys_unet(model.model, key_map)
+    if clip is not None:
+        key_map = comfy.lora.model_lora_keys_clip(clip.cond_stage_model, key_map)
+    return comfy.lora.load_lora(canonical_sd, key_map)
+
+
 class HaDeSAnimaPredictiveMultiLoraLoader:
     GROUP_MAP = HaDeSAnimaModelBlockMerger.GROUP_MAP
 
@@ -820,7 +834,7 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
                     "Anti-Overcook (Damped Safe Blend)",
                     "Orthogonal Synthesis (Complementary features)",
                     "Balanced 50/50 Adaptive"
-                ],),
+                ], {"tooltip": "Measured: 'Character + Style Fusion' (shown as 'Favor Slot 1' in the HaDeS UI) leans towards slot 1 without separating identity from style; the others stay within 0.03 of plain stacking (tools/ABLATION_RESULTS.md)."}),
                 "aggressiveness": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.5, "step": 0.05}),
 
                 # Slot 1
@@ -855,18 +869,6 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
     RETURN_NAMES = ("MODEL", "CLIP", "info")
     FUNCTION = "apply_predictive_multi_lora"
     CATEGORY = "HaDeS/Anima Mergers"
-
-    def _load_raw_lora(self, lora_name, model, clip, protect_llm_adapter=True):
-        path = folder_paths.get_full_path_or_raise("loras", lora_name)
-        raw = comfy.utils.load_torch_file(path, safe_load=True)
-        converted = _convert_lora_fn(raw)
-        canonical_sd, _ = canonicalize_anima_lora_sd(converted, strip_llm_adapter=protect_llm_adapter)
-        key_map = {}
-        if model is not None:
-            key_map = comfy.lora.model_lora_keys_unet(model.model, key_map)
-        if clip is not None:
-            key_map = comfy.lora.model_lora_keys_clip(clip.cond_stage_model, key_map)
-        return comfy.lora.load_lora(canonical_sd, key_map)
 
     def _extract_adapter_factors(self, patch_data):
         weights = getattr(patch_data, "weights", patch_data)
@@ -1019,7 +1021,7 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
         model_sd = new_model.model.state_dict()
         n_dit, n_adapter = detect_anima_topology(model_sd.keys())
 
-        loaded_loras = [self._load_raw_lora(name, model, clip, protect_llm_adapter=protect_llm_adapter) for name, _ in active_slots]
+        loaded_loras = [load_anima_lora_patches(name, model, clip, protect_llm_adapter=protect_llm_adapter) for name, _ in active_slots]
         base_lora = loaded_loras[0]
 
         secondary_curves = []
@@ -1114,6 +1116,87 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
 
 
 # ==============================================================================
+# 21. HADES ANIMA LORA BLOCK WEIGHT (PER-DEPTH STRENGTH FOR ONE LORA)
+# ==============================================================================
+class HaDeSAnimaLoraBlockWeight:
+    # canonical 34-band index ranges (40L / 52L models are mapped proportionally)
+    GROUPS = {
+        "blocks_00_04": range(0, 5),
+        "blocks_05_09": range(5, 10),
+        "blocks_10_14": range(10, 15),
+        "blocks_15_19": range(15, 20),
+        "blocks_20_23": range(20, 24),
+        "blocks_24_27": range(24, 28),
+    }
+
+    @classmethod
+    def INPUT_TYPES(s):
+        weight = {"default": 1.0, "min": -2.0, "max": 3.0, "step": 0.05}
+        inputs = {
+            "required": {
+                "model": ("MODEL",),
+                "lora_name": (folder_paths.get_filename_list("loras"),),
+                "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
+            },
+            "optional": {
+                "clip": ("CLIP",),
+                "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
+                "protect_llm_adapter": ("BOOLEAN", {"default": True, "tooltip": "Strip llm_adapter keys from the LoRA (llm_adapter_lr = 0 rule)."}),
+            },
+        }
+        for name in s.GROUPS:
+            inputs["required"][name] = ("FLOAT", {**weight, "tooltip": f"Multiplier for DiT blocks {name[7:9]}-{name[10:]} (canonical 28-block index)."})
+        inputs["required"]["other_layers"] = ("FLOAT", {**weight, "tooltip": "Multiplier for LoRA layers outside the DiT blocks (embedders, final layer, llm_adapter when not protected)."})
+        return inputs
+
+    RETURN_TYPES = ("MODEL", "CLIP", "STRING")
+    RETURN_NAMES = ("MODEL", "CLIP", "info")
+    FUNCTION = "apply_block_weight"
+    CATEGORY = "HaDeS/Anima Mergers"
+
+    def apply_block_weight(self, model, lora_name, strength_model, blocks_00_04, blocks_05_09, blocks_10_14, blocks_15_19,
+                           blocks_20_23, blocks_24_27, other_layers, clip=None, strength_clip=1.0, protect_llm_adapter=True):
+        weights = [blocks_00_04, blocks_05_09, blocks_10_14, blocks_15_19, blocks_20_23, blocks_24_27]
+        band_weight = [other_layers] * 34
+        for w, band in zip(weights, self.GROUPS.values()):
+            for b in band:
+                band_weight[b] = w
+
+        patches = load_anima_lora_patches(lora_name, model, clip, protect_llm_adapter=protect_llm_adapter)
+        new_model = model.clone()
+        model_keys = set(new_model.model.state_dict().keys())
+        n_dit, n_adapter = detect_anima_topology(model_keys)
+        by_strength = {}
+        clip_patches = {}
+        for k, patch in patches.items():
+            target = k[0] if isinstance(k, tuple) else k
+            if target in model_keys:
+                b = get_anima_block_idx(target, n_dit=n_dit, n_adapter=n_adapter)
+                s_val = round(strength_model * (band_weight[b] if b is not None and b < 28 else other_layers), 4)
+                if s_val != 0.0:
+                    by_strength.setdefault(s_val, {})[k] = patch
+            else:
+                clip_patches[k] = patch
+        for s_val, group in by_strength.items():
+            new_model.add_patches(group, strength_patch=s_val)
+
+        new_clip = clip
+        if clip is not None and strength_clip != 0.0 and clip_patches:
+            new_clip = clip.clone()
+            new_clip.add_patches(clip_patches, strength_clip)
+
+        info = (
+            f"HaDeS LoRA Block Weight | LoRA: {lora_name} | Model {strength_model:+.2f} | CLIP {strength_clip:+.2f} | "
+            f"Blocks 00-04/05-09/10-14/15-19/20-23/24-27: {'/'.join(f'{w:.2f}' for w in weights)} | Other: {other_layers:.2f} | "
+            f"Topology: {n_dit}+{n_adapter} | Protect Adapter: {protect_llm_adapter}"
+        )
+        return (new_model, new_clip, format_info(
+            info, "lora_block_weight", lora=lora_name, strength_model=strength_model, weights=weights,
+            other_layers=other_layers, protect_adapter=bool(protect_llm_adapter),
+        ))
+
+
+# ==============================================================================
 # 4. HADES ANIMA STANDALONE LORA MERGER (FAST QR-SVD EXPORTER)
 # ==============================================================================
 def lora_output_path(output_dir, export_filename, default_name, donor_paths=(), overwrite_existing=False):
@@ -1177,7 +1260,7 @@ class HaDeSAnimaStandaloneLoraMerger:
                     "Anti-Overcook & Clean Blend",
                     "Orthogonal Synthesis (DARE / SVD)",
                     "Geometric Harmonic Fusion"
-                ],),
+                ], {"tooltip": "Same formula family as the Multi-LoRA presets: 'Character + Style Fusion' (shown as 'Favor Donor A') leans towards LoRA A without separating identity from style (tools/ABLATION_RESULTS.md)."}),
                 "target_influence_b": ("FLOAT", {"default": 0.50, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "aggressiveness": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.5, "step": 0.05}),
                 "target_rank": ("INT", {"default": 32, "min": 4, "max": 128, "step": 4}),
@@ -2112,6 +2195,7 @@ NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaCLIPBlockMerger": HaDeSAnimaCLIPBlockMerger,
     "HaDeSAnimaModelSaver": HaDeSAnimaModelSaver,
     "HaDeSAnimaLoraExtractor": HaDeSAnimaLoraExtractor,
+    "HaDeSAnimaLoraBlockWeight": HaDeSAnimaLoraBlockWeight,
     "HaDeSAnimaPromptStudio": HaDeSAnimaPromptStudio,
     "HaDeSAnimaAttentionGuidance": HaDeSAnimaAttentionGuidance,
     "HaDeSAnimaLatentPipelineGuard": HaDeSAnimaLatentPipelineGuard,
@@ -2135,6 +2219,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaCLIPBlockMerger": "Anima CLIP Block Merger",
     "HaDeSAnimaModelSaver": "Anima Model Saver",
     "HaDeSAnimaLoraExtractor": "Anima LoRA Extractor",
+    "HaDeSAnimaLoraBlockWeight": "Anima LoRA Block Weight",
     "HaDeSAnimaPromptStudio": "Anima Prompt Studio",
     "HaDeSAnimaAttentionGuidance": "Anima Attention Guidance (NAG)",
     "HaDeSAnimaLatentPipelineGuard": "Anima Latent",

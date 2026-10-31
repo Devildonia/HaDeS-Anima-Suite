@@ -118,3 +118,65 @@ Findings:
 Conclusion: "A identity + B style" is not reachable by weight merging (per group or per sublayer) or by a late model switch
 for these pairs. The closest measurable effect is "A composition and palette + B detail" via a late switch, which the
 Dual-Pass / Triple-Pass KSamplers already offer through `model_pass2` / `model_pass3` at low denoise.
+
+## LoRAs (`--mode lora` / `--mode lora_presets`)
+
+Model `anima-base-v1.0`, LoRAs `dungeon_squad_style_anima_v1` and `Niji_semi_realism_v5` at strength 1.0, applied through
+Anima LoRA Block Weight. A = no LoRA, B = full LoRA; same prompts, seeds and metrics as above.
+
+**Swap-in (only that group of the LoRA)**
+
+| Group | dungeon layout / edges / texture / color | niji layout / edges / texture / color |
+|---|---|---|
+| blocks 00-04 | 0.44 / 0.46 / 0.26 / 0.41 | **0.65 / 0.74 / 0.72** / 0.55 |
+| blocks 05-09 | 0.64 / 0.67 / 0.57 / 0.57 | 0.39 / 0.42 / 0.43 / 0.17 |
+| blocks 10-14 | **0.70 / 0.78 / 0.64 / 0.68** | 0.61 / 0.66 / 0.48 / 0.36 |
+| blocks 15-19 | 0.59 / 0.66 / 0.44 / 0.48 | 0.51 / 0.62 / 0.52 / 0.48 |
+| blocks 20-23 | 0.39 / 0.37 / 0.47 / 0.37 | 0.53 / 0.60 / 0.36 / **0.88** |
+| blocks 24-27 | 0.26 / 0.24 / 0.18 / 0.17 | 0.23 / 0.24 / 0.19 / 0.14 |
+| other layers | 0 (no such keys) | 0 (no such keys) |
+
+**Leave-out (full LoRA minus that group)**
+
+| Group | dungeon layout / edges / texture / color | niji layout / edges / texture / color |
+|---|---|---|
+| blocks 00-04 | 0.51 / 0.44 / 0.31 / 0.30 | 0.71 / 0.66 / 0.27 / 0.37 |
+| blocks 05-09 | 0.73 / 0.70 / 0.45 / 0.38 | 0.30 / 0.32 / 0.11 / 0.07 |
+| blocks 10-14 | 0.76 / 0.74 / 0.38 / 0.39 | 0.49 / 0.57 / 0.33 / 0.19 |
+| blocks 15-19 | 0.77 / 0.78 / 0.66 / 0.64 | 0.57 / 0.62 / 0.34 / 0.37 |
+| blocks 20-23 | 0.43 / 0.41 / 0.50 / 0.41 | 0.40 / 0.39 / 0.27 / 0.37 |
+| blocks 24-27 | 0.31 / 0.26 / 0.37 / 0.18 | 0.17 / 0.16 / 0.10 / 0.07 |
+
+Findings:
+- Where a LoRA acts differs per LoRA: dungeon mostly in blocks 05-19, niji in 00-04 (and most of its color change in 20-23).
+- Blocks 24-27 carry the least change for both LoRAs, as for the model merges.
+- No group is "style" or "identity" for every LoRA, so Anima LoRA Block Weight ships without fixed style / identity presets.
+
+**Predictive Multi-LoRA presets** (PRI = dungeon, S2 = niji; position between dungeon only (0) and niji only (1)):
+
+| Variant | layout / edges / texture / color |
+|---|---|
+| Both stacked at 1.0 (reference) | 0.56 / 0.52 / 0.56 / 0.65 |
+| Character + Style Fusion | 0.49 / 0.47 / 0.49 / 0.54 |
+| Anti-Overcook | 0.56 / 0.52 / 0.54 / 0.65 |
+| Orthogonal Synthesis | 0.56 / 0.52 / 0.58 / 0.67 |
+| Balanced 50/50 Adaptive | 0.56 / 0.52 / 0.56 / 0.65 |
+
+- "Character + Style Fusion" leans towards the PRI LoRA by about the same amount in every metric; it does not keep PRI's identity
+  with S2's style. It is shown as "Favor Slot 1 (PRI)" in the HaDeS UI (stored value unchanged).
+- The other three are within 0.03 of plain stacking. The LoRA Merger presets use the same formula family and were not measured separately.
+
+## Regional prompts
+
+Base model, 1344x768, 8 seeds, two girls: red hair / dress on the left, blue on the right. Score = red pixels left minus right
+plus blue pixels right minus left.
+
+| Method | seeds with the right placement | separation |
+|---|---|---|
+| One natural-language prompt ("the girl on the left has red hair…") | 8/8 | **0.33** |
+| `ConditioningSetArea` (left / right halves) + base prompt | 8/8 | 0.24 |
+| `ConditioningSetMask` (left / right masks) + base prompt | 8/8 | 0.18 (one image grew a third character) |
+
+- ComfyUI's stock area / mask conditioning works on Anima (it acts in the sampler, not in `attn2`).
+- For this case Anima's natural-language prompt separates the two characters better than either, so no dedicated regional node was added.
+  Harder scenes (named characters, interactions, more than two subjects) were not tested.

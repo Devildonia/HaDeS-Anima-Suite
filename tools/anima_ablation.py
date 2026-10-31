@@ -13,6 +13,10 @@ Modes:
               share = d(variant, reference) / d(B, A): how much of the A->B change that group carries.
   presets     Predictive Merger presets and a uniform 0.5 merge, placed between A (0) and B (1) per metric.
   schedulers  normal / beta / anima_beta57 at low step counts vs. an 80-step euler reference.
+  lora        Like groups, for one LoRA (--lora) through Anima LoRA Block Weight: A = model without the LoRA,
+              B = model with the full LoRA.
+  lora_presets  Predictive Multi-LoRA presets with --lora as PRI and --lora-b as S2, plus both stacked at 1.0,
+              placed between "--lora only" (0) and "--lora-b only" (1).
 
 Example:
   python tools/anima_ablation.py --mode groups --model-a anima-base-v1.0.safetensors \
@@ -41,6 +45,13 @@ GROUPS = {
     "BLOCKS_Lighting_Sharpness": "B24-27",
     "ADAPTER_Text_Alignment": "B28-33",
 }
+LORA_GROUPS = ["blocks_00_04", "blocks_05_09", "blocks_10_14", "blocks_15_19", "blocks_20_23", "blocks_24_27", "other_layers"]
+LORA_PRESETS = [
+    "Character + Style Fusion (A identity, B style)",
+    "Anti-Overcook (Damped Safe Blend)",
+    "Orthogonal Synthesis (Complementary features)",
+    "Balanced 50/50 Adaptive",
+]
 PRESETS = [
     "Style Transfer (Keep A identity, B style)",
     "Interference Guard (Anti-Burn / Artifact Shield)",
@@ -80,10 +91,14 @@ def run_graph(server, graph):
         time.sleep(0.5)
 
 
+def build_loader_inputs(args, unet_name):
+    return {"unet_name": unet_name, "weight_dtype": "default", "flow_shift": 3.0, "auto_remap_diffusers": True, "external_llm_adapter": "None"}
+
+
 def build_graph(args, prompt, seed, model_node, steps=None, sampler=None, scheduler=None):
     """API graph: HaDeS loaders -> model_node (dict of extra nodes ending in id "model") -> KSampler -> preview."""
     g = {
-        "a": {"class_type": "HaDeSAnimaModelLoader", "inputs": {"unet_name": args.model_a, "weight_dtype": "default", "flow_shift": 3.0, "auto_remap_diffusers": True, "external_llm_adapter": "None"}},
+        "a": {"class_type": "HaDeSAnimaModelLoader", "inputs": build_loader_inputs(args, args.model_a)},
         "clip": {"class_type": "HaDeSAnimaCLIPLoader", "inputs": {"clip_name": args.clip, "device_mode": "default (GPU Dynamic)", "precision": "auto", "strict_qwen3_guard": True}},
         "vae": {"class_type": "HaDeSAnimaVAELoader", "inputs": {"vae_name": args.vae, "vae_precision": "bfloat16 (Recommended Wan21)"}},
         "pos": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["clip", 0]}},
@@ -106,6 +121,14 @@ def block_merge(ratios, base_ratio):
     return {"model": {"class_type": "HaDeSAnimaModelBlockMerger", "inputs": {"model1": ["a", 0], "model2": ["b", 0], "base_ratio": base_ratio, "recipe_override": "", **ratios}}}
 
 
+def lora_weight(lora, weights, src="a", node_id="model"):
+    """HaDeSAnimaLoraBlockWeight on `src`; `weights` maps LORA_GROUPS names to multipliers (missing = 0)."""
+    return {node_id: {"class_type": "HaDeSAnimaLoraBlockWeight", "inputs": {
+        "model": [src, 0], "lora_name": lora, "strength_model": 1.0, "protect_llm_adapter": True,
+        **{g: float(weights.get(g, 0.0)) for g in LORA_GROUPS},
+    }}}
+
+
 def configs_for(args):
     """name -> (model_node, sampling overrides)"""
     if args.mode == "groups":
@@ -116,6 +139,29 @@ def configs_for(args):
         for g in GROUPS:
             cfg[f"in_{g}"] = (block_merge({k: float(k == g) for k in GROUPS}, 0.0), {})
             cfg[f"out_{g}"] = (block_merge({k: float(k != g) for k in GROUPS}, 1.0), {})
+        return cfg
+    if args.mode == "lora":
+        full = dict.fromkeys(LORA_GROUPS, 1.0)
+        cfg = {"A": ({"model": {"class_type": "HaDeSAnimaModelLoader", "inputs": dict(build_loader_inputs(args, args.model_a))}}, {}),
+               "B": (lora_weight(args.lora, full), {})}
+        for g in LORA_GROUPS:
+            cfg[f"in_{g}"] = (lora_weight(args.lora, {g: 1.0}), {})
+            cfg[f"out_{g}"] = (lora_weight(args.lora, {**full, g: 0.0}), {})
+        return cfg
+    if args.mode == "lora_presets":
+        full = dict.fromkeys(LORA_GROUPS, 1.0)
+        cfg = {
+            "A": (lora_weight(args.lora, full), {}),
+            "B": (lora_weight(args.lora_b, full), {}),
+            "stack": ({**lora_weight(args.lora, full, node_id="l1"), **lora_weight(args.lora_b, full, src="l1")}, {}),
+        }
+        for i, p in enumerate(LORA_PRESETS):
+            cfg[f"preset{i}"] = ({"model": {"class_type": "HaDeSAnimaPredictiveMultiLoraLoader", "inputs": {
+                "model": ["a", 0], "clip": ["clip", 0], "enable_all": True, "preset": p, "aggressiveness": 1.0,
+                "lora_1": args.lora, "on_1": True, "strength_1": 1.0, "lora_2": args.lora_b, "on_2": True, "strength_2": 1.0,
+                "lora_3": "None", "on_3": False, "strength_3": 1.0, "lora_4": "None", "on_4": False, "strength_4": 1.0,
+                "protect_llm_adapter": True,
+            }}}, {})
         return cfg
     if args.mode == "presets":
         cfg = {
@@ -128,7 +174,7 @@ def configs_for(args):
                 "model1": ["a", 0], "model2": ["b", 0], "preset": p, "target_influence": args.influence, "aggressiveness": 1.0, "protect_llm_adapter": True,
             }}}, {})
         return cfg
-    model_a = {"model": {"class_type": "HaDeSAnimaModelLoader", "inputs": {"unet_name": args.model_a, "weight_dtype": "default", "flow_shift": 3.0, "auto_remap_diffusers": True, "external_llm_adapter": "None"}}}
+    model_a = {"model": {"class_type": "HaDeSAnimaModelLoader", "inputs": build_loader_inputs(args, args.model_a)}}
     cfg = {"ref": (model_a, {"steps": 80, "sampler": "euler", "scheduler": "normal"})}
     for sch in ("normal", "beta", "anima_beta57"):
         for st in (8, 14, 24):
@@ -188,7 +234,8 @@ def _sum(dists):
 
 
 def analyze(args, feats, samples):
-    report = {"mode": args.mode, "model_a": args.model_a, "model_b": args.model_b, "samples": len(samples), "steps": args.steps}
+    report = {"mode": args.mode, "model_a": args.model_a, "model_b": args.model_b, "lora": args.lora, "lora_b": args.lora_b,
+              "samples": len(samples), "steps": args.steps}
     if args.mode == "schedulers":
         rows = {}
         for name in feats:
@@ -199,11 +246,12 @@ def analyze(args, feats, samples):
 
     ab = _sum([distance(feats["A"][s], feats["B"][s]) for s in samples])
     report["A_to_B_mean_distance"] = {m: v / len(samples) for m, v in ab.items()}
-    if args.mode == "groups":
+    if args.mode in ("groups", "lora"):
+        names = GROUPS if args.mode == "groups" else {g: g for g in LORA_GROUPS}
         for kind, prefix, ref in (("swap_in", "in", "A"), ("leave_out", "out", "B")):
             report[kind] = {
-                GROUPS[g]: {m: round(v / ab[m], 3) for m, v in _sum([distance(feats[f"{prefix}_{g}"][s], feats[ref][s]) for s in samples]).items()}
-                for g in GROUPS
+                label: {m: round(v / ab[m], 3) for m, v in _sum([distance(feats[f"{prefix}_{g}"][s], feats[ref][s]) for s in samples]).items()}
+                for g, label in names.items()
             }
         return report
 
@@ -214,7 +262,8 @@ def analyze(args, feats, samples):
             continue
         da = _sum([distance(feats[name][s], feats["A"][s]) for s in samples])
         db = _sum([distance(feats[name][s], feats["B"][s]) for s in samples])
-        label = "uniform" if name == "uniform" else PRESETS[int(name[6:])]
+        presets = LORA_PRESETS if args.mode == "lora_presets" else PRESETS
+        label = name if name in ("uniform", "stack") else presets[int(name[6:])]
         rows[label] = {m: round(da[m] / (da[m] + db[m]), 3) for m in METRICS}
     report["position_A0_B1"] = rows
     return report
@@ -234,10 +283,12 @@ def contact_sheet(out_dir, mode, names, samples):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--mode", choices=("groups", "presets", "schedulers"), default="groups")
+    p.add_argument("--mode", choices=("groups", "presets", "schedulers", "lora", "lora_presets"), default="groups")
     p.add_argument("--server", default="http://127.0.0.1:8188")
     p.add_argument("--model-a", required=True, help="diffusion_models file name of Model 1 / A")
     p.add_argument("--model-b", help="diffusion_models file name of Model 2 / B (groups and presets modes)")
+    p.add_argument("--lora", help="models/loras name of the LoRA (lora mode) or PRI LoRA (lora_presets mode)")
+    p.add_argument("--lora-b", help="models/loras name of the S2 LoRA (lora_presets mode)")
     p.add_argument("--clip", default="qwen_3_06b_base.safetensors")
     p.add_argument("--vae", default="qwen_image_vae.safetensors")
     p.add_argument("--out", required=True)
@@ -250,8 +301,12 @@ def main():
     p.add_argument("--scheduler", default="normal")
     p.add_argument("--influence", type=float, default=0.5, help="target_influence for the presets mode")
     args = p.parse_args()
-    if args.mode != "schedulers" and not args.model_b:
+    if args.mode in ("groups", "presets") and not args.model_b:
         p.error("--model-b is required for groups and presets modes")
+    if args.mode in ("lora", "lora_presets") and not args.lora:
+        p.error("--lora is required for lora modes")
+    if args.mode == "lora_presets" and not args.lora_b:
+        p.error("--lora-b is required for lora_presets mode")
 
     os.makedirs(args.out, exist_ok=True)
     configs = configs_for(args)

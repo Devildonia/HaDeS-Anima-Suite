@@ -1281,7 +1281,7 @@ _META_BUCKETS = {
     "model_loader": "ARCHITECTURE", "clip_loader": "ARCHITECTURE", "vae_loader": "ARCHITECTURE",
     "model_block_merger": "ARCHITECTURE", "predictive_model_merger": "ARCHITECTURE", "clip_merger": "ARCHITECTURE",
     "model_saver": "ARCHITECTURE", "lora_extractor": "ARCHITECTURE",
-    "multi_lora": "CONDITIONING", "lora_remapper": "CONDITIONING", "lora_merger": "CONDITIONING", "prompt_studio": "CONDITIONING",
+    "multi_lora": "CONDITIONING", "lora_block_weight": "CONDITIONING", "lora_remapper": "CONDITIONING", "lora_merger": "CONDITIONING", "prompt_studio": "CONDITIONING",
     "ksampler": "SAMPLING", "ksampler_dual": "SAMPLING", "ksampler_triple": "SAMPLING", "nag": "SAMPLING", "latent": "SAMPLING",
     "corner_shield": "POST_PROCESSING", "vae_decode": "POST_PROCESSING",
 }

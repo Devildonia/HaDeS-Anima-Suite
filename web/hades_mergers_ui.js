@@ -367,7 +367,8 @@ export function setupMultiLoraLoaderUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.purple,
-            tooltip: `<strong>Predictive Multi-LoRA Preset</strong><br>Grassmann subspace allocation strategy (Character + Style Fusion, Style Harmony, or Balanced Fusion).`,
+            displayNames: { "Character + Style Fusion (A identity, B style)": "Favor Slot 1 (PRI)" },
+            tooltip: `<strong>Predictive Multi-LoRA Preset</strong><br>Per-block slot weights from LoRA overlap. Measured with two style LoRAs:<br>• <strong>Favor Slot 1:</strong> moves the result slightly towards the PRI LoRA in composition and style alike (saved as "Character + Style Fusion"); it does not separate identity from style.<br>• <strong>Anti-Overcook / Orthogonal Synthesis / Balanced 50/50:</strong> within ±0.03 of stacking the LoRAs at 1.0.<br>See tools/ABLATION_RESULTS.md.`,
         })
     );
 
@@ -481,7 +482,8 @@ export function setupStandaloneLoraMergerUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.cyan,
-            tooltip: `<strong>Merge Preset</strong><br>Grassmann subspace allocation curve across the 34 Anima model layers.`,
+            displayNames: { "Character + Style Fusion (A identity, B style)": "Favor Donor A" },
+            tooltip: `<strong>Merge Preset</strong><br>Per-block donor weights from LoRA overlap, the same formula family as the Multi-LoRA presets. Measured there, "Character + Style Fusion" (shown as Favor Donor A) leans towards the first LoRA without separating identity from style, and the others behave close to plain stacking. See tools/ABLATION_RESULTS.md.`,
         })
     );
 
@@ -678,6 +680,151 @@ export function setupLoraExtractorUI(node) {
     );
 
     finalizeHadesNode(node, 400);
+}
+
+const LORA_BLOCK_GROUPS = [
+    { key: "blocks_00_04", meta: "BLOCKS_Layout_Geometry", label: "Early Blocks" },
+    { key: "blocks_05_09", meta: "BLOCKS_Global_Composition", label: "Early-Mid Blocks" },
+    { key: "blocks_10_14", meta: "BLOCKS_Subject_Identity", label: "Core Blocks" },
+    { key: "blocks_15_19", meta: "BLOCKS_Material_Substance", label: "Mid-Late Blocks" },
+    { key: "blocks_20_23", meta: "BLOCKS_Art_Style_Medium", label: "Late Blocks" },
+    { key: "blocks_24_27", meta: "BLOCKS_Lighting_Sharpness", label: "Final Blocks" },
+];
+
+export function setupLoraBlockWeightUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wLora = findW("lora_name");
+    const wStrength = findW("strength_model");
+    const wClip = findW("strength_clip");
+    const wOther = findW("other_layers");
+    const wProtect = findW("protect_llm_adapter");
+    const groupWidgets = LORA_BLOCK_GROUPS.map((g) => findW(g.key));
+
+    [wLora, wStrength, wClip, wOther, wProtect, ...groupWidgets].forEach(hideBackingWidget);
+
+    const setWeights = (values) => {
+        groupWidgets.forEach((w, i) => setWidgetValue(w, values[i], node));
+        setWidgetValue(wOther, values[6], node);
+    };
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.purple,
+            tooltip: `<strong>LoRA Block Weight</strong><br>Applies one LoRA with a separate multiplier per DiT depth group (canonical 28-block index; 40L / 52L models are mapped proportionally).<br>Where a LoRA acts differs per LoRA (measured: one style LoRA mostly in blocks 05–14, another in 00–04 and 20–23), so there are no fixed "style only" presets. Measure a LoRA with <code>tools/anima_ablation.py --mode lora</code>. Blocks 24–27 carried the least change for every model and LoRA tested.`,
+            getBars() {
+                const bars = [];
+                LORA_BLOCK_GROUPS.forEach((g, i) => {
+                    const meta = GROUP_META[g.meta];
+                    for (let k = 0; k < meta.indices.length; k++) {
+                        bars.push({ ratio: Math.max(0.03, Math.min(1.0, Number(groupWidgets[i]?.value ?? 1) / 2)), color: meta.color });
+                    }
+                });
+                return bars;
+            },
+            actions: [
+                {
+                    label: "1.0",
+                    isActive: () => groupWidgets.every((w) => Number(w?.value) === 1) && Number(wOther?.value) === 1,
+                    tooltip: `<strong>Uniform</strong><br>Every group at 1.0 (same as a plain LoRA loader).`,
+                    onClick: () => setWeights([1, 1, 1, 1, 1, 1, 1]),
+                },
+            ],
+        })
+    );
+
+    node.addCustomWidget(
+        createStyledComboWidget(node, wLora, {
+            tag: "LORA",
+            tagColor: HADES_THEME.purple,
+            cleanFileNames: true,
+            tooltip: `<strong>LoRA</strong><br>Diffusers, Kohya, OneTrainer and Musubi keys are remapped to native Anima keys.`,
+        })
+    );
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wStrength, {
+            tag: "MODEL",
+            label: "Model Strength",
+            color: HADES_THEME.purple,
+            min: -10.0,
+            max: 10.0,
+            visMin: 0.0,
+            visMax: 2.0,
+            step: 0.05,
+            defaultVal: 1.0,
+            tooltip: `<strong>Model Strength</strong><br>Overall LoRA strength; each group multiplies it.`,
+        })
+    );
+
+    LORA_BLOCK_GROUPS.forEach((g, i) => {
+        const meta = GROUP_META[g.meta];
+        node.addCustomWidget(
+            createSpectralSliderWidget(node, groupWidgets[i], {
+                tag: meta.tag,
+                rangeTag: meta.range,
+                label: g.label,
+                color: meta.color,
+                marker: meta.color,
+                min: -2.0,
+                max: 3.0,
+                visMin: 0.0,
+                visMax: 2.0,
+                step: 0.05,
+                defaultVal: 1.0,
+                tooltip: `<strong>${g.label} (${meta.range})</strong><br>Multiplier for the LoRA on these blocks.`,
+            })
+        );
+    });
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wOther, {
+            tag: "OTHER",
+            label: "Other Layers",
+            color: HADES_THEME.textSecondary,
+            min: -2.0,
+            max: 3.0,
+            visMin: 0.0,
+            visMax: 2.0,
+            step: 0.05,
+            defaultVal: 1.0,
+            tooltip: `<strong>Other Layers</strong><br>Embedders, final layer and llm_adapter (when not protected).`,
+        })
+    );
+
+    if (wClip) {
+        node.addCustomWidget(
+            createSpectralSliderWidget(node, wClip, {
+                tag: "CLIP",
+                label: "CLIP Strength",
+                color: HADES_THEME.cyan,
+                min: -10.0,
+                max: 10.0,
+                visMin: 0.0,
+                visMax: 2.0,
+                step: 0.05,
+                defaultVal: 1.0,
+                tooltip: `<strong>CLIP Strength</strong><br>Strength for text-encoder LoRA layers, when the LoRA has them and a CLIP is connected.`,
+            })
+        );
+    }
+
+    if (wProtect) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wProtect, {
+                tag: "BRIDGE",
+                color: HADES_THEME.cyan,
+                label: "Strip llm_adapter keys",
+                onText: "STRIP",
+                offText: "KEEP",
+                tooltip: `<strong>llm_adapter</strong><br>Removes llm_adapter weights from the LoRA (llm_adapter_lr = 0 rule).`,
+            })
+        );
+    }
+
+    finalizeHadesNode(node, 430);
 }
 
 export function setupCLIPBlockMergerUI(node) {
@@ -1032,4 +1179,5 @@ export const MERGER_NODE_DISPATCH = {
     HaDeSAnimaCLIPBlockMerger: setupCLIPBlockMergerUI,
     HaDeSAnimaModelSaver: setupModelSaverUI,
     HaDeSAnimaLoraExtractor: setupLoraExtractorUI,
+    HaDeSAnimaLoraBlockWeight: setupLoraBlockWeightUI,
 };

@@ -10,8 +10,12 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - **Anima LoRA Extractor (node 20):** saves `model_tuned - model_base` as a LoRA (truncated SVD per linear layer, full diffs for norms / biases, identical tensors skipped, optional `llm_adapter`). Reads baked weights like the Model Saver and rejects quantized inputs. Info reports the share of the difference kept by the rank. Measured on base -> pixelart: rank 32 = 132 MB, 94.5% energy, every key loads in the stock LoRA loader.
 
+- **Anima LoRA Block Weight (node 21):** one LoRA with a multiplier per DiT depth group plus `other_layers`, optional CLIP strength and adapter stripping. No fixed presets: measured, where a LoRA acts differs per LoRA.
+- **`tools/anima_ablation.py` `lora` / `lora_presets` modes:** per-group swap-in / leave-out for one LoRA (through LoRA Block Weight) and the Multi-LoRA presets against plain stacking. Results for two style LoRAs and a regional-prompt test in `tools/ABLATION_RESULTS.md`.
+
 ### Changed
-- The LoRA Merger's output-path handling is now the shared `lora_output_path` helper (same behavior).
+- The LoRA Merger's output-path handling is now the shared `lora_output_path` helper (same behavior); the Multi-LoRA loader helper is the shared `load_anima_lora_patches`.
+- **Multi-LoRA "Character + Style Fusion" is shown as "Favor Slot 1 (PRI)"** and the LoRA Merger's as "Favor Donor A": measured, it leans towards the first LoRA in composition and style alike. The other Multi-LoRA presets stay within 0.03 of plain stacking; tooltips say so. Stored values and math are unchanged.
 
 ---
 
