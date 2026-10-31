@@ -5,7 +5,12 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.2.0] - 2026-10-31
+## [Unreleased]
+
+### Changed
+- **Info contract for Telemetry:** every node appends a `HADES_META {json}` trailer to its `info` output (`format_info`, keys per node in `HADES_META_SCHEMA`). Telemetry classifies streams by the trailer's node id and reads shift, CFG, NAG, resolution, VAE channels, adapter protection and corner results from it; regex parsing remains only for legacy / foreign strings. Reports show the streams without the trailer line.
+- **Tests:** contract test checks that all 18 emitting nodes use a schema node id with exactly its keys, and that Telemetry trusts trailers over contradictory prose.
+
 
 > **Milestone Release v0.2.0:** Major architectural evolution of the HaDeS Anima Suite. Featuring Node #19 (Anima Model Saver with baked patches, Diffusers export & native ComfyUI ConvRot INT8/INT4), cross-attention-only NAG guidance, inherited Flow Shift across all KSamplers, comprehensive silent bug eradication (seed wrap, NaN+outlier clamp, seam continuation mirror), and a full UI design overhaul (restrained Linear-style dark aesthetic, active presets, and centralized `finalizeHadesNode` layout engine).
 

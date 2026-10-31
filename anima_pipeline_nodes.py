@@ -16,6 +16,9 @@ from . import (
     _SAFE_FILENAME_RE,
     canonicalize_anima_lora_sd,
     detect_anima_topology,
+    format_info,
+    parse_info_meta,
+    strip_info_meta,
 )
 
 # ==============================================================================
@@ -628,7 +631,10 @@ class HaDeSAnimaPromptStudio:
             "\n--- FORMATTED POSITIVE PROMPT (CANONICAL ORDER) ---",
             fmt_pos,
         ]
-        return (pos_cond, neg_cond, fmt_pos, fmt_neg, "\n".join(info_lines))
+        return (pos_cond, neg_cond, fmt_pos, fmt_neg, format_info(
+            "\n".join(info_lines), "prompt_studio", variant=model_variant, tag_count=pos_stats["tag_count"],
+            stripped_tags=total_stripped,
+        ))
 
 
 # ==============================================================================
@@ -691,9 +697,15 @@ class HaDeSAnimaAttentionGuidance:
             else:
                 image_model = getattr(unet_config, "image_model", None)
             if image_model != "anima":
-                return (m, "HaDeS NAG: Bypassed (not an Anima model; only_anima=True).")
+                return (m, format_info(
+                    "HaDeS NAG: Bypassed (not an Anima model; only_anima=True).", "nag", active=False,
+                    scale=nag_scale, alpha=nag_alpha, tau=nag_tau, start=start_percent, end=end_percent,
+                ))
         if nag_scale <= 1.0 or nag_alpha <= 0.0 or start_percent >= end_percent:
-            return (m, "HaDeS NAG: Bypassed (nag_scale <= 1.0, nag_alpha == 0.0 or empty start/end window).")
+            return (m, format_info(
+                "HaDeS NAG: Bypassed (nag_scale <= 1.0, nag_alpha == 0.0 or empty start/end window).", "nag", active=False,
+                scale=nag_scale, alpha=nag_alpha, tau=nag_tau, start=start_percent, end=end_percent,
+            ))
 
         model_sampling = m.get_model_object("model_sampling")
         if model_sampling is not None and hasattr(model_sampling, "percent_to_sigma"):
@@ -800,7 +812,9 @@ class HaDeSAnimaAttentionGuidance:
             f"Alpha: {nag_alpha:.2f} | Tau: {nag_tau:.2f} | Window: {start_percent*100:.0f}%..{end_percent*100:.0f}% "
             f"(Sigma {sigma_start:.3f} -> {sigma_end:.3f})"
         )
-        return (m, info)
+        return (m, format_info(
+            info, "nag", active=True, scale=nag_scale, alpha=nag_alpha, tau=nag_tau, start=start_percent, end=end_percent,
+        ))
 
 
 # ==============================================================================
@@ -899,7 +913,7 @@ class HaDeSAnimaLatentPipelineGuard:
         if bias_adjusted:
             info_lines.append("Note: Auto-shifted 1280x1280 -> 1216x1216 to prevent Anima-2.9B white background bias.")
 
-        return ({"samples": latent}, w, h, "\n".join(info_lines))
+        return ({"samples": latent}, w, h, format_info("\n".join(info_lines), "latent", width=w, height=h, batch=batch_size))
 
 
 # ==============================================================================
@@ -1006,7 +1020,10 @@ class HaDeSAnimaUniversalLoraLoader:
             f"Protect Adapter: {strip_llm_adapter} | Dirty llm_adapter Keys Stripped: {stats['stripped_adapter_keys']} | Outliers Clamped: {stats['clamped_tensors']}",
             f"Exported Copy: {saved_msg}",
         ]
-        return (new_model, new_clip, "\n".join(info_lines))
+        return (new_model, new_clip, format_info(
+            "\n".join(info_lines), "lora_remapper", protect_adapter=bool(strip_llm_adapter),
+            remapped_keys=stats["remapped_keys"], stripped_adapter_keys=stats["stripped_adapter_keys"],
+        ))
 
 
 # ==============================================================================
@@ -1253,12 +1270,23 @@ class HaDeSAnimaCornerScribbleShield:
             f"HaDeS Corner Scribble Shield | Box: {bw}x{bh}px ({corner_box_percent*100:.0f}% base){expanded_note} | "
             f"Mode: {heal_mode} | Active: {active_corners} | Detected: {det_str}"
         )
-        return (out_img, mask_out, info)
+        return (out_img, mask_out, format_info(info, "corner_shield", mode=heal_mode, detected=triggered_corners))
 
 
 # ==============================================================================
 # 11. HADES ANIMA SUITE TELEMETRY & FLIGHT RECORDER
 # ==============================================================================
+# HADES_META node id -> report bucket
+_META_BUCKETS = {
+    "model_loader": "ARCHITECTURE", "clip_loader": "ARCHITECTURE", "vae_loader": "ARCHITECTURE",
+    "model_block_merger": "ARCHITECTURE", "predictive_model_merger": "ARCHITECTURE", "clip_merger": "ARCHITECTURE",
+    "model_saver": "ARCHITECTURE",
+    "multi_lora": "CONDITIONING", "lora_remapper": "CONDITIONING", "lora_merger": "CONDITIONING", "prompt_studio": "CONDITIONING",
+    "ksampler": "SAMPLING", "ksampler_dual": "SAMPLING", "ksampler_triple": "SAMPLING", "nag": "SAMPLING", "latent": "SAMPLING",
+    "corner_shield": "POST_PROCESSING", "vae_decode": "POST_PROCESSING",
+}
+
+
 class HaDeSAnimaSuiteTelemetry:
     """
     HaDeS Anima Suite Telemetry & Flight Recorder.
@@ -1332,9 +1360,16 @@ class HaDeSAnimaSuiteTelemetry:
             "EXTERNAL": [],
         }
 
-        for item in raw_inputs:
-            cat = self._classify_stream(item)
-            buckets[cat].append(item)
+        # Streams carrying a HADES_META trailer are read from it; prose regexes only run on legacy / foreign strings.
+        records = [(item, parse_info_meta(item)) for item in raw_inputs]
+        legacy = {cat: [] for cat in buckets}
+        for item, meta in records:
+            if meta is not None:
+                buckets[_META_BUCKETS.get(meta.get("node"), "EXTERNAL")].append(strip_info_meta(item))
+            else:
+                cat = self._classify_stream(item)
+                buckets[cat].append(item)
+                legacy[cat].append(item)
 
         # 3. Extract key telemetry points for diagnostics (isolated by bucket)
         model_shift = None
@@ -1350,7 +1385,7 @@ class HaDeSAnimaSuiteTelemetry:
         vae_strategy = None
 
         # Shift checks
-        for arch_item in buckets["ARCHITECTURE"]:
+        for arch_item in legacy["ARCHITECTURE"]:
             m_s = re.search(r"(?:Flow Shift|Shift)[:\s=]+([0-9]+(?:\.[0-9]+)?)", arch_item, re.IGNORECASE)
             if m_s:
                 try:
@@ -1359,7 +1394,7 @@ class HaDeSAnimaSuiteTelemetry:
                     pass
 
         # Sampling checks: shift, CFG, NAG
-        for samp_item in buckets["SAMPLING"]:
+        for samp_item in legacy["SAMPLING"]:
             m_ss = re.search(r"Flow Shift(?:\s*\([^)]*\))?[:\s=]+([0-9]+(?:\.[0-9]+)?)", samp_item, re.IGNORECASE)
             if m_ss:
                 try:
@@ -1393,7 +1428,7 @@ class HaDeSAnimaSuiteTelemetry:
                         pass
 
         # Resolution check: isolated specifically to SAMPLING & POST_PROCESSING with tag
-        for res_candidate in buckets["SAMPLING"] + buckets["POST_PROCESSING"]:
+        for res_candidate in legacy["SAMPLING"] + legacy["POST_PROCESSING"]:
             m_res = re.search(r"(?:Resolution|Canvas|Output|Dimensions)[:\s]+([0-9]{3,5})\s*x\s*([0-9]{3,5})", res_candidate, re.IGNORECASE)
             if m_res:
                 try:
@@ -1403,7 +1438,7 @@ class HaDeSAnimaSuiteTelemetry:
                     pass
 
         # VAE channels check: isolated strictly to ARCHITECTURE & POST_PROCESSING
-        for vae_candidate in buckets["ARCHITECTURE"] + buckets["POST_PROCESSING"]:
+        for vae_candidate in legacy["ARCHITECTURE"] + legacy["POST_PROCESSING"]:
             if "VAE" in vae_candidate.upper():
                 m_vae = re.search(r"(?:Latent Channels|Channels)[:\s]+(\d+)\b", vae_candidate, re.IGNORECASE)
                 if m_vae:
@@ -1419,19 +1454,50 @@ class HaDeSAnimaSuiteTelemetry:
         # llm_adapter check: every LoRA stream reports its own "Protect Adapter: <bool>" flag; all of them must be on
         lora_protect_flags = [
             m_p.group(1).lower() == "true"
-            for m_p in (re.search(r"Protect Adapter:\s*(True|False)", s) for s in buckets["CONDITIONING"])
+            for m_p in (re.search(r"Protect Adapter:\s*(True|False)", s) for s in legacy["CONDITIONING"])
             if m_p
         ]
-        llm_adapter_safe = bool(lora_protect_flags) and all(lora_protect_flags)
-
         # Corner shield & VAE decode checks
-        for post_item in buckets["POST_PROCESSING"]:
+        for post_item in legacy["POST_PROCESSING"]:
             if "CORNER SCRIBBLE SHIELD" in post_item.upper() or "CORNER SHIELD" in post_item.upper():
                 m_cs = re.search(r"Detected:\s*([^|\n]+)", post_item, re.IGNORECASE)
                 corner_status = m_cs.group(1).strip() if m_cs else "Active"
             if "VAE DECODE" in post_item.upper():
                 m_strat = re.search(r"Strategy:\s*([^|\n]+)", post_item, re.IGNORECASE)
                 vae_strategy = m_strat.group(1).strip() if m_strat else "Direct Pass"
+
+        meta_res = {}
+        for _, meta in records:
+            if meta is None:
+                continue
+            kind = meta.get("node")
+            if kind == "model_loader":
+                model_shift = meta["flow_shift"]
+            elif kind in ("ksampler", "ksampler_dual", "ksampler_triple"):
+                sampler_shift = meta["flow_shift"]
+                sampler_cfg = meta["cfg"]
+                meta_res.setdefault("ksampler", (meta["width"], meta["height"]))
+            elif kind == "latent":
+                meta_res.setdefault("latent", (meta["width"], meta["height"]))
+            elif kind == "vae_decode":
+                meta_res.setdefault("vae_decode", (meta["width"], meta["height"]))
+                vae_strategy = meta["strategy"]
+            elif kind == "nag":
+                nag_active = bool(meta["active"])
+                nag_scale = meta["scale"]
+                nag_tau = meta["tau"]
+            elif kind == "vae_loader":
+                vae_channels = meta["latent_channels"]
+            elif kind == "corner_shield":
+                corner_status = ", ".join(meta["detected"]) if meta["detected"] else "Clean (Low HF Energy)"
+            elif kind in ("lora_remapper", "lora_merger") or (kind == "multi_lora" and meta["active_loras"] > 0):
+                lora_protect_flags.append(bool(meta["protect_adapter"]))
+        # The canvas the user picked (Latent node) is what the 32px check is about; fall back to sampler / decode sizes.
+        for kind in ("latent", "ksampler", "vae_decode"):
+            if kind in meta_res:
+                res_w, res_h = meta_res[kind]
+                break
+        llm_adapter_safe = bool(lora_protect_flags) and all(lora_protect_flags)
 
         # 4. Run automated diagnostic checks
         checks = []

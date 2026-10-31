@@ -1591,7 +1591,7 @@ def test_22_anima_suite_telemetry():
     assert data_adp["extracted_telemetry"]["llm_adapter_safe"] is False
     assert any("strip_llm_adapter" in iss["message"] for iss in data_adp["diagnostics"]["issues"])
     assert data_adp["extracted_telemetry"]["resolution"] == "1024x1024px"
-    assert t_latent in data_adp["streams_by_category"]["SAMPLING"]
+    assert hades.anima_pipeline_nodes.strip_info_meta(t_latent) in data_adp["streams_by_category"]["SAMPLING"]
 
     # 4. Regression Test for Audit B2 & B4: Shield + Prompt Studio (No false 32px warning, no false LoRA warning)
     t_studio = "=== HADES ANIMA PROMPT STUDIO ===\nModel Variant: Anima Aesthetic\nEmphasis Scale: 1.50x"
@@ -1822,6 +1822,62 @@ def test_24_silent_bug_regressions():
     print("[OK] Test 24: Silent bug regressions (seed wrap, NaN+outlier clamp, recipe JSON error) verified")
 
 
+def test_25_info_meta_contract():
+    import ast
+    import json
+
+    # 1. Static contract: every node (except Telemetry itself) emits HADES_META through format_info,
+    #    with a known node id and exactly the schema keys.
+    schema = hades.HADES_META_SCHEMA
+    node_classes = {cls.__name__ for cls in hades.NODE_CLASS_MAPPINGS.values()}
+    covered = set()
+    seen_ids = set()
+    for fname in ("__init__.py", "anima_pipeline_nodes.py", "anima_ksampler_nodes.py", "anima_loader_nodes.py"):
+        tree = ast.parse(open(os.path.join(PKG_DIR, fname), encoding="utf-8").read())
+        for cls in (n for n in tree.body if isinstance(n, ast.ClassDef) and n.name in node_classes):
+            for call in (n for n in ast.walk(cls) if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "format_info"):
+                node_id = call.args[1].value
+                keys = {kw.arg for kw in call.keywords}
+                assert node_id in schema, f"{cls.name}: unknown HADES_META node id {node_id!r}"
+                assert keys == set(schema[node_id]), f"{cls.name}/{node_id}: keys {sorted(keys)} != schema {sorted(schema[node_id])}"
+                covered.add(cls.name)
+                seen_ids.add(node_id)
+    missing = node_classes - covered - {"HaDeSAnimaSuiteTelemetry"}
+    assert not missing, f"Nodes without a HADES_META trailer: {sorted(missing)}"
+    assert seen_ids == set(schema), f"Schema ids never emitted: {sorted(set(schema) - seen_ids)}"
+
+    # 2. Round trip: the trailer is the last line, valid JSON, and invisible in the human text
+    info = hades.format_info("Human readable | Flow Shift: 9.99", "model_loader", flow_shift=3.0, n_dit=28, n_adapter=6, has_adapter=True)
+    meta = hades.parse_info_meta(info)
+    assert meta == {"node": "model_loader", "flow_shift": 3.0, "n_dit": 28, "n_adapter": 6, "has_adapter": True}
+    assert hades.anima_pipeline_nodes.strip_info_meta(info) == "Human readable | Flow Shift: 9.99"
+    assert hades.parse_info_meta("legacy text without trailer") is None
+    assert hades.parse_info_meta("x\nHADES_META {broken") is None
+
+    # 3. Telemetry reads values from the trailer, not from the prose: the text above says 9.99,
+    #    the trailers say 3.0 vs 4.5, and the divergence must be reported with the trailer values.
+    ks = hades.format_info("free text without keywords", "ksampler", width=1000, height=1024, steps=20, cfg=1.0,
+                           flow_shift=4.5, sampler="euler", scheduler="normal")
+    nag = hades.format_info("free text", "nag", active=True, scale=3.0, alpha=0.35, tau=2.5, start=0.0, end=0.65)
+    lora = hades.format_info("Protect Adapter: True (prose says protected)", "lora_remapper",
+                             protect_adapter=False, remapped_keys=0, stripped_adapter_keys=0)
+    shield = hades.format_info("free text", "corner_shield", mode="Mask Only (No Pixel Modification)", detected=["BR (HF=0.050)"])
+    res = hades.HaDeSAnimaSuiteTelemetry().audit_telemetry(
+        "JSON Raw Data", "contract", info_1=info, info_2=ks, info_3=nag, info_4=lora, info_5=shield
+    )["result"]
+    data = json.loads(res[1])
+    t = data["extracted_telemetry"]
+    assert t["model_shift"] == 3.0 and t["sampler_shift"] == 4.5 and t["sampler_cfg"] == 1.0
+    assert t["nag_active"] is True and t["nag_scale"] == 3.0
+    assert t["resolution"] == "1000x1024px" and t["llm_adapter_safe"] is False
+    assert t["corner_status"] == "BR (HF=0.050)"
+    messages = [i["message"] for i in data["diagnostics"]["issues"]]
+    assert any("Model Loader configured Shift=3.00" in m and "Shift=4.50" in m for m in messages)
+    assert any("not 32px macroblock aligned" in m for m in messages)
+    assert not any("HADES_META" in item for items in data["streams_by_category"].values() for item in items)
+    print("[OK] Test 25: HADES_META info contract (all nodes, schema keys, round trip, Telemetry reads trailers not prose) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1847,4 +1903,5 @@ if __name__ == "__main__":
     test_22_anima_suite_telemetry()
     test_23_anima_model_saver()
     test_24_silent_bug_regressions()
-    print("\nALL 24 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_25_info_meta_contract()
+    print("\nALL 25 HADES ANIMA SUITE TEST SUITES PASSED!")

@@ -6,7 +6,7 @@ import comfy.sd
 import comfy.utils
 import comfy.model_management
 
-from . import detect_anima_topology
+from . import detect_anima_topology, format_info
 logger = logging.getLogger("HaDeSAnimaSuite")
 
 from .anima_ksampler_nodes import (
@@ -340,6 +340,9 @@ class HaDeSAnimaModelLoader:
             f"Dtype: {weight_dtype} | Flow Shift: {float(flow_shift):.2f} (mult=1.0) | "
             f"Diffusers Remapped: {remapped_count} keys | External Adapter Injected: {injected_count} keys"
         )
+        info = format_info(
+            info, "model_loader", flow_shift=float(flow_shift), n_dit=n_dit, n_adapter=n_adapter, has_adapter=has_adapter,
+        )
         logger.info(info)
         return (model, info)
 
@@ -434,6 +437,7 @@ class HaDeSAnimaCLIPLoader:
             f"Architecture: {arch_label} ({n_layers}L, {hidden_dim}d) | "
             f"Device: {device_mode} | Precision: {precision}"
         )
+        info = format_info(info, "clip_loader", arch=arch_label, hidden_dim=hidden_dim, n_layers=n_layers)
         logger.info(info)
         return (clip, info)
 
@@ -504,6 +508,9 @@ class HaDeSAnimaVAELoader:
             f"HaDeS Anima VAE Loader | File: {os.path.basename(vae_name)} | "
             f"Arch: {diag['architecture']} | Channels: {diag['latent_channels']}ch | "
             f"Spatial Factor: {diag['spatial_compression']}x | Dtype: {active_dtype}"
+        )
+        info = format_info(
+            info, "vae_loader", latent_channels=diag["latent_channels"], spatial_compression=diag["spatial_compression"],
         )
         logger.info(info)
         return (vae, info)
@@ -613,5 +620,6 @@ class HaDeSAnimaVAEDecode:
             f"HaDeS Anima VAE Decode | Output: {w_px}x{h_px}px ({mp:.2f} MP) | "
             f"Strategy: {tile_reason} (Tile {eff_tile_px}px / Overlap {eff_overlap_px}px)"
         )
+        info = format_info(info, "vae_decode", width=w_px, height=h_px, strategy=tile_reason)
         logger.debug(info)
         return (images, info)

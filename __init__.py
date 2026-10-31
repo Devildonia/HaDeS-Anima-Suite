@@ -26,6 +26,54 @@ __version__ = "0.2.0"
 logger = logging.getLogger("HaDeSAnimaSuite")
 
 # ==============================================================================
+# INFO CONTRACT - machine-readable trailer on every node's `info` output
+# ==============================================================================
+# The human-readable text stays first (ShowText output is unchanged); the last line carries the values
+# HaDeSAnimaSuiteTelemetry needs, so it never has to guess them from prose.
+HADES_META_PREFIX = "HADES_META "
+
+# node id -> keys every trailer of that node carries (besides "node")
+HADES_META_SCHEMA = {
+    "model_block_merger": ("mode", "n_dit", "n_adapter", "modified_tensors"),
+    "predictive_model_merger": ("preset", "n_dit", "n_adapter", "modified_tensors", "protect_adapter"),
+    "multi_lora": ("active_loras", "protect_adapter"),
+    "lora_merger": ("saved_path", "rank", "protect_adapter"),
+    "clip_merger": ("n_layers", "modified_tensors"),
+    "model_saver": ("saved_path", "format", "precision", "topology"),
+    "prompt_studio": ("variant", "tag_count", "stripped_tags"),
+    "nag": ("active", "scale", "alpha", "tau", "start", "end"),
+    "latent": ("width", "height", "batch"),
+    "lora_remapper": ("protect_adapter", "remapped_keys", "stripped_adapter_keys"),
+    "corner_shield": ("mode", "detected"),
+    "ksampler": ("width", "height", "steps", "cfg", "flow_shift", "sampler", "scheduler"),
+    "ksampler_dual": ("width", "height", "cfg", "flow_shift"),
+    "ksampler_triple": ("width", "height", "cfg", "flow_shift"),
+    "model_loader": ("flow_shift", "n_dit", "n_adapter", "has_adapter"),
+    "clip_loader": ("arch", "hidden_dim", "n_layers"),
+    "vae_loader": ("latent_channels", "spatial_compression"),
+    "vae_decode": ("width", "height", "strategy"),
+}
+
+
+def format_info(text, node, **meta):
+    return f"{text}\n{HADES_META_PREFIX}{json.dumps({'node': node, **meta}, separators=(',', ':'))}"
+
+
+def parse_info_meta(text):
+    """Return the HADES_META trailer of an info string, or None for legacy / foreign strings."""
+    for line in reversed(str(text).splitlines()):
+        if line.startswith(HADES_META_PREFIX):
+            try:
+                return json.loads(line[len(HADES_META_PREFIX):])
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def strip_info_meta(text):
+    return "\n".join(line for line in str(text).splitlines() if not line.startswith(HADES_META_PREFIX))
+
+# ==============================================================================
 # HADES ANIMA ENGINE - TOPOLOGY, DIFFUSERS REMAPPING & SUBSPACE MATH
 # ==============================================================================
 _LLM_BLOCK_RE = re.compile(
@@ -558,7 +606,10 @@ class HaDeSAnimaModelBlockMerger:
         mode_str = "Recipe Override" if override_ratios is not None else "Manual Groups"
         return (
             m,
-            f"HaDeS Anima Model Merged ({mode_str}) | Topology: {n_dit}+{n_adapter} | Modified Tensors: {merged_blocks}"
+            format_info(
+                f"HaDeS Anima Model Merged ({mode_str}) | Topology: {n_dit}+{n_adapter} | Modified Tensors: {merged_blocks}",
+                "model_block_merger", mode=mode_str, n_dit=n_dit, n_adapter=n_adapter, modified_tensors=merged_blocks,
+            ),
         )
 
 
@@ -743,7 +794,10 @@ class HaDeSAnimaPredictiveModelMerger:
             "predicted_ratios_34": predicted_ratios
         }, indent=2))
 
-        return (m, "\n".join(info_lines))
+        return (m, format_info(
+            "\n".join(info_lines), "predictive_model_merger", preset=preset, n_dit=n_dit, n_adapter=n_adapter,
+            modified_tensors=merged_blocks, protect_adapter=bool(protect_llm_adapter),
+        ))
 
 
 # ==============================================================================
@@ -922,7 +976,10 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
                                     lora_4, on_4, strength_4,
                                     protect_llm_adapter=True):
         if not enable_all:
-            return (model, clip, "HaDeS Predictive Multi-LoRA: Master bypass enabled (Mute All).")
+            return (model, clip, format_info(
+                "HaDeS Predictive Multi-LoRA: Master bypass enabled (Mute All).", "multi_lora",
+                active_loras=0, protect_adapter=bool(protect_llm_adapter),
+            ))
 
         raw_slots = [
             (lora_1, on_1, strength_1),
@@ -934,7 +991,10 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
         active_slots = [(l_name, s_val) for l_name, is_on, s_val in raw_slots if is_on and l_name != "None" and s_val != 0.0]
 
         if not active_slots:
-            return (model, clip, "HaDeS Predictive Multi-LoRA: No active LoRA slots.")
+            return (model, clip, format_info(
+                "HaDeS Predictive Multi-LoRA: No active LoRA slots.", "multi_lora",
+                active_loras=0, protect_adapter=bool(protect_llm_adapter),
+            ))
 
         new_model = model.clone()
         new_clip = clip.clone() if clip is not None else None
@@ -948,8 +1008,11 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
             return (
                 m_res,
                 c_res,
-                f"HaDeS Multi-LoRA: Single active LoRA '{l_name}' applied at strength {str_val:+.2f} "
-                f"(Remapped: {stats['remapped_keys']}, Protect Adapter: {protect_llm_adapter}, Adapter Stripped: {stats['stripped_adapter_keys']})"
+                format_info(
+                    f"HaDeS Multi-LoRA: Single active LoRA '{l_name}' applied at strength {str_val:+.2f} "
+                    f"(Remapped: {stats['remapped_keys']}, Protect Adapter: {protect_llm_adapter}, Adapter Stripped: {stats['stripped_adapter_keys']})",
+                    "multi_lora", active_loras=1, protect_adapter=bool(protect_llm_adapter),
+                ),
             )
 
         model_sd = new_model.model.state_dict()
@@ -1044,7 +1107,9 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
             info_lines.append(f"\n--- SECONDARY SLOT S{s_idx} ({s_name}) MULTIPLIERS (34 BLOCKS) ---")
             info_lines.append(",".join(str(r) for r in curve))
 
-        return (new_model, new_clip, "\n".join(info_lines))
+        return (new_model, new_clip, format_info(
+            "\n".join(info_lines), "multi_lora", active_loras=len(active_slots), protect_adapter=bool(protect_llm_adapter),
+        ))
 
 
 # ==============================================================================
@@ -1489,7 +1554,10 @@ class HaDeSAnimaStandaloneLoraMerger:
             ",".join(str(r) for r in block_ratios_b),
         ])
 
-        return (output_filepath, "\n".join(info_lines))
+        return (output_filepath, format_info(
+            "\n".join(info_lines), "lora_merger", saved_path=output_filepath, rank=target_rank,
+            protect_adapter=bool(protect_llm_adapter),
+        ))
 
 
 # ==============================================================================
@@ -1587,7 +1655,10 @@ class HaDeSAnimaCLIPBlockMerger:
 
         if patches_to_add:
             c.patcher.add_patches(patches_to_add, 1.0)
-        return (c, f"HaDeS Anima CLIP Merged | Depth: {n_clip_layers}L (0..{early_cutoff-1} / {early_cutoff}..{mid_cutoff-1} / {mid_cutoff}+) | Modified Tensors: {merged_blocks}")
+        return (c, format_info(
+            f"HaDeS Anima CLIP Merged | Depth: {n_clip_layers}L (0..{early_cutoff-1} / {early_cutoff}..{mid_cutoff-1} / {mid_cutoff}+) | Modified Tensors: {merged_blocks}",
+            "clip_merger", n_layers=n_clip_layers, modified_tensors=merged_blocks,
+        ))
 
 
 # ==============================================================================
@@ -1904,10 +1975,11 @@ class HaDeSAnimaModelSaver:
         if adapter_path:
             adapter_msg += f" ({os.path.basename(adapter_path)})"
 
-        info_out = (
+        info_out = format_info(
             f"HaDeS Anima Model Saver | File: {os.path.basename(out_filepath)} | "
             f"Format: {save_format} | Precision: {precision} | Size: {size_display} | "
-            f"Topo: {topology_str} | {adapter_msg} | Meta: {meta_status}"
+            f"Topo: {topology_str} | {adapter_msg} | Meta: {meta_status}",
+            "model_saver", saved_path=out_filepath, format=save_format, precision=precision, topology=topology_str,
         )
 
         return {
@@ -1988,4 +2060,7 @@ __all__ = [
     "HaDeSAnimaSuiteTelemetry",
     "HaDeSAnimaModelSaver",
     "remap_anima_comfy_to_diffusers_sd",
+    "HADES_META_SCHEMA",
+    "format_info",
+    "parse_info_meta",
 ]

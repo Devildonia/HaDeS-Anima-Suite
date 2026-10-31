@@ -227,6 +227,7 @@ HaDeS Anima Suite v0.2.0
 #### 18. `Anima Suite Telemetry`
 - **Class:** `HaDeSAnimaSuiteTelemetry`
 - **Purpose:** Centralized **Flight Recorder & Pipeline Telemetry Auditor**. Aggregates up to 8+ `info` streams across all HaDeS Suite nodes in the workflow, semantically classifies them into pipeline phases (*Architecture, Conditioning & LoRAs, Sampling & Guidance, Post-Processing*), and executes an automated **Diagnostics & Health Engine** (validating Flow Shift synchronization, Turbo/CFG=1 NAG negative steering, 32px macroblock alignment, Wan2.1 16-channel integrity, and `llm_adapter` text bridge locks). Outputs an audit-grade Markdown report, a structured JSON telemetry payload, and a compact single-line status summary, with one-click clipboard copying.
+- **Info contract:** every HaDeS node ends its `info` output with one machine-readable line, `HADES_META {"node": ..., ...}` (keys per node in `HADES_META_SCHEMA`). Telemetry reads values from that line; the prose above it is for humans only and can change freely. `info` strings without the line (older versions, other packs) still go through the legacy text parser.
 
 ---
 

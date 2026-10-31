@@ -10,6 +10,8 @@ import comfy.model_management
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
+from . import format_info
+
 try:
     import latent_preview
 except ImportError:
@@ -577,6 +579,10 @@ class HaDeSAnimaKSampler:
             f"Sigmas[0..]: [{sig_head}]"
         )
         logger.debug(info)
+        info = format_info(
+            info, "ksampler", width=w_px, height=h_px, steps=int(steps), cfg=float(cfg),
+            flow_shift=_resolve_flow_shift(model, flow_shift), sampler=sampler_name, scheduler=scheduler,
+        )
         return (out_latent, decoded_img, info)
 
 
@@ -741,6 +747,9 @@ class HaDeSAnimaDualPassKSampler:
             f"Denoise {denoise_pass2:.2f}, Shift {_resolve_flow_shift(model_p2, shift_pass2):.2f}, HybridModel={'Yes' if model_pass2 is not None else 'No'})"
         )
         logger.debug(info)
+        info = format_info(
+            info, "ksampler_dual", width=w2, height=h2, cfg=float(cfg_pass1), flow_shift=_resolve_flow_shift(model, shift_pass1),
+        )
         return (final_latent, pass1_latent, decoded_img, info)
 
 
@@ -951,4 +960,7 @@ class HaDeSAnimaTriplePassKSampler:
             f"S3 ({scale_stage3:.2f}x): {w3}x{h3}px ({sampler_stage3}/{scheduler_stage3}, {steps_stage3}s, CFG {cfg_stage3:.1f}, Denoise {denoise_stage3:.2f}, Shift {_resolve_flow_shift(model_s3, shift_stage3):.2f})"
         )
         logger.debug(info)
+        info = format_info(
+            info, "ksampler_triple", width=w3, height=h3, cfg=float(cfg_stage1), flow_shift=_resolve_flow_shift(model, shift_stage1),
+        )
         return (final_latent, stage1_latent, stage2_latent, decoded_img, info)
