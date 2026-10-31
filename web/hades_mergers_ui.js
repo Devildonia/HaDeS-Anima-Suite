@@ -592,6 +592,94 @@ export function setupStandaloneLoraMergerUI(node) {
     finalizeHadesNode(node, 430);
 }
 
+export function setupLoraExtractorUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wRank = findW("rank");
+    const wFile = findW("export_filename");
+    const wAdapter = findW("include_llm_adapter");
+    const wOverwrite = findW("overwrite_existing");
+
+    [wRank, wFile, wAdapter, wOverwrite].forEach(hideBackingWidget);
+
+    const rankAction = (r, hint) => ({
+        label: `R${r}`,
+        isActive: () => Number(wRank?.value) === r,
+        tooltip: `<strong>Rank ${r}</strong><br>${hint} The info output reports how much of the difference the rank keeps.`,
+        onClick: () => setWidgetValue(wRank, r, node),
+    });
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.purple,
+            tooltip: `<strong>LoRA Extractor</strong><br>Saves (tuned − base) as a low-rank LoRA in models/loras/: SVD per linear layer, full diffs for norms and biases, identical layers skipped. Merge and LoRA patches on either input are included; quantized inputs are rejected.`,
+            actions: [
+                rankAction(16, "Smallest file; keeps the broad change."),
+                rankAction(32, "Default."),
+                rankAction(64, "Closer to the tuned model."),
+                rankAction(128, "Largest file; for merges far from the base."),
+            ],
+        })
+    );
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wRank, {
+            tag: "RANK",
+            label: "LoRA Rank",
+            color: HADES_THEME.purple,
+            min: 4,
+            max: 256,
+            visMin: 4,
+            visMax: 256,
+            step: 4,
+            defaultVal: 32,
+            isInt: true,
+            tooltip: `<strong>LoRA Rank</strong><br>Higher keeps more of the difference and makes a larger file.`,
+        })
+    );
+
+    if (wAdapter) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wAdapter, {
+                tag: "BRIDGE",
+                color: HADES_THEME.cyan,
+                label: "Extract llm_adapter differences",
+                onText: "EXTRACT",
+                offText: "BASE",
+                tooltip: `<strong>llm_adapter</strong><br>Off keeps the base model's adapter. Turn on for releases that retrained it (e.g. anima-aesthetic-v1.1).`,
+            })
+        );
+    }
+
+    if (wOverwrite) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wOverwrite, {
+                tag: "WRITE",
+                color: HADES_THEME.amber,
+                label: "Overwrite Existing Output File",
+                onText: "OVERWRITE",
+                offText: "AUTO-INC",
+                tooltip: `<strong>File Overwrite Policy</strong><br>When OFF, appends _001, _002… instead of replacing an existing file.`,
+            })
+        );
+    }
+
+    node.addCustomWidget(
+        createStyledTextRowWidget(node, wFile, {
+            tag: "FILE",
+            color: HADES_THEME.emerald,
+            promptTitle: "Export LoRA Filename (saved in models/loras/)",
+            suffix: ".safetensors",
+            emptyPlaceholder: "HaDeS_Extracted_LoRA",
+            tooltip: `<strong>Export Filename</strong><br>Name of the extracted LoRA file in ComfyUI models/loras/.`,
+        })
+    );
+
+    finalizeHadesNode(node, 400);
+}
+
 export function setupCLIPBlockMergerUI(node) {
     applyNodeFrameStyle(node);
     const findW = (name) => node.widgets?.find((w) => w.name === name);
@@ -943,4 +1031,5 @@ export const MERGER_NODE_DISPATCH = {
     HaDeSAnimaStandaloneLoraMerger: setupStandaloneLoraMergerUI,
     HaDeSAnimaCLIPBlockMerger: setupCLIPBlockMergerUI,
     HaDeSAnimaModelSaver: setupModelSaverUI,
+    HaDeSAnimaLoraExtractor: setupLoraExtractorUI,
 };

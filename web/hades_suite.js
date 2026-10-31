@@ -6,7 +6,7 @@ import { KSAMPLER_NODE_DISPATCH } from "./hades_ksampler_ui.js";
 import { LOADER_NODE_DISPATCH } from "./hades_loaders_ui.js";
 
 // =============================================================================
-// HADES ANIMA SUITE UI - EXTENSION ORCHESTRATOR (19 NODES)
+// HADES ANIMA SUITE UI - EXTENSION ORCHESTRATOR (20 NODES)
 // =============================================================================
 const NODE_SETUP_DISPATCH = {
     ...MERGER_NODE_DISPATCH,

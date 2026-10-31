@@ -1884,6 +1884,63 @@ def test_25_info_meta_contract():
     print("[OK] Test 25: HADES_META info contract (all nodes, schema keys, round trip, Telemetry reads trailers not prose) verified")
 
 
+def test_26_lora_extractor():
+    import tempfile
+    from safetensors import safe_open
+
+    torch.manual_seed(0)
+    base_sd = {
+        "diffusion_model.blocks.0.self_attn.q_proj.weight": torch.randn(64, 48),
+        "diffusion_model.blocks.0.mlp.layer1.weight": torch.randn(96, 64),
+        "diffusion_model.blocks.0.self_attn.q_norm.weight": torch.ones(16),
+        "diffusion_model.final_layer.linear.bias": torch.zeros(32),
+        "diffusion_model.llm_adapter.blocks.0.self_attn.q_proj.weight": torch.randn(32, 32),
+    }
+    delta = torch.randn(64, 4) @ torch.randn(4, 48)  # exact rank 4
+    tuned_sd = {k: v.clone() for k, v in base_sd.items()}
+    tuned_sd["diffusion_model.blocks.0.self_attn.q_proj.weight"] += delta
+    tuned_sd["diffusion_model.blocks.0.self_attn.q_norm.weight"] += 0.1
+    tuned_sd["diffusion_model.final_layer.linear.bias"] += 0.5
+    tuned_sd["diffusion_model.llm_adapter.blocks.0.self_attn.q_proj.weight"] += 1.0
+    base, tuned = DummyModelPatcher(base_sd), DummyModelPatcher(tuned_sd)
+
+    orig_load_models_gpu = comfy.model_management.load_models_gpu
+    comfy.model_management.load_models_gpu = lambda models, **kw: None
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ex = hades.HaDeSAnimaLoraExtractor()
+            ex.output_dir = tmpdir
+            path, info = ex.extract_lora(tuned, base, 8, "../escape/extracted")
+            assert os.path.dirname(path) == os.path.abspath(tmpdir), "export name must stay inside the LoRA folder"
+            meta = hades.parse_info_meta(info)
+            assert meta["node"] == "lora_extractor" and meta["layers"] == 1 and meta["energy_kept"] > 0.999
+            with safe_open(path, framework="pt") as f:
+                keys = set(f.keys())
+                pfx = "diffusion_model.blocks.0.self_attn.q_proj"
+                up, down = f.get_tensor(f"{pfx}.lora_up.weight").float(), f.get_tensor(f"{pfx}.lora_down.weight").float()
+                alpha = float(f.get_tensor(f"{pfx}.alpha"))
+                assert up.shape == (64, 8) and down.shape == (8, 48)
+                assert torch.allclose(up @ down * (alpha / up.shape[1]), delta, atol=0.05), "LoRA must reproduce tuned - base"
+                assert torch.allclose(f.get_tensor("diffusion_model.blocks.0.self_attn.q_norm.diff").float(), torch.full((16,), 0.1), atol=1e-2)
+                assert torch.allclose(f.get_tensor("diffusion_model.final_layer.linear.diff_b").float(), torch.full((32,), 0.5), atol=1e-2)
+            assert not any("mlp.layer1" in k for k in keys), "identical layers must be skipped"
+            assert not any("llm_adapter" in k for k in keys), "llm_adapter is kept from base by default"
+
+            path2, _ = ex.extract_lora(tuned, base, 8, "extracted", include_llm_adapter=True)
+            assert path2 != path
+            with safe_open(path2, framework="pt") as f:
+                assert "diffusion_model.llm_adapter.blocks.0.self_attn.q_proj.lora_up.weight" in f.keys()
+
+            try:
+                ex.extract_lora(base, base, 8, "same")
+                raise AssertionError("identical models must raise")
+            except ValueError as e:
+                assert "identical" in str(e)
+    finally:
+        comfy.model_management.load_models_gpu = orig_load_models_gpu
+    print("[OK] Test 26: HaDeSAnimaLoraExtractor (SVD reconstruction, 1D / bias diffs, adapter toggle, path containment) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -1910,4 +1967,5 @@ if __name__ == "__main__":
     test_23_anima_model_saver()
     test_24_silent_bug_regressions()
     test_25_info_meta_contract()
-    print("\nALL 25 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_26_lora_extractor()
+    print("\nALL 26 HADES ANIMA SUITE TEST SUITES PASSED!")

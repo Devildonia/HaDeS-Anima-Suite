@@ -38,6 +38,7 @@ HADES_META_SCHEMA = {
     "predictive_model_merger": ("preset", "n_dit", "n_adapter", "modified_tensors", "protect_adapter"),
     "multi_lora": ("active_loras", "protect_adapter"),
     "lora_merger": ("saved_path", "rank", "protect_adapter"),
+    "lora_extractor": ("saved_path", "rank", "layers", "energy_kept", "include_adapter"),
     "clip_merger": ("n_layers", "modified_tensors"),
     "model_saver": ("saved_path", "format", "precision", "topology"),
     "prompt_studio": ("variant", "tag_count", "stripped_tags"),
@@ -1115,6 +1116,35 @@ class HaDeSAnimaPredictiveMultiLoraLoader:
 # ==============================================================================
 # 4. HADES ANIMA STANDALONE LORA MERGER (FAST QR-SVD EXPORTER)
 # ==============================================================================
+def lora_output_path(output_dir, export_filename, default_name, donor_paths=(), overwrite_existing=False):
+    """Contained `<output_dir>/<name>.safetensors`; never a donor file, and auto-incremented unless overwriting."""
+    os.makedirs(output_dir, exist_ok=True)
+    raw_name = os.path.basename(export_filename.strip()) if export_filename else ""
+    if raw_name.lower().endswith(".safetensors"):
+        raw_name = raw_name[:-len(".safetensors")]
+    clean_name = _SAFE_FILENAME_RE.sub("_", raw_name).strip(" .") or default_name
+    base_dir = os.path.abspath(output_dir)
+    candidate = os.path.abspath(os.path.join(base_dir, f"{clean_name}.safetensors"))
+    if os.path.commonpath([base_dir, candidate]) != base_dir:
+        raise ValueError("Invalid export filename path.")
+
+    abs_donors = {os.path.abspath(p) for p in donor_paths if p}
+    if candidate in abs_donors or (not overwrite_existing and os.path.exists(candidate)):
+        counter = 1
+        while True:
+            alt = os.path.abspath(os.path.join(base_dir, f"{clean_name}_{counter:03d}.safetensors"))
+            if alt not in abs_donors and (overwrite_existing or not os.path.exists(alt)):
+                candidate = alt
+                break
+            counter += 1
+    return candidate
+
+
+def default_lora_dir():
+    lora_dirs = folder_paths.get_folder_paths("loras") if hasattr(folder_paths, "get_folder_paths") else []
+    return lora_dirs[0] if lora_dirs else os.path.join(folder_paths.models_dir, "loras")
+
+
 class HaDeSAnimaStandaloneLoraMerger:
     GROUP_MAP = HaDeSAnimaModelBlockMerger.GROUP_MAP
     _UP_DOWN_SUFFIXES = (
@@ -1133,8 +1163,7 @@ class HaDeSAnimaStandaloneLoraMerger:
     ]
 
     def __init__(self):
-        lora_dirs = folder_paths.get_folder_paths("loras") if hasattr(folder_paths, "get_folder_paths") else []
-        self.output_dir = lora_dirs[0] if lora_dirs else os.path.join(folder_paths.models_dir, "loras")
+        self.output_dir = default_lora_dir()
 
     @classmethod
     def INPUT_TYPES(s):
@@ -1327,30 +1356,6 @@ class HaDeSAnimaStandaloneLoraMerger:
         max_b = 1.5 if is_additive else 1.0
         return round(max(0.0, min(1.2, float(wa))), 3), round(max(0.0, min(max_b, float(wb))), 3)
 
-    def _sanitize_output_path(self, export_filename, donor_paths=(), overwrite_existing=False):
-        os.makedirs(self.output_dir, exist_ok=True)
-        raw_name = os.path.basename(export_filename.strip()) if export_filename else ""
-        if raw_name.lower().endswith(".safetensors"):
-            raw_name = raw_name[:-len(".safetensors")]
-        clean_name = _SAFE_FILENAME_RE.sub("_", raw_name).strip(" .")
-        if not clean_name:
-            clean_name = "HaDeS_Merged_LoRA"
-        base_dir = os.path.abspath(self.output_dir)
-        candidate = os.path.abspath(os.path.join(base_dir, f"{clean_name}.safetensors"))
-        if os.path.commonpath([base_dir, candidate]) != base_dir:
-            raise ValueError("Invalid export filename path.")
-
-        abs_donors = {os.path.abspath(p) for p in donor_paths if p}
-        if candidate in abs_donors or (not overwrite_existing and os.path.exists(candidate)):
-            counter = 1
-            while True:
-                alt = os.path.abspath(os.path.join(base_dir, f"{clean_name}_{counter:03d}.safetensors"))
-                if alt not in abs_donors and (overwrite_existing or not os.path.exists(alt)):
-                    candidate = alt
-                    break
-                counter += 1
-        return candidate
-
     def merge_and_save(self, lora_a, lora_b, preset, target_influence_b, aggressiveness, target_rank, export_filename,
                        merge_mode="Additive (A + B, Multi-LoRA match)", protect_llm_adapter=True, overwrite_existing=False,
                        topology_override="Auto-Detect from Keys", reference_model=None):
@@ -1521,8 +1526,8 @@ class HaDeSAnimaStandaloneLoraMerger:
             elif bb is not None:
                 merged_sd[f"{pfx}.diff_b"] = bb.cpu().half().contiguous()
 
-        output_filepath = self._sanitize_output_path(
-            export_filename, donor_paths=(path_a, path_b), overwrite_existing=overwrite_existing
+        output_filepath = lora_output_path(
+            self.output_dir, export_filename, "HaDeS_Merged_LoRA", donor_paths=(path_a, path_b), overwrite_existing=overwrite_existing
         )
 
         metadata = {
@@ -1557,6 +1562,114 @@ class HaDeSAnimaStandaloneLoraMerger:
         return (output_filepath, format_info(
             "\n".join(info_lines), "lora_merger", saved_path=output_filepath, rank=target_rank,
             protect_adapter=bool(protect_llm_adapter),
+        ))
+
+
+# ==============================================================================
+# 20. HADES ANIMA LORA EXTRACTOR (TUNED - BASE -> LOW-RANK LORA)
+# ==============================================================================
+class HaDeSAnimaLoraExtractor:
+    def __init__(self):
+        self.output_dir = default_lora_dir()
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model_tuned": ("MODEL", {"tooltip": "Finetune or merge to extract (merge / LoRA patches are included)."}),
+                "model_base": ("MODEL", {"tooltip": "Model the LoRA will be applied to, e.g. anima-base-v1.0."}),
+                "rank": ("INT", {"default": 32, "min": 4, "max": 256, "step": 4,
+                                 "tooltip": "LoRA rank. Higher keeps more of the difference (see 'energy kept' in info) and makes a larger file."}),
+                "export_filename": ("STRING", {"default": "HaDeS_Extracted_LoRA"}),
+            },
+            "optional": {
+                "include_llm_adapter": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Also extract llm_adapter differences. Off keeps the base adapter; turn on for releases that retrained it (e.g. anima-aesthetic-v1.1).",
+                }),
+                "overwrite_existing": ("BOOLEAN", {"default": False}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("saved_lora_path", "info")
+    FUNCTION = "extract_lora"
+    CATEGORY = "HaDeS/Anima Mergers"
+    OUTPUT_NODE = True
+
+    def extract_lora(self, model_tuned, model_base, rank, export_filename, include_llm_adapter=False, overwrite_existing=False):
+        comfy.model_management.load_models_gpu([model_tuned, model_base])
+        sd_t = model_tuned.model_state_dict_for_saving(model_tuned.model.diffusion_model, "diffusion_model.")
+        sd_b = model_base.model_state_dict_for_saving(model_base.model.diffusion_model, "diffusion_model.")
+        for k, v in list(sd_t.items()) + list(sd_b.items()):
+            if isinstance(v, comfy.model_patcher.LazyCastingParamPiece):
+                raise ValueError(f"HaDeS LoRA Extractor: '{k}' is quantized; load both models unquantized (weight_dtype default / bf16).")
+
+        device = comfy.model_management.get_torch_device()
+        n_dit, _ = detect_anima_topology(sd_t.keys())
+        lora_sd = {}
+        stats = {"lora": 0, "diff": 0, "identical": 0, "adapter_skipped": 0}
+        energy_kept = []
+        for k, vt in sd_t.items():
+            if k not in sd_b or not k.endswith((".weight", ".bias")) or not torch.is_floating_point(vt):
+                continue
+            if not include_llm_adapter and "llm_adapter" in k:
+                stats["adapter_skipped"] += 1
+                continue
+            vb = sd_b[k]
+            if vt.shape != vb.shape:
+                raise ValueError(f"HaDeS LoRA Extractor: shape mismatch on '{k}': {tuple(vt.shape)} vs {tuple(vb.shape)} (different Anima topologies?).")
+            diff = vt.to(device, torch.float32) - vb.to(device, torch.float32)
+            if not torch.any(diff):
+                stats["identical"] += 1
+                continue
+
+            pfx = "diffusion_model." + k.rsplit(".", 1)[0]
+            if k.endswith(".bias"):
+                lora_sd[f"{pfx}.diff_b"] = diff.cpu().to(torch.bfloat16)
+                stats["diff"] += 1
+            elif diff.ndim == 2:
+                u, s_val, vh = torch.linalg.svd(diff, full_matrices=False)
+                r = min(rank, s_val.shape[0])
+                sqrt_s = s_val[:r].sqrt()
+                lora_sd[f"{pfx}.lora_up.weight"] = (u[:, :r] * sqrt_s).cpu().to(torch.bfloat16).contiguous()
+                lora_sd[f"{pfx}.lora_down.weight"] = (sqrt_s.unsqueeze(1) * vh[:r]).cpu().to(torch.bfloat16).contiguous()
+                lora_sd[f"{pfx}.alpha"] = torch.tensor(float(r))
+                energy = s_val.square()
+                energy_kept.append(float(energy[:r].sum() / energy.sum()))
+                stats["lora"] += 1
+            else:
+                lora_sd[f"{pfx}.diff"] = diff.cpu().to(torch.bfloat16)
+                stats["diff"] += 1
+
+        if not lora_sd:
+            raise ValueError("HaDeS LoRA Extractor: the two models are identical in every extracted layer.")
+
+        output_filepath = lora_output_path(self.output_dir, export_filename, "HaDeS_Extracted_LoRA", overwrite_existing=overwrite_existing)
+        mean_energy = sum(energy_kept) / len(energy_kept) if energy_kept else 1.0
+        safetensors.torch.save_file(lora_sd, output_filepath, metadata={
+            "author": "HaDeS",
+            "format": "pt",
+            "hades/suite_version": __version__,
+            "hades/rank": str(rank),
+            "hades/energy_kept": f"{mean_energy:.4f}",
+            "hades/include_llm_adapter": str(include_llm_adapter),
+        })
+
+        size_mb = os.path.getsize(output_filepath) / (1024 ** 2)
+        adapter_note = "extracted" if include_llm_adapter else f"kept from base ({stats['adapter_skipped']} tensors skipped)"
+        info_lines = [
+            "=== HADES ANIMA LORA EXTRACTOR ===",
+            f"Saved to: {output_filepath} ({size_mb:.1f} MB)",
+            f"Rank: {rank} | Topology: {n_dit} DiT | Energy kept: {mean_energy:.1%} (mean over {stats['lora']} low-rank layers)",
+            f"Full diffs (1D / bias): {stats['diff']} | Identical skipped: {stats['identical']} | "
+            f"llm_adapter: {adapter_note}",
+        ]
+        if mean_energy < 0.5:
+            info_lines.append("Note: less than half of the difference fits this rank; raise rank for a closer match.")
+        return (output_filepath, format_info(
+            "\n".join(info_lines), "lora_extractor", saved_path=output_filepath, rank=rank, layers=stats["lora"],
+            energy_kept=round(mean_energy, 4), include_adapter=bool(include_llm_adapter),
         ))
 
 
@@ -1998,6 +2111,7 @@ NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaStandaloneLoraMerger": HaDeSAnimaStandaloneLoraMerger,
     "HaDeSAnimaCLIPBlockMerger": HaDeSAnimaCLIPBlockMerger,
     "HaDeSAnimaModelSaver": HaDeSAnimaModelSaver,
+    "HaDeSAnimaLoraExtractor": HaDeSAnimaLoraExtractor,
     "HaDeSAnimaPromptStudio": HaDeSAnimaPromptStudio,
     "HaDeSAnimaAttentionGuidance": HaDeSAnimaAttentionGuidance,
     "HaDeSAnimaLatentPipelineGuard": HaDeSAnimaLatentPipelineGuard,
@@ -2020,6 +2134,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaStandaloneLoraMerger": "Anima LoRA Merger",
     "HaDeSAnimaCLIPBlockMerger": "Anima CLIP Block Merger",
     "HaDeSAnimaModelSaver": "Anima Model Saver",
+    "HaDeSAnimaLoraExtractor": "Anima LoRA Extractor",
     "HaDeSAnimaPromptStudio": "Anima Prompt Studio",
     "HaDeSAnimaAttentionGuidance": "Anima Attention Guidance (NAG)",
     "HaDeSAnimaLatentPipelineGuard": "Anima Latent",

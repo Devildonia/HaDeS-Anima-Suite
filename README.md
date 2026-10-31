@@ -1,6 +1,6 @@
 # HaDeS Anima Suite v0.3.0
 
-19 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a model saver, prompt and pipeline helpers, three samplers and a telemetry node, with a shared canvas UI.
+20 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor, a model saver, prompt and pipeline helpers, three samplers and a telemetry node, with a shared canvas UI.
 
 Claims about what block groups, presets and schedulers do are measured with [`tools/anima_ablation.py`](tools/anima_ablation.py); results are in [`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md).
 
@@ -17,7 +17,8 @@ Claims about what block groups, presets and schedulers do are measured with [`to
    - **Latent:** 16-channel latents with VAE validation (blocks the 64-channel Qwen-Image 2.1 VAE), 11 aspect presets, sizes snapped to 32 px.
    - **Corner Shield:** detects and heals or masks scribble-like marks in image corners.
 5. **Telemetry.** Reads the `info` outputs of the other nodes and checks flow-shift consistency, CFG = 1 without NAG, the 16 px resolution grid, the 16-channel VAE and adapter protection. Outputs a Markdown report, JSON and a one-line summary.
-6. **Model Saver.** Saves merged / LoRA-patched models with the patches baked in, in native ComfyUI or Diffusers layout, as `bfloat16`, `fp8_e4m3fn`, ComfyUI-native ConvRot `INT8` / `W4A4`, or `float32`. Native files load in the stock `Load Diffusion Model` node.
+6. **LoRA Extractor.** Turns a finetune or merge into a LoRA against its base (SVD of the weight difference). Rank 32 of `anima_pixelart_from_hades_v1.0` against `anima-base-v1.0` is 132 MB instead of 4 GB and renders close to the full model.
+7. **Model Saver.** Saves merged / LoRA-patched models with the patches baked in, in native ComfyUI or Diffusers layout, as `bfloat16`, `fp8_e4m3fn`, ComfyUI-native ConvRot `INT8` / `W4A4`, or `float32`. Native files load in the stock `Load Diffusion Model` node.
 
 ---
 
@@ -30,13 +31,14 @@ HaDeS Anima Suite v0.3.0
 │   ├── 15. Anima Text Encoder Loader
 │   ├── 16. Anima VAE Loader
 │   └── 17. Anima VAE Decode
-├── HaDeS/Anima Mergers (6 Nodes)
+├── HaDeS/Anima Mergers (7 Nodes)
 │   ├── 1. Anima Model Block Merger
 │   ├── 2. Anima Predictive Model Merger
 │   ├── 3. Anima Predictive Multi-LoRA
 │   ├── 4. Anima LoRA Merger
 │   ├── 5. Anima CLIP Block Merger
-│   └── 19. Anima Model Saver
+│   ├── 19. Anima Model Saver
+│   └── 20. Anima LoRA Extractor
 ├── HaDeS/Anima Pipeline (6 Nodes)
 │   ├── 6. Anima Prompt Studio
 │   ├── 7. Anima Attention Guidance (NAG)
@@ -120,6 +122,18 @@ No group isolates one attribute: each moves composition, structure, texture and 
   - `llm_adapter_mode`: `Embed in Checkpoint (Full)`, `Strip (Pure DiT)`, `Export Adapter Separately` (bare `llm_adapter` keys, as `external_llm_adapter` expects).
   - `include_metadata`, `custom_author`, `custom_model_title`: SAI ModelSpec metadata.
 - **Outputs:** `model` (pass-through), `saved_path`, `info`.
+
+#### 20. `Anima LoRA Extractor`
+- **Class:** `HaDeSAnimaLoraExtractor`
+- **Purpose:** Saves `model_tuned − model_base` as a LoRA in `models/loras/`: truncated SVD per linear layer (`lora_up` / `lora_down` / `alpha`), full `.diff` / `.diff_b` for norm weights and biases, identical tensors skipped. Merge and LoRA patches on either input are included (same baked path as the Model Saver); quantized inputs are rejected with an error.
+- **Inputs:**
+  - `model_tuned`, `model_base` (`MODEL`).
+  - `rank` (`4..256`, default `32`).
+  - `export_filename` (`STRING`, saved under `models/loras/`).
+  - `include_llm_adapter` (`BOOLEAN`, default `False`): also extract `llm_adapter` differences, for releases that retrained it (e.g. `anima-aesthetic-v1.1`).
+  - `overwrite_existing` (`BOOLEAN`, default `False`).
+- **Outputs:** `saved_lora_path`, `info` (includes the share of the difference kept by the rank, "energy kept").
+- **Measured:** base → pixelart, rank 32: 132 MB, 94.5% energy kept, all keys load in the stock `LoraLoader`, renders at 0.87–0.96 of the way from base to the finetune on the suite's metrics; rank 128: 529 MB, 0.91–0.98.
 
 ---
 
@@ -215,7 +229,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark palette with one accent color (green / amber / red only signal state), quiet uppercase row labels, preset buttons that highlight the active preset, and a compact status panel per node. Every node enforces a minimum width so nothing clips or overlaps, and hover tooltips explain each control.
 
-To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 19 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
+To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 20 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
 Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy.VueNodes.Enabled`) are supported, including the classic-widget toggle.
 
@@ -247,15 +261,15 @@ Re-running with the same `--out` resumes. Check the contact sheets as well as th
 ```
 Comfyui-HaDeS-Anima-BlockMerger/
 ├── .github/workflows/ci.yml  # CI (Python 3.10-3.12 + JS syntax checks)
-├── __init__.py               # 34-band topology, Diffusers remapper, info contract, 5 mergers + Model Saver
+├── __init__.py               # 34-band topology, Diffusers remapper, info contract, 5 mergers, Model Saver, LoRA Extractor
 ├── anima_pipeline_nodes.py   # Prompt Studio, NAG, Latent, LoRA Remapper, Corner Shield, Telemetry
 ├── anima_ksampler_nodes.py   # Single, Dual-Pass and Triple-Pass KSamplers, Anima schedulers
 ├── anima_loader_nodes.py     # Model / text encoder / VAE loaders and VAE Decode
 ├── web/
 │   ├── icon.png
-│   ├── hades_suite.js        # Extension entry point and settings (19 nodes)
+│   ├── hades_suite.js        # Extension entry point and settings (20 nodes)
 │   ├── hades_widgets.js      # Shared canvas widgets, design tokens, Vue-node adapter
-│   ├── hades_mergers_ui.js   # Merger, LoRA and Saver node UIs
+│   ├── hades_mergers_ui.js   # Merger, LoRA, Saver and Extractor node UIs
 │   ├── hades_pipeline_ui.js  # Pipeline and Telemetry node UIs
 │   ├── hades_ksampler_ui.js  # Sampler node UIs
 │   └── hades_loaders_ui.js   # Loader and VAE Decode node UIs
@@ -264,7 +278,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
 │   └── ABLATION_RESULTS.md   # Measured results
 ├── tests/
-│   └── test_hades_suite.py   # 25 test suites (standalone stubs or real ComfyUI)
+│   └── test_hades_suite.py   # 26 test suites (standalone stubs or real ComfyUI)
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── LICENSE
