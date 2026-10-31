@@ -2057,6 +2057,12 @@ def test_29_artist_character_picker():
     assert pipe._normalize_character_entry(character) == character.split(", ")
     assert pipe._normalize_artist_entry("hammer_(sunset_beach)") == r"@hammer \(sunset beach\)"
 
+    # Weighted character / series: (tag:w) survives Prompt Studio instead of being escaped into literal text
+    _, wchar, _ = node.pick("", "firefly_(honkai:_star_rail):1.3", "honkai:_star_rail:0.8", 0, 200, 0)["result"]
+    assert wchar == r"(firefly \(honkai: star rail\):1.3), (honkai: star rail:0.8)", wchar
+    assert pipe._normalize_character_entry(wchar) == wchar.split(", ")
+    assert pipe._normalize_character_entry("(hakurei_reimu:1.2)") == ["(hakurei reimu:1.2)"]
+
     # Random artists: deterministic per seed, above the post threshold, never repeating a chosen one
     with open(os.path.join(pipe._CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
         catalog = json.load(f)

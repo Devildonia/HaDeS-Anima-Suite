@@ -1277,7 +1277,9 @@ function searchCatalog(cat, query, limit = 40) {
     return prefix.concat(inner).slice(0, limit);
 }
 
-// `selected` = { list: () => current entries, remove: (index) => void }; shown as removable chips above the search
+const WEIGHT_SUFFIX_RE = /^(.*?):([+-]?\d+(?:\.\d+)?)$/;
+
+// `selected` = { list, remove(index), set(index, entry) } over 'name' / 'name:1.2' entries, shown as chips above the search
 function openCatalogSearch(kind, title, event, onPick, selected) {
     document.getElementById("hades-catalog-search")?.remove();
     const box = document.createElement("div");
@@ -1308,14 +1310,31 @@ function openCatalogSearch(kind, title, event, onPick, selected) {
                     background: "#2a3140", border: "1px solid #3b4454", borderRadius: "10px", padding: "1px 4px 1px 8px",
                     display: "inline-flex", alignItems: "center", gap: "4px", maxWidth: "100%",
                 });
-                chip.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span title="Remove" style="cursor:pointer;color:#a0a7b3;padding:0 3px">×</span>`;
-                chip.firstChild.textContent = tagLabel(entry);
-                chip.lastChild.addEventListener("pointerdown", (e) => {
-                    if (e.button !== 0) return;
-                    e.preventDefault(); // keep focus in the search box (Escape / Enter)
-                    selected.remove(i);
-                    renderChips();
-                });
+                const m = entry.match(WEIGHT_SUFFIX_RE);
+                const name = m ? m[1] : entry;
+                const weight = m ? Number(m[2]) : 1;
+                const btn = "cursor:pointer;color:#a0a7b3;padding:0 3px";
+                chip.innerHTML =
+                    `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>` +
+                    `<span title="Lower weight" style="${btn}">−</span>` +
+                    `<span title="Prompt weight" style="font-variant-numeric:tabular-nums;color:${weight === 1 ? "#7d8592" : "#e8b45a"}">${weight.toFixed(1)}</span>` +
+                    `<span title="Raise weight" style="${btn}">+</span>` +
+                    `<span title="Remove" style="${btn}">×</span>`;
+                chip.firstChild.textContent = tagLabel(name);
+                const onPress = (el, action) =>
+                    el.addEventListener("pointerdown", (e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault(); // keep focus in the search box (Escape / Enter)
+                        action();
+                        renderChips();
+                    });
+                const setWeight = (w) => {
+                    const v = Math.round(Math.min(2, Math.max(0.1, w)) * 10) / 10;
+                    selected.set(i, v === 1 ? name : `${name}:${v}`);
+                };
+                onPress(chip.children[1], () => setWeight(weight - 0.1));
+                onPress(chip.children[3], () => setWeight(weight + 0.1));
+                onPress(chip.children[4], () => selected.remove(i));
                 return chip;
             })
         );
@@ -1456,14 +1475,15 @@ export function setupArtistCharacterPickerUI(node) {
                 }
                 const entries = () => String(wArtists.value || "").split(",").map((a) => a.trim()).filter(Boolean);
                 const add = (tag) => {
-                    if (!entries().some((a) => a.replace(/:[\d.]+$/, "") === tag)) setWidgetValue(wArtists, [...entries(), tag].join(", "), node);
+                    if (!entries().some((a) => (a.match(WEIGHT_SUFFIX_RE)?.[1] ?? a) === tag)) setWidgetValue(wArtists, [...entries(), tag].join(", "), node);
                 };
                 openCatalogSearch("artists", "Add artist", event, add, {
                     list: entries,
                     remove: (i) => setWidgetValue(wArtists, entries().filter((_, j) => j !== i).join(", "), node),
+                    set: (i, entry) => setWidgetValue(wArtists, entries().map((a, j) => (j === i ? entry : a)).join(", "), node),
                 });
             },
-            tooltip: `<strong>Artists</strong><br>Click to search and add one; the artists already listed appear on top with × to remove them. Shift+click edits the list as text (weights as <code>name:1.2</code>).`,
+            tooltip: `<strong>Artists</strong><br>Click to search and add one; the artists already listed appear on top with −/+ for their prompt weight and × to remove them. Shift+click edits the list as text (weights as <code>name:1.2</code>).`,
         })
     );
 
@@ -1485,9 +1505,10 @@ export function setupArtistCharacterPickerUI(node) {
                     openCatalogSearch(kind, label, event, (picked) => setWidgetValue(w, picked, node), {
                         list: () => (String(w.value || "").trim() ? [String(w.value).trim()] : []),
                         remove: () => setWidgetValue(w, "", node),
+                        set: (_, entry) => setWidgetValue(w, entry, node),
                     });
                 },
-                tooltip: `<strong>${label}</strong><br>Click to search the catalog; the current tag appears on top with × to remove it. Shift+click types a tag.`,
+                tooltip: `<strong>${label}</strong><br>Click to search the catalog; the current tag appears on top with −/+ for its prompt weight and × to remove it. Shift+click types a tag.`,
             })
         );
     }

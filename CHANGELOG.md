@@ -7,7 +7,11 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Picker weights:** each entry in the search popup has −/+ for its prompt weight (0.1–2.0); character and series accept `:weight` like artists. ComfyUI's weight parser reads the output correctly, colons in names included (e.g. `(firefly \(honkai: star rail\):1.3)`).
+
 ### Fixed
+- **Prompt Studio escaped weighted characters:** `(hakurei reimu:1.2)` became the literal text `\(hakurei reimu:1.2\)`. The weight is now kept and only parentheses inside the tag are escaped.
 - **Artist & Character Picker search popup ignored clicks:** hovering rebuilt the result list under the pointer, so the press never reached a row. Hover now only moves the highlight and a row is picked on press.
 - **Picker random artists were invisible:** the draw only existed in the output. The ARTISTS row now shows the last run's random artists; the Random tooltip notes that AFTER RUN `fixed` repeats the same draw.
 - **Picker fields could not be cleared one by one:** clicking a row only ever added, and right-click clear never fired (ComfyUI opens its context menu first). The popup now lists the current entries with × to remove each, and adding an artist already listed is ignored. The broken right-click clear option was removed from all text rows.

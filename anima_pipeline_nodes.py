@@ -131,9 +131,12 @@ def _normalize_character_entry(raw_char):
         p = part.strip().lower().replace("_", " ")
         if not p:
             continue
-        if "(" in p or ")" in p:
-            p = _UNESCAPED_PAREN_RE.sub(r"\\\1", p)
-        results.append(p)
+        # (tag:1.2) keeps its weight; only the literal parentheses inside the tag are escaped
+        m_weighted = _WEIGHTED_TAG_RE.match(p)
+        inner = m_weighted.group(1).strip() if m_weighted else p
+        if "(" in inner or ")" in inner:
+            inner = _UNESCAPED_PAREN_RE.sub(r"\\\1", inner)
+        results.append(f"({inner}:{m_weighted.group(2)})" if m_weighted else inner)
     return results
 
 
@@ -635,11 +638,14 @@ def _catalog_tag(name):
     return _UNESCAPED_PAREN_RE.sub(r"\\\1", tag)
 
 
-def _format_picker_artist(entry):
+def _format_picker_entry(entry, artist=False):
+    """'name' or 'name:1.2' -> Anima tag, wrapped as (tag:1.2) when weighted; artists get the '@' prefix."""
     entry = entry.strip()
     m = _PICKER_WEIGHT_RE.match(entry)
     name, weight = (m.group(1), float(m.group(2))) if m else (entry, 1.0)
-    tag = "@" + _catalog_tag(name).lstrip("@").strip()
+    tag = _catalog_tag(name)
+    if artist:
+        tag = "@" + tag.lstrip("@").strip()
     return tag if weight == 1.0 else f"({tag}:{weight:g})"
 
 
@@ -649,8 +655,8 @@ class HaDeSAnimaArtistCharacterPicker:
         return {
             "required": {
                 "artists": ("STRING", {"default": "", "tooltip": "Comma-separated Danbooru artist tags, optional :weight (e.g. dairi:1.2, ebifurya)."}),
-                "character": ("STRING", {"default": "", "tooltip": "Danbooru character tag (e.g. hatsune_miku)."}),
-                "series": ("STRING", {"default": "", "tooltip": "Danbooru copyright / series tag (e.g. vocaloid)."}),
+                "character": ("STRING", {"default": "", "tooltip": "Danbooru character tag, optional :weight (e.g. hatsune_miku:1.2)."}),
+                "series": ("STRING", {"default": "", "tooltip": "Danbooru copyright / series tag, optional :weight (e.g. vocaloid)."}),
                 "random_artists": ("INT", {"default": 0, "min": 0, "max": 4, "tooltip": "Extra artists drawn from the local catalog by seed."}),
                 "random_min_posts": ("INT", {"default": 200, "min": 20, "max": 20000, "step": 10, "tooltip": "Only draw random artists with at least this many Danbooru posts."}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": "fixed"}),
@@ -672,8 +678,8 @@ class HaDeSAnimaArtistCharacterPicker:
             pool = [t for t, c in zip(catalog["tags"], catalog["counts"]) if c >= random_min_posts and t not in taken]
             drawn = random.Random(seed).sample(pool, min(random_artists, len(pool)))
 
-        artist_out = ", ".join(_format_picker_artist(a) for a in chosen + drawn)
-        character_out = ", ".join(_catalog_tag(t) for t in (character, series) if t.strip())
+        artist_out = ", ".join(_format_picker_entry(a, artist=True) for a in chosen + drawn)
+        character_out = ", ".join(_format_picker_entry(t) for t in (character, series) if t.strip())
         info = f"HaDeS Artist & Character Picker | Artist: {artist_out or '-'} | Character: {character_out or '-'}"
         if drawn:
             info += f" | Random ({random_artists}, >= {random_min_posts} posts, seed {seed}): {', '.join(drawn)}"
