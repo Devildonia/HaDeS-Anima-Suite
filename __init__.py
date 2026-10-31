@@ -572,13 +572,13 @@ class HaDeSAnimaModelBlockMerger:
             }
         }
         tooltips = {
-            "BLOCKS_Layout_Geometry": "Canonical Blocks 0-4: Camera geometry, perspective, and framing",
-            "BLOCKS_Global_Composition": "Canonical Blocks 5-9: Global composition, pose, and light masses",
-            "BLOCKS_Subject_Identity": "Canonical Blocks 10-14: Subject identity, face features, and anatomy",
-            "BLOCKS_Material_Substance": "Canonical Blocks 15-19: Materials, clothing folds, and surface textures",
-            "BLOCKS_Art_Style_Medium": "Canonical Blocks 20-23: Art style, lineart weight, brushwork, and palette",
-            "BLOCKS_Lighting_Sharpness": "Canonical Blocks 24-27: Final lighting, micro-contrast, and sharpness",
-            "ADAPTER_Text_Alignment": "Canonical Blocks 28-33: LLM Adapter (Qwen3->T5 Bridge). Default 0.0 preserves Anchor Model 1 text alignment."
+            "BLOCKS_Layout_Geometry": "Blocks 0-4 (early): moves composition and texture together, 0.22-0.84 of an A->B change (tools/ABLATION_RESULTS.md)",
+            "BLOCKS_Global_Composition": "Blocks 5-9 (early-mid): moves composition and texture together, 0.18-0.57 of an A->B change",
+            "BLOCKS_Subject_Identity": "Blocks 10-14 (core): strongest group for composition, texture and color, 0.44-0.75 of an A->B change",
+            "BLOCKS_Material_Substance": "Blocks 15-19 (mid-late): second strongest group, 0.38-0.62 of an A->B change",
+            "BLOCKS_Art_Style_Medium": "Blocks 20-23 (late): low influence, including on texture and color, 0.19-0.38 of an A->B change",
+            "BLOCKS_Lighting_Sharpness": "Blocks 24-27 (final): weakest DiT group, 0.12-0.32 of an A->B change",
+            "ADAPTER_Text_Alignment": "Blocks 28-33: LLM Adapter (Qwen3->T5 bridge). 0.0 keeps Model 1. Identical in most finetunes; anima-aesthetic-v1.1 retrained it."
         }
         for name in s.ORDERED_KEYS:
             default_val = 0.0 if name == "ADAPTER_Text_Alignment" else 0.5

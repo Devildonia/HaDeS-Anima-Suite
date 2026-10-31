@@ -712,7 +712,7 @@ export function setupAnimaDualPassKSamplerUI(node) {
         createStyledComboWidget(node, wSched2, {
             tag: "PASS 2", label: "Scheduler",
             tagColor: HADES_THEME.emerald,
-            tooltip: `<strong>Pass 2 Refiner Scheduler</strong><br>Noise schedule for Pass 2 (anima_beta57 recommended to prevent high-frequency noise blowout).`,
+            tooltip: `<strong>Pass 2 Refiner Scheduler</strong><br>Noise schedule for Pass 2. anima_beta57 puts more steps at low noise; from full noise it converges slower than stock beta (tools/ABLATION_RESULTS.md).`,
         })
     );
     const steps2Widget = node.addCustomWidget(
@@ -1138,7 +1138,7 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         createStyledComboWidget(node, wSched3, {
             tag: "STAGE 3", label: "Scheduler",
             tagColor: HADES_THEME.purple,
-            tooltip: `<strong>Stage 3 Polish Scheduler</strong><br>High-detail noise schedule (anima_beta57 recommended).`,
+            tooltip: `<strong>Stage 3 Polish Scheduler</strong><br>Noise schedule for Stage 3. anima_beta57 puts more steps at low noise; from full noise it converges slower than stock beta (tools/ABLATION_RESULTS.md).`,
         })
     );
     const steps3Widget = node.addCustomWidget(

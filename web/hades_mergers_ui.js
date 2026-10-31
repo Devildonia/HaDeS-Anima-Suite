@@ -104,8 +104,8 @@ export function setupManualBlockMergerUI(node) {
                         }),
                 },
                 {
-                    label: "Style B",
-                    tooltip: `<strong>Model 1 Structure / Model 2 Style</strong><br>Keeps M1 geometry/identity while transferring M2 textures, lighting, and style.`,
+                    label: "Late B",
+                    tooltip: `<strong>Model 2 on late blocks</strong><br>0.10–0.15 on blocks 0–14, 0.65–0.90 on blocks 15–27. Mostly keeps Model 1: measured, it does not isolate style from structure.`,
                     onClick: () =>
                         setAllGroups({
                             base_ratio: 0.5,
@@ -129,24 +129,24 @@ export function setupManualBlockMergerUI(node) {
 
     const friendlyLabels = {
         base_ratio: "Base Fallback Ratio",
-        BLOCKS_Layout_Geometry: "Layout & Geometry",
-        BLOCKS_Global_Composition: "Global Composition",
-        BLOCKS_Subject_Identity: "Subject Identity",
-        BLOCKS_Material_Substance: "Material & Substance",
-        BLOCKS_Art_Style_Medium: "Art Style & Medium",
-        BLOCKS_Lighting_Sharpness: "Lighting & Sharpness",
+        BLOCKS_Layout_Geometry: "Early Blocks",
+        BLOCKS_Global_Composition: "Early-Mid Blocks",
+        BLOCKS_Subject_Identity: "Core Blocks (strongest)",
+        BLOCKS_Material_Substance: "Mid-Late Blocks",
+        BLOCKS_Art_Style_Medium: "Late Blocks",
+        BLOCKS_Lighting_Sharpness: "Final Blocks (weakest)",
         ADAPTER_Text_Alignment: "LLM Adapter Bridge (0=Lock)",
     };
 
     const groupTooltips = {
         base_ratio: `<strong>Global Base Fallback Ratio</strong><br>Ratio applied to root embeddings, timesteps, and non-block parameters.`,
-        BLOCKS_Layout_Geometry: `<strong>Layout & Geometry (Blocks 0–4)</strong><br>Core spatial composition, framing, perspective, and global anatomy.`,
-        BLOCKS_Global_Composition: `<strong>Global Composition (Blocks 5–9)</strong><br>Scene staging, major structural forms, and background elements.`,
-        BLOCKS_Subject_Identity: `<strong>Subject Identity (Blocks 10–14)</strong><br>Character features, facial contours, clothing, and primary subjects.`,
-        BLOCKS_Material_Substance: `<strong>Material & Substance (Blocks 15–19)</strong><br>Surface textures, materials, reflections, and skin rendering.`,
-        BLOCKS_Art_Style_Medium: `<strong>Art Style & Medium (Blocks 20–23)</strong><br>Brushwork, line weight, painterly vs flat vector aesthetics.`,
-        BLOCKS_Lighting_Sharpness: `<strong>Lighting & Sharpness (Blocks 24–27)</strong><br>Micro-contrast, highlight bloom, rim lighting, and final acuity.`,
-        ADAPTER_Text_Alignment: `<strong>LLM Adapter Bridge (Blocks 28–33)</strong><br>Anima text conditioning adapter. Keep locked at 0.0 per official guidelines.`,
+        BLOCKS_Layout_Geometry: `<strong>Early Blocks (0–4)</strong><br>Moves composition and texture together: 0.22–0.84 of the change. Measured share of an A→B change, see tools/ABLATION_RESULTS.md.`,
+        BLOCKS_Global_Composition: `<strong>Early-Mid Blocks (5–9)</strong><br>Moves composition and texture together: 0.18–0.57 of the change. Measured share of an A→B change, see tools/ABLATION_RESULTS.md.`,
+        BLOCKS_Subject_Identity: `<strong>Core Blocks (10–14)</strong><br>Strongest group for composition, texture and color alike: 0.44–0.75 of the change. Measured share of an A→B change, see tools/ABLATION_RESULTS.md.`,
+        BLOCKS_Material_Substance: `<strong>Mid-Late Blocks (15–19)</strong><br>Second strongest group: 0.38–0.62 of the change. Measured share of an A→B change, see tools/ABLATION_RESULTS.md.`,
+        BLOCKS_Art_Style_Medium: `<strong>Late Blocks (20–23)</strong><br>Low influence, including on texture and color: 0.19–0.38 of the change. Measured share of an A→B change, see tools/ABLATION_RESULTS.md.`,
+        BLOCKS_Lighting_Sharpness: `<strong>Final Blocks (24–27)</strong><br>Weakest DiT group: 0.12–0.32 of the change. Measured share of an A→B change, see tools/ABLATION_RESULTS.md.`,
+        ADAPTER_Text_Alignment: `<strong>LLM Adapter Bridge (Blocks 28–33)</strong><br>Anima text conditioning adapter (0.0 = Model 1). Identical in most finetunes, but anima-aesthetic-v1.1 retrained it.`,
     };
 
     for (const k of groupKeys) {
@@ -242,7 +242,7 @@ export function setupPredictiveModelMergerUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.purple,
-            tooltip: `<strong>Predictive Fusion Heuristic</strong><br>• <strong>Style Transfer:</strong> Retains Model 1 geometry while blending Model 2 style bands.<br>• <strong>Interference Guard:</strong> Dampens high-divergence blocks to prevent burning/artifacts.<br>• <strong>Complementary Richness:</strong> Fills capacity gaps of Model 1 using Model 2.<br>• <strong>Balanced Geometric Fusion:</strong> Harmonic block-by-block spectral integration.`,
+            tooltip: `<strong>Predictive Fusion Heuristic</strong><br>Per-block weights from weight divergence. Measured, the presets act mainly as overall Model 2 strength, weakest to strongest:<br>• <strong>Style Transfer:</strong> mostly Model 1; does not move style more than structure.<br>• <strong>Interference Guard / Balanced Geometric Fusion:</strong> a little below a plain blend at the same influence.<br>• <strong>Complementary Richness:</strong> above a plain blend.<br>See tools/ABLATION_RESULTS.md.`,
         })
     );
 

@@ -1556,7 +1556,7 @@ def test_22_anima_suite_telemetry():
     assert "text conditioner bridge protected" in rep_full
     assert "High quality anime render test" in rep_full
 
-    # 3. Test divergence / warning detection (Mismatch shift + non-32px resolution)
+    # 3. Test divergence / warning detection (Mismatch shift + resolution off the 16px grid)
     t_model_div = "HaDeS Anima Model Loader | Model: Anima HaDeS v2.0 | Flow Shift: 3.00"
     t_ksamp_div = "HaDeS Anima KSampler | Resolution: 1000x1000px | Steps: 20 | CFG: 4.50 | Flow Shift (multiplier=1.0): 1.00"
     rep_div, json_div, diag_div = _exec_telemetry(
@@ -1568,11 +1568,11 @@ def test_22_anima_suite_telemetry():
     data_div = json.loads(json_div)
     assert data_div["health_score"] < 100, f"Expected degraded score on mismatch test, got {data_div['health_score']}"
     assert any("Flow Shift Divergence" in iss["message"] for iss in data_div["diagnostics"]["issues"])
-    assert any("not 32px macroblock aligned" in iss["message"] for iss in data_div["diagnostics"]["issues"])
+    assert any("not on Anima's 16px grid" in iss["message"] for iss in data_div["diagnostics"]["issues"])
     assert "Flow Shift Divergence" in diag_div or "warnings" in diag_div
 
     # 3b. Regression: "Stripped" wording in Prompt Studio / remapper streams must not fake adapter protection,
-    # and the Latent node stream must feed the 32px resolution check.
+    # and the Latent node stream must feed the resolution grid check.
     t_studio_strip = hades.HaDeSAnimaPromptStudio().process_prompt(
         "Anima Base 2B (Keep Quality Tags)", "Standard Anime / Illustration", True, 1.0, "", "", "1girl", "bad"
     )[4]
@@ -1593,7 +1593,7 @@ def test_22_anima_suite_telemetry():
     assert data_adp["extracted_telemetry"]["resolution"] == "1024x1024px"
     assert hades.anima_pipeline_nodes.strip_info_meta(t_latent) in data_adp["streams_by_category"]["SAMPLING"]
 
-    # 4. Regression Test for Audit B2 & B4: Shield + Prompt Studio (No false 32px warning, no false LoRA warning)
+    # 4. Regression Test for Audit B2 & B4: Shield + Prompt Studio (No false grid warning, no false LoRA warning)
     t_studio = "=== HADES ANIMA PROMPT STUDIO ===\nModel Variant: Anima Aesthetic\nEmphasis Scale: 1.50x"
     t_shield_only = "HaDeS Corner Scribble Shield | Box: 153x153px (15% base) | Mode: Smart Edge-Inward Blend (Auto-Heal) | Detected: Clean (Low HF Energy)"
     rep_reg, json_reg, diag_reg = _exec_telemetry(
@@ -1603,8 +1603,8 @@ def test_22_anima_suite_telemetry():
         info_2=t_shield_only,
     )
     data_reg = json.loads(json_reg)
-    assert not any("32px macroblock" in iss["message"] for iss in data_reg["diagnostics"]["issues"]), \
-        "Shield inspection box must NOT trigger false 32px canvas alignment warnings"
+    assert not any("16px grid" in iss["message"] for iss in data_reg["diagnostics"]["issues"]), \
+        "Shield inspection box must NOT trigger false canvas grid warnings"
     assert not any("External LoRAs detected" in iss["message"] for iss in data_reg["diagnostics"]["issues"]), \
         "Prompt Studio alone must NOT trigger false External LoRAs warnings"
     assert data_reg["health_score"] == 100, f"Expected 100 health score on clean studio+shield, got {data_reg['health_score']}"
@@ -1873,8 +1873,14 @@ def test_25_info_meta_contract():
     assert t["corner_status"] == "BR (HF=0.050)"
     messages = [i["message"] for i in data["diagnostics"]["issues"]]
     assert any("Model Loader configured Shift=3.00" in m and "Shift=4.50" in m for m in messages)
-    assert any("not 32px macroblock aligned" in m for m in messages)
+    assert any("not on Anima's 16px grid" in m for m in messages)
     assert not any("HADES_META" in item for items in data["streams_by_category"].values() for item in items)
+
+    # 16px is Anima's real grid (8x VAE x 2x2 patches): 1008 is 16- but not 32-aligned and must not warn
+    ks16 = hades.format_info("free text", "ksampler", width=1008, height=1008, steps=20, cfg=4.5,
+                             flow_shift=3.0, sampler="euler", scheduler="normal")
+    data16 = json.loads(hades.HaDeSAnimaSuiteTelemetry().audit_telemetry("JSON Raw Data", "grid", info_1=ks16)["result"][1])
+    assert not any("16px grid" in i["message"] for i in data16["diagnostics"]["issues"])
     print("[OK] Test 25: HADES_META info contract (all nodes, schema keys, round trip, Telemetry reads trailers not prose) verified")
 
 

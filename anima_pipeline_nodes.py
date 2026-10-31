@@ -1292,7 +1292,7 @@ class HaDeSAnimaSuiteTelemetry:
     HaDeS Anima Suite Telemetry & Flight Recorder.
     Collects, aggregates, semantically classifies, and performs automated diagnostic health
     checks across all connected 'info' telemetry streams from HaDeS Suite nodes in the workflow.
-    Diagnoses configuration mismatches (Flow Shift, CFG, NAG, 32px resolution alignment,
+    Diagnoses configuration mismatches (Flow Shift, CFG, NAG, 16px resolution alignment,
     llm_adapter locks, and VAE channel verification), and outputs human-readable flight reports
     and structured JSON telemetry.
     """
@@ -1519,10 +1519,10 @@ class HaDeSAnimaSuiteTelemetry:
                 issues.append(("TIP", f"Low CFG ({sampler_cfg:.2f}) used without Anima Attention Guidance (NAG). Negative prompt terms have negligible steering on Anima Turbo/Lightning without NAG extrapolation."))
 
         if res_w is not None and res_h is not None:
-            if (res_w % 32 != 0) or (res_h % 32 != 0):
-                issues.append(("WARNING", f"Canvas resolution ({res_w}x{res_h}px) is not 32px macroblock aligned (mod 32: {res_w % 32}, {res_h % 32}). Wan2.1 VAE 8x spatial downsampling requires 32px grid alignment to prevent edge artifacting."))
+            if (res_w % 16 != 0) or (res_h % 16 != 0):
+                issues.append(("WARNING", f"Canvas resolution ({res_w}x{res_h}px) is not on Anima's 16px grid (mod 16: {res_w % 16}, {res_h % 16}). The latent is padded to the 2x2 patch grid, which tends to leave a band on the bottom / right edge."))
             else:
-                checks.append(f"Canvas resolution ({res_w}x{res_h}px) strictly aligned to 32px macroblock grid.")
+                checks.append(f"Canvas resolution ({res_w}x{res_h}px) on Anima's 16px grid (8x VAE x 2x2 patches).")
 
         if vae_channels is not None:
             if vae_channels == 16:
@@ -1645,7 +1645,7 @@ class HaDeSAnimaSuiteTelemetry:
                 nag_str = f"NAG Active (s={nag_scale})" if nag_active else "NAG Off"
                 sum_lines.append(f"• Sampling: CFG={sampler_cfg} | {nag_str}")
             if res_w and res_h:
-                sum_lines.append(f"• Canvas: {res_w}x{res_h}px (32px aligned: {(res_w%32==0 and res_h%32==0)})")
+                sum_lines.append(f"• Canvas: {res_w}x{res_h}px (16px aligned: {(res_w%16==0 and res_h%16==0)})")
             if corner_status:
                 sum_lines.append(f"• Corner Shield: {corner_status}")
             if vae_strategy:
