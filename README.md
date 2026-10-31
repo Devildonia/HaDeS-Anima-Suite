@@ -292,7 +292,11 @@ Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy
 2. **`HaDeS Anima Suite - Dual Pass Generation Example.json`:** composition at 1.0 MP and a 1.5x refinement pass with the 16-channel latent bridge and `model_pass2`.
 3. **`HaDeS Anima Suite - Triple Pass Generation Example.json`:** `1.0x → 1.35x → 1.75x` with `Anima Triple-Pass KSampler`.
 4. **`HaDeS Anima Suite - Artist Picker & Sampler Metadata Example.json`:** the Simple Pass graph with `Anima Artist & Character Picker` feeding Prompt Studio's artist / character inputs (one listed artist plus one random draw) and `Anima Sampler Metadata` reading the KSampler's info; previews stand in for an image-saver metadata node.
-5. **`HaDeS - Anima Suite - Merge Workflow Example - Medium.json`:** `Anima Model Block Merger`, `Anima Predictive Multi-LoRA` and `Anima LoRA Merger` with key remapping and adapter protection.
+5. **`HaDeS Anima Suite - LoRA Toolkit Example.json`:** `Anima Universal LoRA Remapper` and `Anima LoRA Block Weight` in the generation graph, plus a bypassed group with `Anima LoRA Extractor`, `Anima LoRA Resize` and `Anima LoRA Merger` (they write files to `models/loras`; enable a node with Ctrl+B).
+6. **`HaDeS Anima Suite - NAG, Corner Shield & Telemetry Example.json`:** `Anima Attention Guidance (NAG)` before the KSampler, `Anima Corner Shield` after the decode and `Anima Suite Telemetry` auditing the info outputs of 8 nodes.
+7. **`HaDeS - Anima Suite - Merge Workflow Example - Medium.json`:** two donors (`anima-base-v1.0`, `anima-aesthetic-v1.1`) through `Anima Model Block Merger`, `Anima Predictive Model Merger`, `Anima CLIP Block Merger` and `Anima Predictive Multi-LoRA`, with a preview per result, merge telemetry and a bypassed `Anima Model Saver`.
+
+All examples use only HaDeS and core ComfyUI nodes.
 
 ---
 

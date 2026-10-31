@@ -5,6 +5,16 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Example workflows `LoRA Toolkit` and `NAG, Corner Shield & Telemetry`:** every node of the suite now appears in at least one example.
+
+### Changed
+- **Merge example is self-contained:** it needed five third-party packs (Easy-Use set/get, rgthree, KJNodes, comfy-image-saver, pysssss); without Easy-Use its connections disappeared. Set/get pairs are now direct links, the seed is core `Int`, the report uses core `Preview Any`, Sage Attention and the group bypasser are gone, core `ModelSave` became `Anima Model Saver` (bypassed) and the donors are the public `anima-base-v1.0` / `anima-aesthetic-v1.1`. Connections are unchanged; the README description now matches its nodes.
+
+---
+
 ## [0.3.7] - 2026-10-31
 
 ### Added

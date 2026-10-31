@@ -1,1833 +1,9 @@
 {
   "id": "ca068025-976f-4d0d-a27c-0b4127d2a824",
   "revision": 0,
-  "last_node_id": 145,
-  "last_link_id": 203,
+  "last_node_id": 148,
+  "last_link_id": 257,
   "nodes": [
-    {
-      "id": 2,
-      "type": "ModelSave",
-      "pos": [
-        5353.835056495585,
-        3762.268753320004
-      ],
-      "size": [
-        296.5390625,
-        58
-      ],
-      "flags": {},
-      "order": 49,
-      "mode": 4,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 24
-        }
-      ],
-      "outputs": [],
-      "title": "Save Merge",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "ModelSave",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        "diffusion_models/Anima HaDeS v3.0"
-      ],
-      "widgets_values_named": {
-        "filename_prefix": "diffusion_models/Anima HaDeS v3.0"
-      },
-      "color": "#cfe04c",
-      "bgcolor": "#bbcc38"
-    },
-    {
-      "id": 15,
-      "type": "easy setNode",
-      "pos": [
-        5583.447864338723,
-        2309.0039979236053
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 82,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "link": 59
-        }
-      ],
-      "outputs": [],
-      "title": "➡️Donor A",
-      "properties": {
-        "previousName": "Donor A",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor A"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 16,
-      "type": "easy setNode",
-      "pos": [
-        5579.475622072949,
-        2618.179681821275
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 83,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "link": 57
-        }
-      ],
-      "outputs": [],
-      "title": "➡️Donor B",
-      "properties": {
-        "previousName": "Donor B",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor B"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor B"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 17,
-      "type": "easy getNode",
-      "pos": [
-        6945.083699763174,
-        2214.807465984107
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            121
-          ]
-        }
-      ],
-      "title": "⬅️Donor A",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor A"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 18,
-      "type": "easy getNode",
-      "pos": [
-        6945.891792132017,
-        2268.8344299075993
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            122
-          ]
-        }
-      ],
-      "title": "⬅️Donor B",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor B"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor B"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 19,
-      "type": "easy setNode",
-      "pos": [
-        5447.90103435459,
-        2921.769782641028
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 65,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 185
-        }
-      ],
-      "outputs": [],
-      "title": "➡️CLIP A",
-      "properties": {
-        "previousName": "CLIP A",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP A"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 20,
-      "type": "easy setNode",
-      "pos": [
-        5453.359357346828,
-        3195.7872559667017
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 66,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 186
-        }
-      ],
-      "outputs": [],
-      "title": "➡️VAE",
-      "properties": {
-        "previousName": "VAE",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "VAE"
-      ],
-      "widgets_values_named": {
-        "Constant": "VAE"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 21,
-      "type": "easy getNode",
-      "pos": [
-        6945.731464030702,
-        2693.4366659385864
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            141
-          ]
-        }
-      ],
-      "title": "⬅️CLIP A",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP A"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 22,
-      "type": "easy getNode",
-      "pos": [
-        5203.201568446722,
-        3790.3797374923556
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 3,
-      "mode": 4,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            24
-          ]
-        }
-      ],
-      "title": "⬅️A+B+LoRa",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A+B+LoRa"
-      ],
-      "widgets_values_named": {
-        "Constant": "A+B+LoRa"
-      },
-      "color": "#cfe04c",
-      "bgcolor": "#bbcc38"
-    },
-    {
-      "id": 23,
-      "type": "easy setNode",
-      "pos": [
-        7511.894515616349,
-        2712.0067238586653
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 90,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "link": 55
-        }
-      ],
-      "outputs": [],
-      "title": "➡️A+B+LoRa",
-      "properties": {
-        "previousName": "A+B+LoRa",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A+B+LoRa"
-      ],
-      "widgets_values_named": {
-        "Constant": "A+B+LoRa"
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 24,
-      "type": "easy getNode",
-      "pos": [
-        5751.774470915236,
-        1936.6022188717902
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 4,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            150
-          ]
-        }
-      ],
-      "title": "⬅️A+B+LoRa",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A+B+LoRa"
-      ],
-      "widgets_values_named": {
-        "Constant": "A+B+LoRa"
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 25,
-      "type": "easy getNode",
-      "pos": [
-        6354.650226280558,
-        1983.9896783433937
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 5,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            173
-          ]
-        }
-      ],
-      "title": "⬅️VAE",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "VAE"
-      ],
-      "widgets_values_named": {
-        "Constant": "VAE"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 26,
-      "type": "easy setNode",
-      "pos": [
-        8047.68610262155,
-        2830.0949708776257
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 68,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "latent",
-          "type": "LATENT",
-          "link": 190
-        }
-      ],
-      "outputs": [],
-      "title": "➡️LATENT",
-      "properties": {
-        "previousName": "LATENT",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "LATENT"
-      ],
-      "widgets_values_named": {
-        "Constant": "LATENT"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 27,
-      "type": "easy getNode",
-      "pos": [
-        5751.986159418248,
-        2093.0442074624902
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 6,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            153
-          ]
-        }
-      ],
-      "title": "⬅️LATENT",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "LATENT"
-      ],
-      "widgets_values_named": {
-        "Constant": "LATENT"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 28,
-      "type": "easy setNode",
-      "pos": [
-        8384.443483548483,
-        2229.969969437886
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 71,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 194
-        }
-      ],
-      "outputs": [],
-      "title": "➡️positive",
-      "properties": {
-        "previousName": "positive",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "positive"
-      ],
-      "widgets_values_named": {
-        "Constant": "positive"
-      },
-      "color": "#78dc78",
-      "bgcolor": "#64c864"
-    },
-    {
-      "id": 29,
-      "type": "easy setNode",
-      "pos": [
-        8383.940940567481,
-        2268.3873047596926
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 72,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 191
-        }
-      ],
-      "outputs": [],
-      "title": "➡️negative",
-      "properties": {
-        "previousName": "negative",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "negative"
-      ],
-      "widgets_values_named": {
-        "Constant": "negative"
-      },
-      "color": "#644141",
-      "bgcolor": "#502d2d"
-    },
-    {
-      "id": 30,
-      "type": "easy getNode",
-      "pos": [
-        5751.606774526469,
-        1989.0202593435606
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 7,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            151
-          ]
-        }
-      ],
-      "title": "⬅️positive",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "positive"
-      ],
-      "widgets_values_named": {
-        "Constant": "positive"
-      },
-      "color": "#78dc78",
-      "bgcolor": "#64c864"
-    },
-    {
-      "id": 31,
-      "type": "easy getNode",
-      "pos": [
-        5752.070043049417,
-        2041.2276757038765
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 8,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            152
-          ]
-        }
-      ],
-      "title": "⬅️negative",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "negative"
-      ],
-      "widgets_values_named": {
-        "Constant": "negative"
-      },
-      "color": "#644141",
-      "bgcolor": "#502d2d"
-    },
-    {
-      "id": 32,
-      "type": "easy setNode",
-      "pos": [
-        7511.266320286242,
-        2747.143981491929
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 85,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "link": 142
-        }
-      ],
-      "outputs": [],
-      "title": "➡️CLIP2PROMPT",
-      "properties": {
-        "previousName": "CLIP2PROMPT",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP2PROMPT"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP2PROMPT"
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 33,
-      "type": "easy getNode",
-      "pos": [
-        7732.688293481099,
-        2236.784781428799
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 9,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            195
-          ]
-        }
-      ],
-      "title": "⬅️CLIP2PROMPT",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP2PROMPT"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP2PROMPT"
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 34,
-      "type": "easy getNode",
-      "pos": [
-        5751.819905609065,
-        2436.642850486907
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 10,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            157
-          ]
-        }
-      ],
-      "title": "⬅️Donor A",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor A"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 35,
-      "type": "easy getNode",
-      "pos": [
-        5752.890718198739,
-        2488.981696945649
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 11,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            160
-          ]
-        }
-      ],
-      "title": "⬅️positive",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "positive"
-      ],
-      "widgets_values_named": {
-        "Constant": "positive"
-      },
-      "color": "#78dc78",
-      "bgcolor": "#64c864"
-    },
-    {
-      "id": 36,
-      "type": "easy getNode",
-      "pos": [
-        5753.228733166651,
-        2543.6649171495915
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 12,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            159
-          ]
-        }
-      ],
-      "title": "⬅️negative",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "negative"
-      ],
-      "widgets_values_named": {
-        "Constant": "negative"
-      },
-      "color": "#644141",
-      "bgcolor": "#502d2d"
-    },
-    {
-      "id": 37,
-      "type": "easy getNode",
-      "pos": [
-        5753.267199212224,
-        2596.8135789558805
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 13,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            158
-          ]
-        }
-      ],
-      "title": "⬅️LATENT",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "LATENT"
-      ],
-      "widgets_values_named": {
-        "Constant": "LATENT"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 39,
-      "type": "easy getNode",
-      "pos": [
-        6353.4313604211475,
-        2486.4810156907092
-      ],
-      "size": [
-        210,
-        34
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 14,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            175
-          ]
-        }
-      ],
-      "title": "⬅️VAE",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "VAE"
-      ],
-      "widgets_values_named": {
-        "Constant": "VAE"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 41,
-      "type": "easy getNode",
-      "pos": [
-        5761.843659959389,
-        2940.05216400752
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 15,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            166
-          ]
-        }
-      ],
-      "title": "⬅️Donor B",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor B"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor B"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 42,
-      "type": "easy getNode",
-      "pos": [
-        5763.462241798009,
-        2991.652548147737
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 16,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            165
-          ]
-        }
-      ],
-      "title": "⬅️positive",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "positive"
-      ],
-      "widgets_values_named": {
-        "Constant": "positive"
-      },
-      "color": "#78dc78",
-      "bgcolor": "#64c864"
-    },
-    {
-      "id": 43,
-      "type": "easy getNode",
-      "pos": [
-        5762.492505955219,
-        3045.193424099071
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 17,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            164
-          ]
-        }
-      ],
-      "title": "⬅️negative",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "negative"
-      ],
-      "widgets_values_named": {
-        "Constant": "negative"
-      },
-      "color": "#644141",
-      "bgcolor": "#502d2d"
-    },
-    {
-      "id": 44,
-      "type": "easy getNode",
-      "pos": [
-        5763.911405906352,
-        3098.2646958696228
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 18,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            163
-          ]
-        }
-      ],
-      "title": "⬅️LATENT",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "LATENT"
-      ],
-      "widgets_values_named": {
-        "Constant": "LATENT"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 46,
-      "type": "easy getNode",
-      "pos": [
-        6354.302605190743,
-        2985.790492336316
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 19,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            179
-          ]
-        }
-      ],
-      "title": "⬅️VAE",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "VAE"
-      ],
-      "widgets_values_named": {
-        "Constant": "VAE"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 48,
-      "type": "Seed Generator",
-      "pos": [
-        8078.338511360909,
-        2945.8192969126058
-      ],
-      "size": [
-        279.8276778858926,
-        86.91383894294631
-      ],
-      "flags": {
-        "pinned": true
-      },
-      "order": 20,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "INT",
-          "type": "INT",
-          "links": [
-            48
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-image-saver",
-        "ver": "c6223965d45871d1ff2931b6ac9518a13947c920",
-        "Node name for S&R": "Seed Generator",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        1,
-        "fixed"
-      ],
-      "widgets_values_named": {
-        "seed": 1,
-        "control_after_generate": "fixed"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 49,
-      "type": "easy setNode",
-      "pos": [
-        8388.421294161844,
-        2973.303460357359
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 51,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "INT",
-          "type": "INT",
-          "link": 48
-        }
-      ],
-      "outputs": [],
-      "title": "➡️SEED",
-      "properties": {
-        "previousName": "SEED",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "SEED"
-      ],
-      "widgets_values_named": {
-        "Constant": "SEED"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 50,
-      "type": "easy getNode",
-      "pos": [
-        5751.967256470085,
-        2675.7190928623463
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 21,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            161
-          ]
-        }
-      ],
-      "title": "⬅️SEED",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "SEED"
-      ],
-      "widgets_values_named": {
-        "Constant": "SEED"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 51,
-      "type": "easy getNode",
-      "pos": [
-        5763.849478684486,
-        3175.6382539897986
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 22,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            162
-          ]
-        }
-      ],
-      "title": "⬅️SEED",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "SEED"
-      ],
-      "widgets_values_named": {
-        "Constant": "SEED"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 52,
-      "type": "easy getNode",
-      "pos": [
-        5752.48173137283,
-        2177.3270957925993
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 23,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            154
-          ]
-        }
-      ],
-      "title": "⬅️SEED",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "SEED"
-      ],
-      "widgets_values_named": {
-        "Constant": "SEED"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 55,
-      "type": "PathchSageAttentionKJ",
-      "pos": [
-        7510.782462171318,
-        2675.794238436453
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 84,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 143
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            55
-          ]
-        }
-      ],
-      "title": "Sage",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "d7641533d6634eb05f8570c980fce8fc8528dc7b",
-        "Node name for S&R": "PathchSageAttentionKJ",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        "auto",
-        false
-      ],
-      "widgets_values_named": {
-        "sage_attention": "auto",
-        "allow_compile": false
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 56,
-      "type": "PathchSageAttentionKJ",
-      "pos": [
-        5463.5915793744525,
-        2310.058380577373
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 63,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 187
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            59
-          ]
-        }
-      ],
-      "title": "Sage",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "d7641533d6634eb05f8570c980fce8fc8528dc7b",
-        "Node name for S&R": "PathchSageAttentionKJ",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        "auto",
-        false
-      ],
-      "widgets_values_named": {
-        "sage_attention": "auto",
-        "allow_compile": false
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 57,
-      "type": "PathchSageAttentionKJ",
-      "pos": [
-        5464.111362770607,
-        2617.166924065108
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 64,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 188
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            57
-          ]
-        }
-      ],
-      "title": "Sage",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "d7641533d6634eb05f8570c980fce8fc8528dc7b",
-        "Node name for S&R": "PathchSageAttentionKJ",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        "auto",
-        false
-      ],
-      "widgets_values_named": {
-        "sage_attention": "auto",
-        "allow_compile": false
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 58,
-      "type": "easy setNode",
-      "pos": [
-        6711.805495722103,
-        1963.1696217602698
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 88,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 172
-        }
-      ],
-      "outputs": [],
-      "title": "➡️A+B+LoRa Preview",
-      "properties": {
-        "previousName": "A+B+LoRa Preview",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A+B+LoRa Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "A+B+LoRa Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
-      "id": 59,
-      "type": "easy setNode",
-      "pos": [
-        6724.173822114249,
-        2465.6929390752207
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 86,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 176
-        }
-      ],
-      "outputs": [],
-      "title": "➡️A Preview",
-      "properties": {
-        "previousName": "A Preview",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "A Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
-      "id": 60,
-      "type": "easy setNode",
-      "pos": [
-        6739.271469095039,
-        2964.0531588178596
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 87,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 177
-        }
-      ],
-      "outputs": [],
-      "title": "➡️B Preview",
-      "properties": {
-        "previousName": "B Preview",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "B Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "B Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
     {
       "id": 61,
       "type": "PreviewImage",
@@ -1842,17 +18,19 @@
       "flags": {
         "pinned": true
       },
-      "order": 55,
+      "order": 24,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "imagenes",
           "name": "images",
           "type": "IMAGE",
-          "link": 63
+          "link": 227
         }
       ],
       "outputs": [
         {
+          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": null
@@ -1886,17 +64,19 @@
       "flags": {
         "pinned": true
       },
-      "order": 56,
+      "order": 25,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "imagenes",
           "name": "images",
           "type": "IMAGE",
-          "link": 64
+          "link": 228
         }
       ],
       "outputs": [
         {
+          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": []
@@ -1930,17 +110,19 @@
       "flags": {
         "pinned": true
       },
-      "order": 57,
+      "order": 23,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "imagenes",
           "name": "images",
           "type": "IMAGE",
-          "link": 65
+          "link": 229
         }
       ],
       "outputs": [
         {
+          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": []
@@ -1961,697 +143,6 @@
       "bgcolor": "#541717"
     },
     {
-      "id": 64,
-      "type": "easy getNode",
-      "pos": [
-        8606.470828608064,
-        2095.76576342845
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 24,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            63
-          ]
-        }
-      ],
-      "title": "⬅️A Preview",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "A Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
-      "id": 65,
-      "type": "easy getNode",
-      "pos": [
-        9656.44085519855,
-        2099.1429805223634
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 25,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            64
-          ]
-        }
-      ],
-      "title": "⬅️B Preview",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "B Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "B Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
-      "id": 66,
-      "type": "easy getNode",
-      "pos": [
-        10702.819999553141,
-        2099.0991129791623
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 26,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            65
-          ]
-        }
-      ],
-      "title": "⬅️A+B+LoRa Preview",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "A+B+LoRa Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "A+B+LoRa Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
-      "id": 69,
-      "type": "easy setNode",
-      "pos": [
-        5453.497753434596,
-        3407.6720543611787
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 67,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 189
-        }
-      ],
-      "outputs": [],
-      "title": "➡️CLIP B",
-      "properties": {
-        "previousName": "CLIP B",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP B"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP B"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 70,
-      "type": "easy getNode",
-      "pos": [
-        6952.414019412766,
-        3021.206183520663
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 27,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            126
-          ]
-        }
-      ],
-      "title": "⬅️CLIP A",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP A"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 71,
-      "type": "easy getNode",
-      "pos": [
-        6951.018143644841,
-        3058.33523736813
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 28,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            125
-          ]
-        }
-      ],
-      "title": "⬅️CLIP B",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP B"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP B"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 72,
-      "type": "easy setNode",
-      "pos": [
-        7500.01622657558,
-        3028.307920111845
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 76,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "link": 124
-        }
-      ],
-      "outputs": [],
-      "title": "➡️CLIP E",
-      "properties": {
-        "previousName": "CLIP E",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP E"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP E"
-      },
-      "color": "#222",
-      "bgcolor": "#000"
-    },
-    {
-      "id": 73,
-      "type": "Fast Groups Bypasser (rgthree)",
-      "pos": [
-        5229.43693017808,
-        2000.2361693787293
-      ],
-      "size": [
-        378.7311114313974,
-        94.80238275658735
-      ],
-      "flags": {},
-      "order": 29,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "OPT_CONNECTION",
-          "type": "*",
-          "links": null
-        }
-      ],
-      "properties": {
-        "matchColors": "black",
-        "matchTitle": "",
-        "showNav": true,
-        "showAllGraphs": true,
-        "sort": "position",
-        "customSortAlphabet": "",
-        "toggleRestriction": "default",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "color": "#222",
-      "bgcolor": "#000"
-    },
-    {
-      "id": 81,
-      "type": "easy setNode",
-      "pos": [
-        7506.43602690607,
-        2250.5894083666694
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 70,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "info",
-          "type": "STRING",
-          "link": 120
-        }
-      ],
-      "outputs": [],
-      "title": "➡️Model Merge Info",
-      "properties": {
-        "previousName": "Model Merge Info",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Model Merge Info"
-      ],
-      "widgets_values_named": {
-        "Constant": "Model Merge Info"
-      },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
-    },
-    {
-      "id": 82,
-      "type": "easy setNode",
-      "pos": [
-        7499.690186923698,
-        3065.6974849774956
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 77,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "info",
-          "type": "STRING",
-          "link": 123
-        }
-      ],
-      "outputs": [],
-      "title": "➡️CLIP Merge Info",
-      "properties": {
-        "previousName": "CLIP Merge Info",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP Merge Info"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP Merge Info"
-      },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
-    },
-    {
-      "id": 83,
-      "type": "easy getNode",
-      "pos": [
-        7730.389148504773,
-        3203.864152974361
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 30,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            200
-          ]
-        }
-      ],
-      "title": "⬅️Model Merge Info",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Model Merge Info"
-      ],
-      "widgets_values_named": {
-        "Constant": "Model Merge Info"
-      },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
-    },
-    {
-      "id": 84,
-      "type": "easy getNode",
-      "pos": [
-        7730.434848843089,
-        3240.753278212246
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 31,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            199
-          ]
-        }
-      ],
-      "title": "⬅️CLIP Merge Info",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "CLIP Merge Info"
-      ],
-      "widgets_values_named": {
-        "Constant": "CLIP Merge Info"
-      },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
-    },
-    {
-      "id": 99,
-      "type": "easy getNode",
-      "pos": [
-        6946.068559704417,
-        3381.0154364322298
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 32,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            115
-          ]
-        }
-      ],
-      "title": "⬅️Donor A",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor A"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor A"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 100,
-      "type": "easy getNode",
-      "pos": [
-        6946.784539683388,
-        3424.8199016366925
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 33,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            116
-          ]
-        }
-      ],
-      "title": "⬅️Donor B",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Donor B"
-      ],
-      "widgets_values_named": {
-        "Constant": "Donor B"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 101,
-      "type": "easy setNode",
-      "pos": [
-        7515.026305656792,
-        3382.4649001480757
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 78,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "link": 111
-        }
-      ],
-      "outputs": [],
-      "title": "➡️Predictive A+B",
-      "properties": {
-        "previousName": "Predictive A+B",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Predictive A+B"
-      ],
-      "widgets_values_named": {
-        "Constant": "Predictive A+B"
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 102,
-      "type": "easy getNode",
-      "pos": [
-        11759.830414745427,
-        2102.0548950219227
-      ],
-      "size": [
-        212.93125,
-        50
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 34,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            101
-          ]
-        }
-      ],
-      "title": "⬅️Predictive A+B Preview",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Predictive A+B Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "Predictive A+B Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
       "id": 103,
       "type": "PreviewImage",
       "pos": [
@@ -2663,17 +154,19 @@
         1329.2920552726832
       ],
       "flags": {},
-      "order": 60,
+      "order": 26,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "imagenes",
           "name": "images",
           "type": "IMAGE",
-          "link": 101
+          "link": 236
         }
       ],
       "outputs": [
         {
+          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": []
@@ -2694,313 +187,6 @@
       "bgcolor": "#541717"
     },
     {
-      "id": 104,
-      "type": "easy getNode",
-      "pos": [
-        5733.78951099262,
-        3467.9585739555496
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 35,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            167
-          ]
-        }
-      ],
-      "title": "⬅️Predictive A+B",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Predictive A+B"
-      ],
-      "widgets_values_named": {
-        "Constant": "Predictive A+B"
-      },
-      "color": "#8c5096",
-      "bgcolor": "#783c82"
-    },
-    {
-      "id": 105,
-      "type": "easy getNode",
-      "pos": [
-        5763.167094095146,
-        3522.587596300648
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 36,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            168
-          ]
-        }
-      ],
-      "title": "⬅️positive",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "positive"
-      ],
-      "widgets_values_named": {
-        "Constant": "positive"
-      },
-      "color": "#78dc78",
-      "bgcolor": "#64c864"
-    },
-    {
-      "id": 107,
-      "type": "easy getNode",
-      "pos": [
-        5763.061397820457,
-        3575.0116906740354
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 37,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            169
-          ]
-        }
-      ],
-      "title": "⬅️negative",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "negative"
-      ],
-      "widgets_values_named": {
-        "Constant": "negative"
-      },
-      "color": "#644141",
-      "bgcolor": "#502d2d"
-    },
-    {
-      "id": 108,
-      "type": "easy getNode",
-      "pos": [
-        5762.822760994436,
-        3628.086213624793
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 38,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            170
-          ]
-        }
-      ],
-      "title": "⬅️LATENT",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "LATENT"
-      ],
-      "widgets_values_named": {
-        "Constant": "LATENT"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 109,
-      "type": "easy getNode",
-      "pos": [
-        5762.894897119345,
-        3690.3403849125502
-      ],
-      "size": [
-        210,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 39,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            171
-          ]
-        }
-      ],
-      "title": "⬅️SEED",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "SEED"
-      ],
-      "widgets_values_named": {
-        "Constant": "SEED"
-      },
-      "color": "#7878e6",
-      "bgcolor": "#6464d2"
-    },
-    {
-      "id": 110,
-      "type": "easy getNode",
-      "pos": [
-        6354.674458530673,
-        3488.157459725273
-      ],
-      "size": [
-        210,
-        34
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 40,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            182
-          ]
-        }
-      ],
-      "title": "⬅️VAE",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "VAE"
-      ],
-      "widgets_values_named": {
-        "Constant": "VAE"
-      },
-      "color": "#c84646",
-      "bgcolor": "#b43232"
-    },
-    {
-      "id": 112,
-      "type": "easy setNode",
-      "pos": [
-        6715.753694212423,
-        3466.5873452782325
-      ],
-      "size": [
-        212.93125,
-        50
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 89,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 183
-        }
-      ],
-      "outputs": [],
-      "title": "➡️Predictive A+B Preview",
-      "properties": {
-        "previousName": "Predictive A+B Preview",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Predictive A+B Preview"
-      ],
-      "widgets_values_named": {
-        "Constant": "Predictive A+B Preview"
-      },
-      "color": "#5a96b4",
-      "bgcolor": "#4682a0"
-    },
-    {
       "id": 114,
       "type": "HaDeSAnimaPredictiveModelMerger",
       "pos": [
@@ -3008,46 +194,88 @@
         3356.3696866576784
       ],
       "size": [
-        401.2938757808637,
+        430,
         276
       ],
       "flags": {
         "collapsed": false,
         "pinned": true
       },
-      "order": 59,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model1",
           "name": "model1",
           "type": "MODEL",
-          "link": 115
+          "link": 248
         },
         {
+          "localized_name": "model2",
           "name": "model2",
           "type": "MODEL",
-          "link": 116
+          "link": 251
         },
         {
+          "localized_name": "base_model",
           "name": "base_model",
           "shape": 7,
           "type": "MODEL",
+          "link": null
+        },
+        {
+          "localized_name": "preset",
+          "name": "preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "target_influence",
+          "name": "target_influence",
+          "type": "FLOAT",
+          "widget": {
+            "name": "target_influence"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "aggressiveness",
+          "name": "aggressiveness",
+          "type": "FLOAT",
+          "widget": {
+            "name": "aggressiveness"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "protect_llm_adapter",
+          "name": "protect_llm_adapter",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "protect_llm_adapter"
+          },
           "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "MODELO",
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            111
+            237
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": [
-            127
+            243
           ]
         }
       ],
@@ -3085,28 +313,113 @@
         2201.2861903918447
       ],
       "size": [
-        402.5867208685453,
+        430,
         416
       ],
       "flags": {
         "pinned": true
       },
-      "order": 48,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model1",
           "name": "model1",
           "type": "MODEL",
-          "link": 121
+          "link": 246
         },
         {
+          "localized_name": "model2",
           "name": "model2",
           "type": "MODEL",
-          "link": 122
+          "link": 249
+        },
+        {
+          "localized_name": "base_ratio",
+          "name": "base_ratio",
+          "type": "FLOAT",
+          "widget": {
+            "name": "base_ratio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "BLOCKS_Layout_Geometry",
+          "name": "BLOCKS_Layout_Geometry",
+          "type": "FLOAT",
+          "widget": {
+            "name": "BLOCKS_Layout_Geometry"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "BLOCKS_Global_Composition",
+          "name": "BLOCKS_Global_Composition",
+          "type": "FLOAT",
+          "widget": {
+            "name": "BLOCKS_Global_Composition"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "BLOCKS_Subject_Identity",
+          "name": "BLOCKS_Subject_Identity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "BLOCKS_Subject_Identity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "BLOCKS_Material_Substance",
+          "name": "BLOCKS_Material_Substance",
+          "type": "FLOAT",
+          "widget": {
+            "name": "BLOCKS_Material_Substance"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "BLOCKS_Art_Style_Medium",
+          "name": "BLOCKS_Art_Style_Medium",
+          "type": "FLOAT",
+          "widget": {
+            "name": "BLOCKS_Art_Style_Medium"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "BLOCKS_Lighting_Sharpness",
+          "name": "BLOCKS_Lighting_Sharpness",
+          "type": "FLOAT",
+          "widget": {
+            "name": "BLOCKS_Lighting_Sharpness"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ADAPTER_Text_Alignment",
+          "name": "ADAPTER_Text_Alignment",
+          "type": "FLOAT",
+          "widget": {
+            "name": "ADAPTER_Text_Alignment"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "recipe_override",
+          "name": "recipe_override",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "recipe_override"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "MODELO",
           "name": "MODEL",
           "type": "MODEL",
           "links": [
@@ -3114,10 +427,11 @@
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": [
-            120
+            232
           ]
         }
       ],
@@ -3165,39 +479,95 @@
         3008.980939615901
       ],
       "size": [
-        399.309576195756,
+        430,
         320
       ],
       "flags": {
         "pinned": true
       },
-      "order": 58,
+      "order": 9,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "clip1",
           "name": "clip1",
           "type": "CLIP",
-          "link": 126
+          "link": 230
         },
         {
+          "localized_name": "clip2",
           "name": "clip2",
           "type": "CLIP",
-          "link": 125
+          "link": 231
+        },
+        {
+          "localized_name": "base_ratio",
+          "name": "base_ratio",
+          "type": "FLOAT",
+          "widget": {
+            "name": "base_ratio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "vocab_embeddings",
+          "name": "vocab_embeddings",
+          "type": "FLOAT",
+          "widget": {
+            "name": "vocab_embeddings"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "syntax_rigidity",
+          "name": "syntax_rigidity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "syntax_rigidity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "semantic_focus",
+          "name": "semantic_focus",
+          "type": "FLOAT",
+          "widget": {
+            "name": "semantic_focus"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "style_abstraction",
+          "name": "style_abstraction",
+          "type": "FLOAT",
+          "widget": {
+            "name": "style_abstraction"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "final_projections",
+          "name": "final_projections",
+          "type": "FLOAT",
+          "widget": {
+            "name": "final_projections"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "CLIP",
           "name": "CLIP",
           "type": "CLIP",
-          "links": [
-            124
-          ]
+          "links": []
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": [
-            123
+            233
           ]
         }
       ],
@@ -3232,92 +602,6 @@
       "bgcolor": "#12151a"
     },
     {
-      "id": 117,
-      "type": "easy setNode",
-      "pos": [
-        7514.502764900589,
-        3419.337792357366
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true,
-        "pinned": true
-      },
-      "order": 79,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "info",
-          "type": "STRING",
-          "link": 127
-        }
-      ],
-      "outputs": [],
-      "title": "➡️Predictive Model Info",
-      "properties": {
-        "previousName": "Predictive Model Info",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Predictive Model Info"
-      ],
-      "widgets_values_named": {
-        "Constant": "Predictive Model Info"
-      },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
-    },
-    {
-      "id": 118,
-      "type": "easy getNode",
-      "pos": [
-        7731.027927964098,
-        3278.3456428315903
-      ],
-      "size": [
-        210,
-        60
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 41,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "*",
-          "type": "*",
-          "links": [
-            202
-          ]
-        }
-      ],
-      "title": "⬅️Predictive Model Info",
-      "properties": {
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "version": "7.8",
-          "input_ue_unconnectable": {}
-        }
-      },
-      "widgets_values": [
-        "Predictive Model Info"
-      ],
-      "widgets_values_named": {
-        "Constant": "Predictive Model Info"
-      },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
-    },
-    {
       "id": 122,
       "type": "HaDeSAnimaPredictiveMultiLoraLoader",
       "pos": [
@@ -3325,42 +609,193 @@
         2644.934761900729
       ],
       "size": [
-        403.64477928421184,
+        430,
         346
       ],
       "flags": {
         "pinned": true
       },
-      "order": 69,
+      "order": 10,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
           "link": 140
         },
         {
+          "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
-          "link": 141
+          "link": 206
+        },
+        {
+          "localized_name": "enable_all",
+          "name": "enable_all",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "enable_all"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "preset",
+          "name": "preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "aggressiveness",
+          "name": "aggressiveness",
+          "type": "FLOAT",
+          "widget": {
+            "name": "aggressiveness"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "lora_1",
+          "name": "lora_1",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_1"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "on_1",
+          "name": "on_1",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "on_1"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strength_1",
+          "name": "strength_1",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_1"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "lora_2",
+          "name": "lora_2",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_2"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "on_2",
+          "name": "on_2",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "on_2"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strength_2",
+          "name": "strength_2",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_2"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "lora_3",
+          "name": "lora_3",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_3"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "on_3",
+          "name": "on_3",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "on_3"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strength_3",
+          "name": "strength_3",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_3"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "lora_4",
+          "name": "lora_4",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_4"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "on_4",
+          "name": "on_4",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "on_4"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strength_4",
+          "name": "strength_4",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_4"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "protect_llm_adapter",
+          "name": "protect_llm_adapter",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "protect_llm_adapter"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "MODELO",
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            143
+            245,
+            257
           ]
         },
         {
+          "localized_name": "CLIP",
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            142
+            213
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -3425,51 +860,121 @@
       ],
       "size": [
         440,
-        470
+        478
       ],
       "flags": {
         "pinned": true
       },
-      "order": 54,
+      "order": 15,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 150
+          "link": 245
         },
         {
+          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 151
+          "link": 211
         },
         {
+          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 152
+          "link": 212
         },
         {
+          "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 153
+          "link": 210
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "shape": 7,
           "type": "VAE",
           "link": null
         },
         {
+          "localized_name": "variant_profile",
+          "name": "variant_profile",
+          "type": "COMBO",
+          "widget": {
+            "name": "variant_profile"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
           "name": "seed",
           "type": "INT",
           "widget": {
             "name": "seed"
           },
-          "link": 154
+          "link": 254
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "flow_shift",
+          "name": "flow_shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "flow_shift"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "latent",
           "name": "latent",
           "type": "LATENT",
           "links": [
@@ -3477,11 +982,13 @@
           ]
         },
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": null
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -3532,51 +1039,121 @@
       ],
       "size": [
         440,
-        470
+        478
       ],
       "flags": {
         "pinned": true
       },
-      "order": 52,
+      "order": 16,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 157
+          "link": 247
         },
         {
+          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 160
+          "link": 215
         },
         {
+          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 159
+          "link": 216
         },
         {
+          "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 158
+          "link": 217
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "shape": 7,
           "type": "VAE",
           "link": null
         },
         {
+          "localized_name": "variant_profile",
+          "name": "variant_profile",
+          "type": "COMBO",
+          "widget": {
+            "name": "variant_profile"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
           "name": "seed",
           "type": "INT",
           "widget": {
             "name": "seed"
           },
-          "link": 161
+          "link": 252
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "flow_shift",
+          "name": "flow_shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "flow_shift"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "latent",
           "name": "latent",
           "type": "LATENT",
           "links": [
@@ -3584,11 +1161,13 @@
           ]
         },
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": []
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -3639,51 +1218,121 @@
       ],
       "size": [
         440,
-        470
+        478
       ],
       "flags": {
         "pinned": true
       },
-      "order": 53,
+      "order": 17,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 166
+          "link": 250
         },
         {
+          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 165
+          "link": 220
         },
         {
+          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 164
+          "link": 221
         },
         {
+          "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 163
+          "link": 222
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "shape": 7,
           "type": "VAE",
           "link": null
         },
         {
+          "localized_name": "variant_profile",
+          "name": "variant_profile",
+          "type": "COMBO",
+          "widget": {
+            "name": "variant_profile"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
           "name": "seed",
           "type": "INT",
           "widget": {
             "name": "seed"
           },
-          "link": 162
+          "link": 253
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "flow_shift",
+          "name": "flow_shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "flow_shift"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "latent",
           "name": "latent",
           "type": "LATENT",
           "links": [
@@ -3691,11 +1340,13 @@
           ]
         },
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": []
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -3746,51 +1397,121 @@
       ],
       "size": [
         440,
-        470
+        478
       ],
       "flags": {
         "pinned": true
       },
-      "order": 61,
+      "order": 18,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 167
+          "link": 237
         },
         {
+          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 168
+          "link": 238
         },
         {
+          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 169
+          "link": 239
         },
         {
+          "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 170
+          "link": 240
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "shape": 7,
           "type": "VAE",
           "link": null
         },
         {
+          "localized_name": "variant_profile",
+          "name": "variant_profile",
+          "type": "COMBO",
+          "widget": {
+            "name": "variant_profile"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
           "name": "seed",
           "type": "INT",
           "widget": {
             "name": "seed"
           },
-          "link": 171
+          "link": 255
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "flow_shift",
+          "name": "flow_shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "flow_shift"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "latent",
           "name": "latent",
           "type": "LATENT",
           "links": [
@@ -3798,11 +1519,13 @@
           ]
         },
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": []
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -3852,35 +1575,75 @@
         1934.290780765838
       ],
       "size": [
-        210,
+        420,
         246
       ],
       "flags": {
         "pinned": true
       },
-      "order": 75,
+      "order": 19,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
           "link": 174
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 173
+          "link": 209
+        },
+        {
+          "localized_name": "decode_mode",
+          "name": "decode_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "decode_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_size_px",
+          "name": "tile_size_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_size_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_overlap_px",
+          "name": "tile_overlap_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_overlap_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_tile_mp_threshold",
+          "name": "auto_tile_mp_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "auto_tile_mp_threshold"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
-            172
+            229
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -3920,35 +1683,75 @@
         2435.9736309808245
       ],
       "size": [
-        210,
+        420,
         246
       ],
       "flags": {
         "pinned": true
       },
-      "order": 73,
+      "order": 20,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
           "link": 180
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 175
+          "link": 218
+        },
+        {
+          "localized_name": "decode_mode",
+          "name": "decode_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "decode_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_size_px",
+          "name": "tile_size_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_size_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_overlap_px",
+          "name": "tile_overlap_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_overlap_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_tile_mp_threshold",
+          "name": "auto_tile_mp_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "auto_tile_mp_threshold"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
-            176
+            227
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -3988,35 +1791,75 @@
         2935.2069348212367
       ],
       "size": [
-        210,
+        420,
         246
       ],
       "flags": {
         "pinned": true
       },
-      "order": 74,
+      "order": 21,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
           "link": 181
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 179
+          "link": 223
+        },
+        {
+          "localized_name": "decode_mode",
+          "name": "decode_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "decode_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_size_px",
+          "name": "tile_size_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_size_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_overlap_px",
+          "name": "tile_overlap_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_overlap_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_tile_mp_threshold",
+          "name": "auto_tile_mp_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "auto_tile_mp_threshold"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
-            177
+            228
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -4056,35 +1899,75 @@
         3437.1233274701517
       ],
       "size": [
-        210,
+        420,
         246
       ],
       "flags": {
         "pinned": true
       },
-      "order": 80,
+      "order": 22,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
           "link": 184
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 182
+          "link": 242
+        },
+        {
+          "localized_name": "decode_mode",
+          "name": "decode_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "decode_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_size_px",
+          "name": "tile_size_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_size_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tile_overlap_px",
+          "name": "tile_overlap_px",
+          "type": "INT",
+          "widget": {
+            "name": "tile_overlap_px"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_tile_mp_threshold",
+          "name": "auto_tile_mp_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "auto_tile_mp_threshold"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
-            183
+            236
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -4124,24 +2007,74 @@
         2281.1907569829755
       ],
       "size": [
-        284.34470061769605,
+        420,
         278
       ],
       "flags": {
         "pinned": true
       },
-      "order": 42,
+      "order": 0,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "weight_dtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "flow_shift",
+          "name": "flow_shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "flow_shift"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_remap_diffusers",
+          "name": "auto_remap_diffusers",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "auto_remap_diffusers"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "external_llm_adapter",
+          "name": "external_llm_adapter",
+          "type": "COMBO",
+          "widget": {
+            "name": "external_llm_adapter"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
           "links": [
-            187
+            246,
+            247,
+            248
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -4159,14 +2092,14 @@
         }
       },
       "widgets_values": [
-        "Anima HaDeS v2.0.safetensors",
+        "anima-base-v1.0.safetensors",
         "default",
         3,
         true,
         "None"
       ],
       "widgets_values_named": {
-        "unet_name": "Anima HaDeS v2.0.safetensors",
+        "unet_name": "anima-base-v1.0.safetensors",
         "weight_dtype": "default",
         "flow_shift": 3,
         "auto_remap_diffusers": true,
@@ -4183,24 +2116,74 @@
         2588.5768540181784
       ],
       "size": [
-        284.34470061769605,
+        420,
         278
       ],
       "flags": {
         "pinned": true
       },
-      "order": 43,
+      "order": 1,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "weight_dtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "flow_shift",
+          "name": "flow_shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "flow_shift"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_remap_diffusers",
+          "name": "auto_remap_diffusers",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "auto_remap_diffusers"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "external_llm_adapter",
+          "name": "external_llm_adapter",
+          "type": "COMBO",
+          "widget": {
+            "name": "external_llm_adapter"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "type": "MODEL",
           "links": [
-            188
+            249,
+            250,
+            251
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -4218,14 +2201,14 @@
         }
       },
       "widgets_values": [
-        "anima_3D_from_hades_v1.0.safetensors",
+        "anima-aesthetic-v1.1.safetensors",
         "default",
         3,
         true,
         "None"
       ],
       "widgets_values_named": {
-        "unet_name": "anima_3D_from_hades_v1.0.safetensors",
+        "unet_name": "anima-aesthetic-v1.1.safetensors",
         "weight_dtype": "default",
         "flow_shift": 3,
         "auto_remap_diffusers": true,
@@ -4242,24 +2225,64 @@
         2894.2693279579494
       ],
       "size": [
-        285.886767696471,
+        420,
         246
       ],
       "flags": {
         "pinned": true
       },
-      "order": 44,
+      "order": 2,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "clip_name",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "device_mode",
+          "name": "device_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "device_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "precision",
+          "name": "precision",
+          "type": "COMBO",
+          "widget": {
+            "name": "precision"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strict_qwen3_guard",
+          "name": "strict_qwen3_guard",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "strict_qwen3_guard"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
           "links": [
-            185
+            206,
+            230
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -4299,24 +2322,48 @@
         3167.283328652947
       ],
       "size": [
-        286.5313966258864,
+        420,
         182
       ],
       "flags": {
         "pinned": true
       },
-      "order": 45,
+      "order": 3,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "vae_precision",
+          "name": "vae_precision",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_precision"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
           "links": [
-            186
+            209,
+            218,
+            223,
+            242
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -4334,11 +2381,11 @@
         }
       },
       "widgets_values": [
-        "Wan2_1_VAE_bf16.safetensors",
+        "qwen_image_vae.safetensors",
         "bfloat16 (Recommended Wan21)"
       ],
       "widgets_values_named": {
-        "vae_name": "Wan2_1_VAE_bf16.safetensors",
+        "vae_name": "qwen_image_vae.safetensors",
         "vae_precision": "bfloat16 (Recommended Wan21)"
       },
       "color": "#1b2028",
@@ -4352,24 +2399,63 @@
         3377.7193956626616
       ],
       "size": [
-        285.886767696471,
+        420,
         246
       ],
       "flags": {
         "pinned": true
       },
-      "order": 46,
+      "order": 4,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "clip_name",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "device_mode",
+          "name": "device_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "device_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "precision",
+          "name": "precision",
+          "type": "COMBO",
+          "widget": {
+            "name": "precision"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strict_qwen3_guard",
+          "name": "strict_qwen3_guard",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "strict_qwen3_guard"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
           "links": [
-            189
+            231
           ]
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": []
@@ -4410,59 +2496,175 @@
       ],
       "size": [
         440,
-        554
+        566
       ],
       "flags": {
         "pinned": true
       },
-      "order": 50,
+      "order": 13,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "clip",
           "name": "clip",
           "shape": 7,
           "type": "CLIP",
-          "link": 195
+          "link": 213
         },
         {
+          "localized_name": "artist",
           "name": "artist",
           "shape": 7,
           "type": "STRING",
           "link": null
         },
         {
+          "localized_name": "character",
           "name": "character",
           "shape": 7,
           "type": "STRING",
+          "link": null
+        },
+        {
+          "localized_name": "model_variant",
+          "name": "model_variant",
+          "type": "COMBO",
+          "widget": {
+            "name": "model_variant"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "style_mode",
+          "name": "style_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "style_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "booru_sanitizer",
+          "name": "booru_sanitizer",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "booru_sanitizer"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "t5_weight_multiplier",
+          "name": "t5_weight_multiplier",
+          "type": "FLOAT",
+          "widget": {
+            "name": "t5_weight_multiplier"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "character_tag",
+          "name": "character_tag",
+          "type": "STRING",
+          "widget": {
+            "name": "character_tag"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "artist_tag",
+          "name": "artist_tag",
+          "type": "STRING",
+          "widget": {
+            "name": "artist_tag"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "positive_prompt",
+          "name": "positive_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "positive_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "header_mode",
+          "name": "header_mode",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "header_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "header_trigger",
+          "name": "header_trigger",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "header_trigger"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "artwork_title",
+          "name": "artwork_title",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "artwork_title"
+          },
           "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
           "links": [
-            194
+            211,
+            215,
+            220,
+            238
           ]
         },
         {
+          "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
           "links": [
-            191
+            212,
+            216,
+            221,
+            239
           ]
         },
         {
+          "localized_name": "positive_string",
           "name": "positive_string",
           "type": "STRING",
           "links": null
         },
         {
+          "localized_name": "negative_string",
           "name": "negative_string",
           "type": "STRING",
           "links": null
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -4516,47 +2718,101 @@
         2800.7106813866853
       ],
       "size": [
-        293.9464690872019,
+        430,
         330
       ],
       "flags": {
         "pinned": true
       },
-      "order": 47,
+      "order": 5,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "model",
           "name": "model",
           "shape": 7,
           "type": "MODEL",
           "link": null
         },
         {
+          "localized_name": "vae",
           "name": "vae",
           "shape": 7,
           "type": "VAE",
+          "link": null
+        },
+        {
+          "localized_name": "resolution_preset",
+          "name": "resolution_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "custom_width",
+          "name": "custom_width",
+          "type": "INT",
+          "widget": {
+            "name": "custom_width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "custom_height",
+          "name": "custom_height",
+          "type": "INT",
+          "widget": {
+            "name": "custom_height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "batch_size",
+          "name": "batch_size",
+          "type": "INT",
+          "widget": {
+            "name": "batch_size"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "prevent_29b_white_bg_bias",
+          "name": "prevent_29b_white_bg_bias",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "prevent_29b_white_bg_bias"
+          },
           "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "latent",
           "name": "latent",
           "type": "LATENT",
           "links": [
-            190
+            210,
+            217,
+            222,
+            240
           ]
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "info",
           "name": "info",
           "type": "STRING",
           "links": null
@@ -4598,78 +2854,117 @@
         3230.3616225000046
       ],
       "size": [
-        363.6460378717129,
+        440,
         354
       ],
       "flags": {
         "collapsed": true
       },
-      "order": 62,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "info_1",
           "name": "info_1",
           "shape": 7,
           "type": "STRING",
-          "link": 200
+          "link": 232
         },
         {
+          "localized_name": "info_2",
           "name": "info_2",
           "shape": 7,
           "type": "STRING",
-          "link": 199
+          "link": 233
         },
         {
+          "localized_name": "info_3",
           "name": "info_3",
           "shape": 7,
           "type": "STRING",
-          "link": 202
+          "link": 243
         },
         {
+          "localized_name": "info_4",
           "name": "info_4",
           "shape": 7,
           "type": "STRING",
           "link": null
         },
         {
+          "localized_name": "info_5",
           "name": "info_5",
           "shape": 7,
           "type": "STRING",
           "link": null
         },
         {
+          "localized_name": "info_6",
           "name": "info_6",
           "shape": 7,
           "type": "STRING",
           "link": null
         },
         {
+          "localized_name": "info_7",
           "name": "info_7",
           "shape": 7,
           "type": "STRING",
           "link": null
         },
         {
+          "localized_name": "info_8",
           "name": "info_8",
           "shape": 7,
           "type": "STRING",
+          "link": null
+        },
+        {
+          "localized_name": "report_format",
+          "name": "report_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "report_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "report_title",
+          "name": "report_title",
+          "type": "STRING",
+          "widget": {
+            "name": "report_title"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "user_notes",
+          "name": "user_notes",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "user_notes"
+          },
           "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "report",
           "name": "report",
           "type": "STRING",
           "links": [
-            203
+            256
           ]
         },
         {
+          "localized_name": "json_telemetry",
           "name": "json_telemetry",
           "type": "STRING",
           "links": null
         },
         {
+          "localized_name": "diagnostics",
           "name": "diagnostics",
           "type": "STRING",
           "links": null
@@ -4700,8 +2995,65 @@
       "bgcolor": "#d7c8c8"
     },
     {
-      "id": 145,
-      "type": "ShowText|pysssss",
+      "id": 146,
+      "type": "PrimitiveInt",
+      "pos": [
+        8078.338511360909,
+        2945.8192969126058
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "valor",
+          "name": "value",
+          "type": "INT",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "ENTERO",
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            252,
+            253,
+            254,
+            255
+          ]
+        }
+      ],
+      "title": "Seed",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        1,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "value": 1,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 147,
+      "type": "PreviewAny",
       "pos": [
         8165.692789757153,
         3212.949077897651
@@ -4711,204 +3063,177 @@
         261.35479535148306
       ],
       "flags": {},
-      "order": 81,
+      "order": 14,
       "mode": 0,
       "inputs": [
         {
-          "name": "text",
-          "type": "STRING",
-          "link": 203
+          "localized_name": "fuente",
+          "name": "source",
+          "type": "*",
+          "link": 256
         }
       ],
       "outputs": [
         {
+          "localized_name": "CADENA",
           "name": "STRING",
-          "shape": 6,
           "type": "STRING",
           "links": null
         }
       ],
+      "title": "Telemetry Report",
       "properties": {
-        "cnr_id": "comfyui-custom-scripts",
-        "ver": "609f3afaa74b2f88ef9ce8d939626065e3247469",
-        "Node name for S&R": "ShowText|pysssss",
         "ue_properties": {
           "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
+          "input_ue_unconnectable": {}
+        },
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 148,
+      "type": "HaDeSAnimaModelSaver",
+      "pos": [
+        5213.201568446722,
+        3742.268753320004
+      ],
+      "size": [
+        390,
+        378
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 4,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 257
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "save_format",
+          "name": "save_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "save_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "precision",
+          "name": "precision",
+          "type": "COMBO",
+          "widget": {
+            "name": "precision"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "llm_adapter_mode",
+          "name": "llm_adapter_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "llm_adapter_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "include_metadata",
+          "name": "include_metadata",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "include_metadata"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "custom_author",
+          "name": "custom_author",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "custom_author"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "custom_model_title",
+          "name": "custom_model_title",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "custom_model_title"
+          },
+          "link": null
         }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "links": null
+        },
+        {
+          "localized_name": "saved_path",
+          "name": "saved_path",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "info",
+          "name": "info",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Save Merge",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "cnr_id": "hades-anima-suite",
+        "ver": "7819145eb68a0ce0a2f963b8c15e9ec4068b7be9",
+        "Node name for S&R": "HaDeSAnimaModelSaver"
       },
       "widgets_values": [
-        "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
+        "diffusion_models/Anima_HaDeS_Merged",
+        "Native ComfyUI (MiniTrainDIT)",
+        "bfloat16 (Original Master)",
+        "Embed in Checkpoint (Full)",
+        true,
+        "HaDeS",
+        ""
       ],
       "widgets_values_named": {
-        "text_0": "# 🛰️ HaDeS Anima Suite Telemetry\n**Generated:** 2026-10-29 22:58:11 UTC | **Status:** ✅ 100% NOMINAL | **Health Score:** 100/100\n**Streams Inspected:** 3 connected node(s)\n\n---\n\n### 🩺 Automated Health & Diagnostic Validations\n- *(No telemetry connected for health verification)*\n\n### 📦 Additional Streams & Telemetry\n- HaDeS Anima Model Merged (Manual Groups) | Topology: 28+6 | Modified Tensors: 448\n- HaDeS Anima CLIP Merged | Depth: 28L (0..9 / 10..19 / 20+) | Modified Tensors: 303\n```text\n=== HADES ANIMA PREDICTIVE MERGE RECIPE ===\nPreset: Complementary Richness (Fill gaps of A with B) | Analysis: Relative Block Divergence (Z-Normalized)\nTopology: 28 DiT + 6 Adapter (Bridge: Locked (0.0)) | Tensors merged: 448\nTarget Influence: 0.35 | Aggressiveness: 0.8\n\n--- GROUP PREDICTIONS ---\n  • BLOCKS_Layout_Geometry    : Ratio +0.380 (CosSim: 0.9998, RelDiv: 0.65)\n  • BLOCKS_Global_Composition : Ratio +0.346 (CosSim: 0.9999, RelDiv: 0.46)\n  • BLOCKS_Subject_Identity   : Ratio +0.340 (CosSim: 0.9999, RelDiv: 0.43)\n  • BLOCKS_Material_Substance : Ratio +0.336 (CosSim: 0.9999, RelDiv: 0.40)\n  • BLOCKS_Art_Style_Medium   : Ratio +0.325 (CosSim: 1.0000, RelDiv: 0.34)\n  • BLOCKS_Lighting_Sharpness : Ratio +0.318 (CosSim: 1.0000, RelDiv: 0.31)\n  • ADAPTER_Text_Alignment    : Ratio +0.000 (CosSim: 1.0000, RelDiv: 0.00)\n\n--- VECTORS OVERRIDE (34 BLOCKS) ---\n0.444,0.383,0.367,0.357,0.351,0.348,0.347,0.348,0.341,0.346,0.343,0.34,0.341,0.337,0.339,0.336,0.338,0.336,0.334,0.335,0.327,0.323,0.325,0.325,0.319,0.319,0.319,0.316,0.0,0.0,0.0,0.0,0.0,0.0\n\n--- JSON PRESET EXPORT ---\n{\n  \"author\": \"HaDeS\",\n  \"preset_name\": \"Complementary Richness (Fill gaps of A with B)\",\n  \"topology\": {\n    \"dit_blocks\": 28,\n    \"adapter_blocks\": 6\n  },\n  \"protect_llm_adapter\": true,\n  \"target_influence\": 0.35,\n  \"aggressiveness\": 0.8,\n  \"groups\": {\n    \"BLOCKS_Layout_Geometry\": 0.38,\n    \"BLOCKS_Global_Composition\": 0.346,\n    \"BLOCKS_Subject_Identity\": 0.34,\n    \"BLOCKS_Material_Substance\": 0.336,\n    \"BLOCKS_Art_Style_Medium\": 0.325,\n    \"BLOCKS_Lighting_Sharpness\": 0.318,\n    \"ADAPTER_Text_Alignment\": 0.0\n  },\n  \"predicted_ratios_34\": [\n    0.444,\n    0.383,\n    0.367,\n    0.357,\n    0.351,\n    0.348,\n    0.347,\n    0.348,\n    0.341,\n    0.346,\n    0.343,\n    0.34,\n    0.341,\n    0.337,\n    0.339,\n    0.336,\n    0.338,\n    0.336,\n    0.334,\n    0.335,\n    0.327,\n    0.323,\n    0.325,\n    0.325,\n    0.319,\n    0.319,\n    0.319,\n    0.316,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0,\n    0.0\n  ]\n}\n```"
+        "filename_prefix": "diffusion_models/Anima_HaDeS_Merged",
+        "save_format": "Native ComfyUI (MiniTrainDIT)",
+        "precision": "bfloat16 (Original Master)",
+        "llm_adapter_mode": "Embed in Checkpoint (Full)",
+        "include_metadata": true,
+        "custom_author": "HaDeS",
+        "custom_model_title": ""
       },
-      "color": "#ebdcdc",
-      "bgcolor": "#d7c8c8"
+      "color": "#1f2228",
+      "bgcolor": "#17191e"
     }
   ],
   "links": [
-    [
-      24,
-      22,
-      0,
-      2,
-      0,
-      "MODEL"
-    ],
-    [
-      48,
-      48,
-      0,
-      49,
-      0,
-      "INT"
-    ],
-    [
-      55,
-      55,
-      0,
-      23,
-      0,
-      "MODEL"
-    ],
-    [
-      57,
-      57,
-      0,
-      16,
-      0,
-      "MODEL"
-    ],
-    [
-      59,
-      56,
-      0,
-      15,
-      0,
-      "MODEL"
-    ],
-    [
-      63,
-      64,
-      0,
-      61,
-      0,
-      "IMAGE"
-    ],
-    [
-      64,
-      65,
-      0,
-      62,
-      0,
-      "IMAGE"
-    ],
-    [
-      65,
-      66,
-      0,
-      63,
-      0,
-      "IMAGE"
-    ],
-    [
-      101,
-      102,
-      0,
-      103,
-      0,
-      "IMAGE"
-    ],
-    [
-      111,
-      114,
-      0,
-      101,
-      0,
-      "MODEL"
-    ],
-    [
-      115,
-      99,
-      0,
-      114,
-      0,
-      "MODEL"
-    ],
-    [
-      116,
-      100,
-      0,
-      114,
-      1,
-      "MODEL"
-    ],
-    [
-      120,
-      115,
-      1,
-      81,
-      0,
-      "STRING"
-    ],
-    [
-      121,
-      17,
-      0,
-      115,
-      0,
-      "MODEL"
-    ],
-    [
-      122,
-      18,
-      0,
-      115,
-      1,
-      "MODEL"
-    ],
-    [
-      123,
-      116,
-      1,
-      82,
-      0,
-      "STRING"
-    ],
-    [
-      124,
-      116,
-      0,
-      72,
-      0,
-      "CLIP"
-    ],
-    [
-      125,
-      71,
-      0,
-      116,
-      1,
-      "CLIP"
-    ],
-    [
-      126,
-      70,
-      0,
-      116,
-      0,
-      "CLIP"
-    ],
-    [
-      127,
-      114,
-      1,
-      117,
-      0,
-      "STRING"
-    ],
     [
       140,
       115,
@@ -4918,212 +3243,12 @@
       "MODEL"
     ],
     [
-      141,
-      21,
-      0,
-      122,
-      1,
-      "CLIP"
-    ],
-    [
-      142,
-      122,
-      1,
-      32,
-      0,
-      "CLIP"
-    ],
-    [
-      143,
-      122,
-      0,
-      55,
-      0,
-      "MODEL"
-    ],
-    [
-      150,
-      24,
-      0,
-      127,
-      0,
-      "MODEL"
-    ],
-    [
-      151,
-      30,
-      0,
-      127,
-      1,
-      "CONDITIONING"
-    ],
-    [
-      152,
-      31,
-      0,
-      127,
-      2,
-      "CONDITIONING"
-    ],
-    [
-      153,
-      27,
-      0,
-      127,
-      3,
-      "LATENT"
-    ],
-    [
-      157,
-      34,
-      0,
-      128,
-      0,
-      "MODEL"
-    ],
-    [
-      158,
-      37,
-      0,
-      128,
-      3,
-      "LATENT"
-    ],
-    [
-      159,
-      36,
-      0,
-      128,
-      2,
-      "CONDITIONING"
-    ],
-    [
-      160,
-      35,
-      0,
-      128,
-      1,
-      "CONDITIONING"
-    ],
-    [
-      163,
-      44,
-      0,
-      129,
-      3,
-      "LATENT"
-    ],
-    [
-      164,
-      43,
-      0,
-      129,
-      2,
-      "CONDITIONING"
-    ],
-    [
-      165,
-      42,
-      0,
-      129,
-      1,
-      "CONDITIONING"
-    ],
-    [
-      166,
-      41,
-      0,
-      129,
-      0,
-      "MODEL"
-    ],
-    [
-      167,
-      104,
-      0,
-      130,
-      0,
-      "MODEL"
-    ],
-    [
-      168,
-      105,
-      0,
-      130,
-      1,
-      "CONDITIONING"
-    ],
-    [
-      169,
-      107,
-      0,
-      130,
-      2,
-      "CONDITIONING"
-    ],
-    [
-      170,
-      108,
-      0,
-      130,
-      3,
-      "LATENT"
-    ],
-    [
-      172,
-      131,
-      0,
-      58,
-      0,
-      "IMAGE"
-    ],
-    [
-      173,
-      25,
-      0,
-      131,
-      1,
-      "VAE"
-    ],
-    [
       174,
       127,
       0,
       131,
       0,
       "LATENT"
-    ],
-    [
-      175,
-      39,
-      0,
-      132,
-      1,
-      "VAE"
-    ],
-    [
-      176,
-      132,
-      0,
-      59,
-      0,
-      "IMAGE"
-    ],
-    [
-      177,
-      133,
-      0,
-      60,
-      0,
-      "IMAGE"
-    ],
-    [
-      179,
-      46,
-      0,
-      133,
-      1,
-      "VAE"
     ],
     [
       180,
@@ -5142,22 +3267,6 @@
       "LATENT"
     ],
     [
-      182,
-      110,
-      0,
-      134,
-      1,
-      "VAE"
-    ],
-    [
-      183,
-      134,
-      0,
-      112,
-      0,
-      "IMAGE"
-    ],
-    [
       184,
       130,
       0,
@@ -5166,140 +3275,332 @@
       "LATENT"
     ],
     [
-      185,
+      206,
       139,
       0,
-      19,
-      0,
+      122,
+      1,
       "CLIP"
     ],
     [
-      186,
+      209,
       140,
       0,
-      20,
-      0,
+      131,
+      1,
       "VAE"
     ],
     [
-      187,
-      135,
-      0,
-      56,
-      0,
-      "MODEL"
-    ],
-    [
-      188,
-      138,
-      0,
-      57,
-      0,
-      "MODEL"
-    ],
-    [
-      189,
-      141,
-      0,
-      69,
-      0,
-      "CLIP"
-    ],
-    [
-      190,
+      210,
       143,
       0,
-      26,
-      0,
+      127,
+      3,
       "LATENT"
     ],
     [
-      191,
+      211,
+      142,
+      0,
+      127,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      212,
       142,
       1,
-      29,
-      0,
+      127,
+      2,
       "CONDITIONING"
     ],
     [
-      194,
-      142,
-      0,
-      28,
-      0,
-      "CONDITIONING"
-    ],
-    [
-      195,
-      33,
-      0,
+      213,
+      122,
+      1,
       142,
       0,
       "CLIP"
     ],
     [
-      199,
-      84,
+      215,
+      142,
       0,
+      128,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      216,
+      142,
+      1,
+      128,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      217,
+      143,
+      0,
+      128,
+      3,
+      "LATENT"
+    ],
+    [
+      218,
+      140,
+      0,
+      132,
+      1,
+      "VAE"
+    ],
+    [
+      220,
+      142,
+      0,
+      129,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      221,
+      142,
+      1,
+      129,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      222,
+      143,
+      0,
+      129,
+      3,
+      "LATENT"
+    ],
+    [
+      223,
+      140,
+      0,
+      133,
+      1,
+      "VAE"
+    ],
+    [
+      227,
+      132,
+      0,
+      61,
+      0,
+      "IMAGE"
+    ],
+    [
+      228,
+      133,
+      0,
+      62,
+      0,
+      "IMAGE"
+    ],
+    [
+      229,
+      131,
+      0,
+      63,
+      0,
+      "IMAGE"
+    ],
+    [
+      230,
+      139,
+      0,
+      116,
+      0,
+      "CLIP"
+    ],
+    [
+      231,
+      141,
+      0,
+      116,
+      1,
+      "CLIP"
+    ],
+    [
+      232,
+      115,
+      1,
+      144,
+      0,
+      "STRING"
+    ],
+    [
+      233,
+      116,
+      1,
       144,
       1,
       "STRING"
     ],
     [
-      200,
-      83,
+      236,
+      134,
       0,
-      144,
+      103,
       0,
-      "STRING"
+      "IMAGE"
     ],
     [
-      202,
-      118,
+      237,
+      114,
       0,
+      130,
+      0,
+      "MODEL"
+    ],
+    [
+      238,
+      142,
+      0,
+      130,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      239,
+      142,
+      1,
+      130,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      240,
+      143,
+      0,
+      130,
+      3,
+      "LATENT"
+    ],
+    [
+      242,
+      140,
+      0,
+      134,
+      1,
+      "VAE"
+    ],
+    [
+      243,
+      114,
+      1,
       144,
       2,
       "STRING"
     ],
     [
-      203,
+      245,
+      122,
+      0,
+      127,
+      0,
+      "MODEL"
+    ],
+    [
+      246,
+      135,
+      0,
+      115,
+      0,
+      "MODEL"
+    ],
+    [
+      247,
+      135,
+      0,
+      128,
+      0,
+      "MODEL"
+    ],
+    [
+      248,
+      135,
+      0,
+      114,
+      0,
+      "MODEL"
+    ],
+    [
+      249,
+      138,
+      0,
+      115,
+      1,
+      "MODEL"
+    ],
+    [
+      250,
+      138,
+      0,
+      129,
+      0,
+      "MODEL"
+    ],
+    [
+      251,
+      138,
+      0,
+      114,
+      1,
+      "MODEL"
+    ],
+    [
+      252,
+      146,
+      0,
+      128,
+      6,
+      "INT"
+    ],
+    [
+      253,
+      146,
+      0,
+      129,
+      6,
+      "INT"
+    ],
+    [
+      254,
+      146,
+      0,
+      127,
+      6,
+      "INT"
+    ],
+    [
+      255,
+      146,
+      0,
+      130,
+      6,
+      "INT"
+    ],
+    [
+      256,
       144,
       0,
-      145,
+      147,
       0,
       "STRING"
     ],
     [
-      154,
-      52,
+      257,
+      122,
       0,
-      127,
-      5,
-      "INT"
-    ],
-    [
-      161,
-      50,
+      148,
       0,
-      128,
-      5,
-      "INT"
-    ],
-    [
-      162,
-      51,
-      0,
-      129,
-      5,
-      "INT"
-    ],
-    [
-      171,
-      109,
-      0,
-      130,
-      5,
-      "INT"
+      "MODEL"
     ]
   ],
   "groups": [
@@ -5335,8 +3636,8 @@
       "bounding": [
         5193.201568446722,
         3692.268753320004,
-        467.1725505488639,
-        138
+        430,
+        458
       ],
       "color": "#444",
       "flags": {}
@@ -5373,8 +3674,8 @@
       "bounding": [
         8593.855168186523,
         2025.7657634284526,
-        3148.262337355789,
-        1461.5803311682648
+        4215.272752548075,
+        1474.5361132110227
       ],
       "color": "#3f789e",
       "flags": {
@@ -5398,10 +3699,10 @@
   "extra": {
     "ue_links": [],
     "ds": {
-      "scale": 0.2853116706110391,
+      "scale": 0.33,
       "offset": [
-        -2715.697792678012,
-        -1070.3621003011117
+        -5100,
+        -1830
       ]
     },
     "links_added_by_ue": [],
@@ -5420,12 +3721,5 @@
       "130": 3
     }
   },
-  "version": 0.4,
-  "seed_widgets": {
-    "48": 0,
-    "127": 3,
-    "128": 3,
-    "129": 3,
-    "130": 3
-  }
+  "version": 0.4
 }
