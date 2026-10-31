@@ -41,6 +41,7 @@ HADES_META_SCHEMA = {
     "lora_extractor": ("saved_path", "rank", "layers", "energy_kept", "include_adapter"),
     "lora_block_weight": ("lora", "strength_model", "weights", "other_layers", "protect_adapter"),
     "lora_resize": ("saved_path", "rank", "layers", "energy_kept", "size_mb"),
+    "artist_picker": ("artists", "character", "series", "random_artists"),
     "clip_merger": ("n_layers", "modified_tensors"),
     "model_saver": ("saved_path", "format", "precision", "topology"),
     "prompt_studio": ("variant", "tag_count", "stripped_tags"),
@@ -1972,6 +1973,7 @@ class HaDeSAnimaCLIPBlockMerger:
 # ==============================================================================
 from .anima_pipeline_nodes import (
     HaDeSAnimaPromptStudio,
+    HaDeSAnimaArtistCharacterPicker,
     HaDeSAnimaAttentionGuidance,
     HaDeSAnimaLatentPipelineGuard,
     HaDeSAnimaUniversalLoraLoader,
@@ -2308,6 +2310,7 @@ NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaLoraBlockWeight": HaDeSAnimaLoraBlockWeight,
     "HaDeSAnimaLoraResize": HaDeSAnimaLoraResize,
     "HaDeSAnimaPromptStudio": HaDeSAnimaPromptStudio,
+    "HaDeSAnimaArtistCharacterPicker": HaDeSAnimaArtistCharacterPicker,
     "HaDeSAnimaAttentionGuidance": HaDeSAnimaAttentionGuidance,
     "HaDeSAnimaLatentPipelineGuard": HaDeSAnimaLatentPipelineGuard,
     "HaDeSAnimaUniversalLoraLoader": HaDeSAnimaUniversalLoraLoader,
@@ -2333,6 +2336,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaLoraBlockWeight": "Anima LoRA Block Weight",
     "HaDeSAnimaLoraResize": "Anima LoRA Resize",
     "HaDeSAnimaPromptStudio": "Anima Prompt Studio",
+    "HaDeSAnimaArtistCharacterPicker": "Anima Artist & Character Picker",
     "HaDeSAnimaAttentionGuidance": "Anima Attention Guidance (NAG)",
     "HaDeSAnimaLatentPipelineGuard": "Anima Latent",
     "HaDeSAnimaUniversalLoraLoader": "Anima Universal LoRA Remapper",

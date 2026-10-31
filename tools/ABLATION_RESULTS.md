@@ -180,3 +180,13 @@ plus blue pixels right minus left.
 - ComfyUI's stock area / mask conditioning works on Anima (it acts in the sampler, not in `attn2`).
 - For this case Anima's natural-language prompt separates the two characters better than either, so no dedicated regional node was added.
   Harder scenes (named characters, interactions, more than two subjects) were not tested.
+
+## Catalog tags and parenthesis escaping
+
+Base model, 4 seeds, `best quality, safe, 1girl, solo, <tag>, upper body, simple background`.
+
+- `hatsune miku, vocaloid`: recognized in every seed.
+- `firefly \(honkai: star rail\), honkai: star rail`: recognized escaped and unescaped (the series tag helps; escaped vs. unescaped differ mostly in pose, color distance 2.4).
+- `@hammer \(sunset beach\)` vs. `@hammer (sunset beach)`: very different images (color distance 17.3). Unescaped, the tokenizer reads
+  `(sunset beach)` as a weighted concept and beach / swimsuit content leaks in; escaped, the artist's style is consistent.
+  Prompt Studio now escapes literal parentheses in artist names too (it already did for characters), and the picker outputs escaped tags.

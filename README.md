@@ -1,6 +1,6 @@
 # HaDeS Anima Suite v0.3.1
 
-22 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers, three samplers and a telemetry node, with a shared canvas UI.
+23 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers and a telemetry node, with a shared canvas UI.
 
 Claims about what block groups, presets and schedulers do are measured with [`tools/anima_ablation.py`](tools/anima_ablation.py); results are in [`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md).
 
@@ -16,6 +16,7 @@ Claims about what block groups, presets and schedulers do are measured with [`to
    - **NAG:** Normalized Attention Guidance on cross-attention, for negative prompts at `CFG = 1.0` (Turbo / Lightning).
    - **Latent:** 16-channel latents with VAE validation (blocks the 64-channel Qwen-Image 2.1 VAE), 11 aspect presets, sizes snapped to 32 px.
    - **Corner Shield:** detects and heals or masks scribble-like marks in image corners.
+   - **Artist & Character Picker:** searchable local catalog of Danbooru tags (83k artists, 57k characters, 12k series), output in Anima prompt form.
 5. **Telemetry.** Reads the `info` outputs of the other nodes and checks flow-shift consistency, CFG = 1 without NAG, the 16 px resolution grid, the 16-channel VAE and adapter protection. Outputs a Markdown report, JSON and a one-line summary.
 6. **LoRA Extractor.** Turns a finetune or merge into a LoRA against its base (SVD of the weight difference). Rank 32 of `anima_pixelart_from_hades_v1.0` against `anima-base-v1.0` is 132 MB instead of 4 GB and renders close to the full model.
 7. **LoRA Block Weight.** Applies one LoRA with a separate strength per DiT depth group. Where a LoRA acts differs per LoRA, so there are no fixed style / identity presets; `tools/anima_ablation.py --mode lora` measures a given LoRA.
@@ -43,8 +44,9 @@ HaDeS Anima Suite v0.3.1
 │   ├── 20. Anima LoRA Extractor
 │   ├── 21. Anima LoRA Block Weight
 │   └── 22. Anima LoRA Resize
-├── HaDeS/Anima Pipeline (6 Nodes)
+├── HaDeS/Anima Pipeline (7 Nodes)
 │   ├── 6. Anima Prompt Studio
+│   ├── 23. Anima Artist & Character Picker
 │   ├── 7. Anima Attention Guidance (NAG)
 │   ├── 8. Anima Latent
 │   ├── 9. Anima Universal LoRA Remapper
@@ -176,7 +178,15 @@ No group isolates one attribute: each moves composition, structure, texture and 
   - **Aesthetic tag guard:** with `Anima Aesthetic (Strip score_* & Slop Guard)` it strips `score_*`, `masterpiece`, `best quality`, `8k` and similar tags, which the Aesthetic models were trained without. `Anima Aesthetic v1.0b (Keep masterpiece, best quality)` keeps those two quality tags and still strips `score_*`.
   - **Booru sanitizer:** lowercases tags and replaces `_` with spaces, except whitelisted tokens (`score_*`, `*_up`, `safe_for_work`) and kaomojis (`^_^`, `o_o`, `>_<`, …).
   - **Style header:** in `Flat Vector / Graphic` mode, writes the non-anime header: one trigger (`ye-pop` or `deviantart`) on line 1, optional `artwork_title` on line 2, prompt on line 3. `header_mode = "Dual Legacy"` keeps the old two-trigger header; prompts that already start with a trigger are kept verbatim.
+  - **Artist / character inputs:** names are normalized to Anima form (`@artist`, spaces, literal parentheses escaped). Unescaped, `@hammer (sunset beach)` turns `(sunset beach)` into a weighted concept that leaks into the image ([results](tools/ABLATION_RESULTS.md#catalog-tags-and-parenthesis-escaping)).
   - **`t5_weight_multiplier`:** ComfyUI's Anima tokenizer (`comfy/text_encoders/anima.py`) forces the Qwen3 token weights to `1.0` and passes `(tag:weight)` through the `T5XXL` tokenizer to the `llm_adapter`; this slider scales those emphasis weights.
+
+#### 23. `Anima Artist & Character Picker`
+- **Class:** `HaDeSAnimaArtistCharacterPicker`
+- **Purpose:** Picks artists, a character and a series from a local Danbooru tag catalog shipped in `web/data/` (83,355 artists, 57,653 characters, 12,405 series with at least 20 posts; nothing is downloaded) and outputs them in Anima prompt form for Prompt Studio's `artist` / `character` inputs or any text node.
+- **Inputs:** `artists` (comma-separated tags, optional `:weight`, e.g. `dairi:1.2, ebifurya`), `character`, `series`, `random_artists` (`0..4`, extra artists drawn by seed, never repeating a listed one), `random_min_posts` (default `200`), `seed`.
+- **Outputs:** `artist` (e.g. `(@hammer \(sunset beach\):1.2), @dairi`), `character` (character + series, e.g. `firefly \(honkai: star rail\), honkai: star rail`), `info`.
+- **UI:** click a row to open a search popup (prefix matches first, post counts shown; the catalog loads on first use); Shift+click edits the text; right-click clears.
 
 #### 7. `Anima Attention Guidance (NAG)`
 - **Class:** `HaDeSAnimaAttentionGuidance`
@@ -265,7 +275,7 @@ ComfyUI's stock `ConditioningSetArea` / `ConditioningSetMask` work on Anima. In 
 
 The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark palette with one accent color (green / amber / red only signal state), quiet uppercase row labels, preset buttons that highlight the active preset, and a compact status panel per node. Every node enforces a minimum width so nothing clips or overlaps, and hover tooltips explain each control.
 
-To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 22 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
+To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 23 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
 Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy.VueNodes.Enabled`) are supported, including the classic-widget toggle.
 
@@ -298,15 +308,16 @@ Re-running with the same `--out` resumes. Check the contact sheets as well as th
 Comfyui-HaDeS-Anima-BlockMerger/
 ├── .github/workflows/ci.yml  # CI (Python 3.10-3.12 + JS syntax checks)
 ├── __init__.py               # 34-band topology, Diffusers remapper, info contract, 5 mergers, Model Saver, LoRA Extractor, LoRA Block Weight, LoRA Resize
-├── anima_pipeline_nodes.py   # Prompt Studio, NAG, Latent, LoRA Remapper, Corner Shield, Telemetry
+├── anima_pipeline_nodes.py   # Prompt Studio, Artist & Character Picker, NAG, Latent, LoRA Remapper, Corner Shield, Telemetry
 ├── anima_ksampler_nodes.py   # Single, Dual-Pass and Triple-Pass KSamplers, Anima schedulers
 ├── anima_loader_nodes.py     # Model / text encoder / VAE loaders and VAE Decode
 ├── web/
 │   ├── icon.png
-│   ├── hades_suite.js        # Extension entry point and settings (22 nodes)
+│   ├── hades_suite.js        # Extension entry point and settings (23 nodes)
+│   ├── data/                 # Local Danbooru tag catalog (artists, characters, series) for the picker
 │   ├── hades_widgets.js      # Shared canvas widgets, design tokens, Vue-node adapter
 │   ├── hades_mergers_ui.js   # Merger, LoRA, Saver, Extractor, Block Weight and Resize node UIs
-│   ├── hades_pipeline_ui.js  # Pipeline and Telemetry node UIs
+│   ├── hades_pipeline_ui.js  # Pipeline, Picker (catalog search) and Telemetry node UIs
 │   ├── hades_ksampler_ui.js  # Sampler node UIs
 │   └── hades_loaders_ui.js   # Loader and VAE Decode node UIs
 ├── examples/                 # Example workflows
@@ -314,7 +325,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
 │   └── ABLATION_RESULTS.md   # Measured results
 ├── tests/
-│   └── test_hades_suite.py   # 28 test suites (standalone stubs or real ComfyUI)
+│   └── test_hades_suite.py   # 29 test suites (standalone stubs or real ComfyUI)
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── LICENSE

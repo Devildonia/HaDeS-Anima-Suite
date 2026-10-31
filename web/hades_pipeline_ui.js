@@ -11,6 +11,8 @@ import {
     createStyledToggleWidget,
     finalizeHadesNode,
 } from "./hades_widgets.js";
+import { app } from "../../scripts/app.js";
+import { createSeedRows } from "./hades_ksampler_ui.js";
 
 // =============================================================================
 // UI INSTALLERS FOR THE 5 HADES ANIMA PIPELINE & GUARD NODES
@@ -1239,8 +1241,255 @@ export function setupSuiteTelemetryUI(node) {
     finalizeHadesNode(node, 440);
 }
 
+// =============================================================================
+// ARTIST & CHARACTER PICKER: searchable popup over the local Danbooru catalog
+// =============================================================================
+const CATALOG_CACHE = {};
+
+function loadCatalog(kind) {
+    CATALOG_CACHE[kind] ??= fetch(new URL(`./data/anima_${kind}.json`, import.meta.url)).then((r) => r.json());
+    return CATALOG_CACHE[kind];
+}
+
+const tagLabel = (tag) => String(tag).replace(/_/g, " ");
+const formatCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n));
+
+function searchCatalog(cat, query, limit = 40) {
+    const q = query.trim().toLowerCase().replace(/\s+/g, "_");
+    if (!q) return cat.tags.slice(0, limit).map((t, i) => [t, cat.counts[i]]);
+    const prefix = [];
+    const inner = [];
+    for (let i = 0; i < cat.tags.length && prefix.length < limit; i++) {
+        const t = cat.tags[i];
+        const at = t.indexOf(q);
+        if (at === 0) prefix.push([t, cat.counts[i]]);
+        else if (at > 0 && inner.length < limit) inner.push([t, cat.counts[i]]);
+    }
+    return prefix.concat(inner).slice(0, limit);
+}
+
+function openCatalogSearch(kind, title, event, onPick) {
+    document.getElementById("hades-catalog-search")?.remove();
+    const box = document.createElement("div");
+    box.id = "hades-catalog-search";
+    Object.assign(box.style, {
+        position: "fixed", zIndex: "100000", width: "340px", background: "#1b1e23", color: "#e4e7ec",
+        border: "1px solid #343a44", borderRadius: "6px", boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+        font: "12px Inter, system-ui, -apple-system, 'Segoe UI', sans-serif", padding: "8px",
+    });
+    box.style.left = `${Math.max(8, Math.min((event?.clientX ?? 200) - 20, window.innerWidth - 356))}px`;
+    box.style.top = `${Math.max(8, Math.min((event?.clientY ?? 200) + 8, window.innerHeight - 380))}px`;
+    box.innerHTML = `<div style="color:#a0a7b3;font-size:10px;letter-spacing:0.06em;margin-bottom:6px">${title.toUpperCase()}</div>`;
+    const input = document.createElement("input");
+    Object.assign(input.style, {
+        width: "100%", boxSizing: "border-box", background: "#13151a", color: "#e4e7ec", border: "1px solid #343a44",
+        borderRadius: "4px", padding: "6px 8px", font: "inherit", outline: "none",
+    });
+    input.placeholder = "Loading catalog…";
+    const list = document.createElement("div");
+    Object.assign(list.style, { maxHeight: "300px", overflowY: "auto", marginTop: "6px" });
+    box.append(input, list);
+    document.body.append(box);
+    for (const type of ["pointerdown", "wheel", "keydown"]) box.addEventListener(type, (e) => e.stopPropagation());
+
+    let rows = [];
+    let active = 0;
+    const close = () => {
+        box.remove();
+        document.removeEventListener("pointerdown", outside, true);
+    };
+    const outside = (e) => {
+        if (!box.contains(e.target)) close();
+    };
+    document.addEventListener("pointerdown", outside, true);
+    const choose = (i) => {
+        if (!rows[i]) return;
+        onPick(rows[i][0]);
+        close();
+    };
+    const render = () => {
+        list.replaceChildren(
+            ...rows.map(([tag, count], i) => {
+                const row = document.createElement("div");
+                Object.assign(row.style, {
+                    display: "flex", justifyContent: "space-between", gap: "8px", padding: "4px 6px", borderRadius: "4px",
+                    cursor: "pointer", background: i === active ? "#2a3140" : "transparent",
+                });
+                row.innerHTML = `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span style="color:#7d8592;flex:none">${formatCount(count)}</span>`;
+                row.firstChild.textContent = tagLabel(tag);
+                row.addEventListener("pointerenter", () => {
+                    active = i;
+                    render();
+                });
+                row.addEventListener("click", () => choose(i));
+                return row;
+            })
+        );
+        list.children[active]?.scrollIntoView({ block: "nearest" });
+    };
+    loadCatalog(kind).then((cat) => {
+        input.placeholder = `Search ${cat.tags.length.toLocaleString()} tags…`;
+        const update = () => {
+            rows = searchCatalog(cat, input.value);
+            active = 0;
+            render();
+        };
+        input.addEventListener("input", update);
+        update();
+    });
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") close();
+        else if (e.key === "Enter") choose(active);
+        else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            active = Math.max(0, Math.min(rows.length - 1, active + (e.key === "ArrowDown" ? 1 : -1)));
+            render();
+        }
+    });
+    input.focus();
+}
+
+export function setupArtistCharacterPickerUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wArtists = findW("artists");
+    const wCharacter = findW("character");
+    const wSeries = findW("series");
+    const wRandom = findW("random_artists");
+    const wMinPosts = findW("random_min_posts");
+    const wSeed = findW("seed");
+    const wControl = findW("control_after_generate");
+
+    [wArtists, wCharacter, wSeries, wRandom, wMinPosts, wSeed, wControl].forEach(hideBackingWidget);
+
+    const editRaw = (w, title) =>
+        app.canvas?.prompt(title, String(w.value || ""), (val) => setWidgetValue(w, String(val ?? "").trim(), node));
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.purple,
+            tooltip: `<strong>Artist & Character Picker</strong><br>Searches the local Danbooru tag catalog (83k artists, 57k characters, 12k series, at least 20 posts each; nothing is downloaded). Outputs Anima-ready tags: <code>@artist</code>, spaces instead of underscores, literal parentheses escaped. Connect to Prompt Studio's artist / character inputs or to any text node.`,
+            actions: [
+                {
+                    label: "Clear",
+                    tooltip: `<strong>Clear</strong><br>Empties artists, character and series.`,
+                    onClick: () => [wArtists, wCharacter, wSeries].forEach((w) => setWidgetValue(w, "", node)),
+                },
+                {
+                    label: "+1 Random",
+                    isActive: () => Number(wRandom?.value) > 0,
+                    tooltip: `<strong>Random artist</strong><br>Adds one more artist drawn from the catalog by seed (up to 4).`,
+                    onClick: () => setWidgetValue(wRandom, Math.min(4, Number(wRandom.value) + 1), node),
+                },
+                {
+                    label: "No Random",
+                    isActive: () => Number(wRandom?.value) === 0,
+                    tooltip: `<strong>No random artists</strong>`,
+                    onClick: () => setWidgetValue(wRandom, 0, node),
+                },
+            ],
+        })
+    );
+
+    node.addCustomWidget(
+        createStyledTextRowWidget(node, wArtists, {
+            tag: "ARTISTS",
+            color: HADES_THEME.purple,
+            emptyPlaceholder: "Click to search and add",
+            allowClearOnRightClick: true,
+            displayValue: tagLabel,
+            onEdit: (event) => {
+                if (event.shiftKey) {
+                    editRaw(wArtists, "Artists (comma-separated, optional :weight, e.g. dairi:1.2)");
+                    return;
+                }
+                openCatalogSearch("artists", "Add artist", event, (tag) => {
+                    const cur = String(wArtists.value || "").trim();
+                    setWidgetValue(wArtists, cur ? `${cur}, ${tag}` : tag, node);
+                });
+            },
+            tooltip: `<strong>Artists</strong><br>Click to search and add one. Shift+click edits the list as text (weights as <code>name:1.2</code>). Right-click clears.`,
+        })
+    );
+
+    for (const [w, tag, kind, label] of [
+        [wCharacter, "CHAR", "characters", "Character"],
+        [wSeries, "SERIES", "series", "Series"],
+    ]) {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, w, {
+                tag,
+                color: HADES_THEME.cyan,
+                emptyPlaceholder: "Click to search",
+                allowClearOnRightClick: true,
+                displayValue: tagLabel,
+                onEdit: (event) => {
+                    if (event.shiftKey) {
+                        editRaw(w, `${label} (Danbooru tag)`);
+                        return;
+                    }
+                    openCatalogSearch(kind, label, event, (picked) => setWidgetValue(w, picked, node));
+                },
+                tooltip: `<strong>${label}</strong><br>Click to search the catalog. Shift+click types a tag. Right-click clears.`,
+            })
+        );
+    }
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wRandom, {
+            tag: "RANDOM",
+            label: "Random Artists",
+            color: HADES_THEME.amber,
+            min: 0,
+            max: 4,
+            visMin: 0,
+            visMax: 4,
+            step: 1,
+            defaultVal: 0,
+            isInt: true,
+            zeroLabel: "OFF",
+            tooltip: `<strong>Random Artists</strong><br>Extra artists drawn from the catalog by seed, never repeating one already listed.`,
+        })
+    );
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wMinPosts, {
+            tag: "MIN",
+            label: "Min Posts (random)",
+            color: HADES_THEME.amber,
+            min: 20,
+            max: 20000,
+            visMin: 20,
+            visMax: 5000,
+            step: 10,
+            defaultVal: 200,
+            isInt: true,
+            tooltip: `<strong>Minimum Danbooru posts</strong><br>Random artists are drawn only from tags with at least this many posts; well-known artists are more likely to be recognized by Anima.`,
+        })
+    );
+
+    if (wControl) {
+        createSeedRows(node, wSeed, wControl);
+    } else {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, wSeed, {
+                tag: "SEED",
+                color: HADES_THEME.amber,
+                numeric: true,
+                promptTitle: "Random seed",
+                tooltip: `<strong>Seed</strong><br>Seed for the random artists.`,
+            })
+        );
+    }
+
+    finalizeHadesNode(node, 420);
+}
+
 export const PIPELINE_NODE_DISPATCH = {
     HaDeSAnimaPromptStudio: setupPromptStudioUI,
+    HaDeSAnimaArtistCharacterPicker: setupArtistCharacterPickerUI,
     HaDeSAnimaAttentionGuidance: setupAttentionGuidanceUI,
     HaDeSAnimaLatentPipelineGuard: setupLatentPipelineGuardUI,
     HaDeSAnimaUniversalLoraLoader: setupUniversalLoraLoaderUI,

@@ -1372,6 +1372,8 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
         emptyPlaceholder = "— None —",
         allowClearOnRightClick = false,
         numeric = false,
+        onEdit = null,
+        displayValue = null,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -1417,7 +1419,7 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             }
 
             const rawVal = String(backingWidget?.value ?? "").trim();
-            const displayVal = suffix ? rawVal.replace(new RegExp(`${suffix}$`, "i"), "") : rawVal;
+            const displayVal = displayValue ? displayValue(rawVal) : suffix ? rawVal.replace(new RegExp(`${suffix}$`, "i"), "") : rawVal;
 
             ctx.save();
             ctx.beginPath();
@@ -1442,6 +1444,10 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
             if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
                 if (event.button === 2 && allowClearOnRightClick) {
                     setWidgetValue(backingWidget, "", n);
+                    return true;
+                }
+                if (onEdit) {
+                    onEdit(event, n);
                     return true;
                 }
                 if (app.canvas) {

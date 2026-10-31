@@ -2020,6 +2020,37 @@ def test_28_lora_resize():
     print("[OK] Test 28: HaDeSAnimaLoraResize (exact rank reduction, dynamic energy, pass-through keys, source protection) verified")
 
 
+def test_29_artist_character_picker():
+    import json
+
+    pipe = hades.anima_pipeline_nodes
+    node = pipe.HaDeSAnimaArtistCharacterPicker()
+
+    artist, character, info = node.pick("hammer_(sunset_beach):1.2, dairi, qp:flapper", "firefly_(honkai:_star_rail)", "honkai:_star_rail", 0, 200, 0)
+    assert artist == r"(@hammer \(sunset beach\):1.2), @dairi, @qp:flapper", artist
+    assert character == r"firefly \(honkai: star rail\), honkai: star rail", character
+    meta = hades.parse_info_meta(info)
+    assert meta["node"] == "artist_picker" and meta["random_artists"] == 0
+
+    # Prompt Studio keeps picker output unchanged, and now escapes raw artist parentheses too
+    assert [pipe._normalize_artist_entry(a) for a in artist.split(", ")] == artist.split(", ")
+    assert pipe._normalize_character_entry(character) == character.split(", ")
+    assert pipe._normalize_artist_entry("hammer_(sunset_beach)") == r"@hammer \(sunset beach\)"
+
+    # Random artists: deterministic per seed, above the post threshold, never repeating a chosen one
+    with open(os.path.join(pipe._CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
+        catalog = json.load(f)
+    counts = dict(zip(catalog["tags"], catalog["counts"]))
+    a1, _, i1 = node.pick("dairi", "", "", 3, 2000, 42)
+    a2, _, _ = node.pick("dairi", "", "", 3, 2000, 42)
+    a3, _, _ = node.pick("dairi", "", "", 3, 2000, 43)
+    drawn = hades.parse_info_meta(i1)["artists"][1:]
+    assert a1 == a2 and a1 != a3 and len(drawn) == 3
+    assert all(counts[t] >= 2000 and t != "dairi" for t in drawn)
+    assert len(catalog["tags"]) > 80000 and catalog["counts"] == sorted(catalog["counts"], reverse=True)
+    print("[OK] Test 29: HaDeSAnimaArtistCharacterPicker (escaping, weights, Prompt Studio round trip, seeded random) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -2049,4 +2080,5 @@ if __name__ == "__main__":
     test_26_lora_extractor()
     test_27_lora_block_weight()
     test_28_lora_resize()
-    print("\nALL 28 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_29_artist_character_picker()
+    print("\nALL 29 HADES ANIMA SUITE TEST SUITES PASSED!")

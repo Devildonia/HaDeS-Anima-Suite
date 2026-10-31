@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import random
 import datetime
 import torch
 import torch.nn.functional as F
@@ -107,7 +108,7 @@ def _normalize_artist_entry(raw_art):
     # Strip leading "by " if present
     inner = re.sub(r"^by\s+", "", inner, flags=re.IGNORECASE).strip()
     # Normalize underscores to spaces, lowercase
-    inner = inner.lower().replace("_", " ")
+    inner = _UNESCAPED_PAREN_RE.sub(r"\\\1", inner.lower().replace("_", " "))
 
     if not inner.startswith("@"):
         inner = "@" + inner.lstrip("@").strip()
@@ -634,6 +635,66 @@ class HaDeSAnimaPromptStudio:
         return (pos_cond, neg_cond, fmt_pos, fmt_neg, format_info(
             "\n".join(info_lines), "prompt_studio", variant=model_variant, tag_count=pos_stats["tag_count"],
             stripped_tags=total_stripped,
+        ))
+
+
+# ==============================================================================
+# 23. HADES ANIMA ARTIST & CHARACTER PICKER (LOCAL DANBOORU TAG CATALOG)
+# ==============================================================================
+_CATALOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "data")
+_PICKER_WEIGHT_RE = re.compile(r"^(.*?):([+-]?\d+(?:\.\d+)?)$")
+
+
+def _catalog_tag(name):
+    """Danbooru tag -> Anima prompt form: spaces instead of underscores, literal parentheses escaped."""
+    tag = str(name).strip().lower().replace("_", " ")
+    return _UNESCAPED_PAREN_RE.sub(r"\\\1", tag)
+
+
+def _format_picker_artist(entry):
+    entry = entry.strip()
+    m = _PICKER_WEIGHT_RE.match(entry)
+    name, weight = (m.group(1), float(m.group(2))) if m else (entry, 1.0)
+    tag = "@" + _catalog_tag(name).lstrip("@").strip()
+    return tag if weight == 1.0 else f"({tag}:{weight:g})"
+
+
+class HaDeSAnimaArtistCharacterPicker:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "artists": ("STRING", {"default": "", "tooltip": "Comma-separated Danbooru artist tags, optional :weight (e.g. dairi:1.2, ebifurya)."}),
+                "character": ("STRING", {"default": "", "tooltip": "Danbooru character tag (e.g. hatsune_miku)."}),
+                "series": ("STRING", {"default": "", "tooltip": "Danbooru copyright / series tag (e.g. vocaloid)."}),
+                "random_artists": ("INT", {"default": 0, "min": 0, "max": 4, "tooltip": "Extra artists drawn from the local catalog by seed."}),
+                "random_min_posts": ("INT", {"default": 200, "min": 20, "max": 20000, "step": 10, "tooltip": "Only draw random artists with at least this many Danbooru posts."}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("artist", "character", "info")
+    FUNCTION = "pick"
+    CATEGORY = "HaDeS/Anima Pipeline"
+
+    def pick(self, artists, character, series, random_artists, random_min_posts, seed):
+        chosen = [a.strip() for a in artists.split(",") if a.strip()]
+        drawn = []
+        if random_artists > 0:
+            with open(os.path.join(_CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
+                catalog = json.load(f)
+            taken = {_PICKER_WEIGHT_RE.sub(r"\1", a).lower() for a in chosen}
+            pool = [t for t, c in zip(catalog["tags"], catalog["counts"]) if c >= random_min_posts and t not in taken]
+            drawn = random.Random(seed).sample(pool, min(random_artists, len(pool)))
+
+        artist_out = ", ".join(_format_picker_artist(a) for a in chosen + drawn)
+        character_out = ", ".join(_catalog_tag(t) for t in (character, series) if t.strip())
+        info = f"HaDeS Artist & Character Picker | Artist: {artist_out or '-'} | Character: {character_out or '-'}"
+        if drawn:
+            info += f" | Random ({random_artists}, >= {random_min_posts} posts, seed {seed}): {', '.join(drawn)}"
+        return (artist_out, character_out, format_info(
+            info, "artist_picker", artists=chosen + drawn, character=character.strip(), series=series.strip(), random_artists=len(drawn),
         ))
 
 
@@ -1281,7 +1342,7 @@ _META_BUCKETS = {
     "model_loader": "ARCHITECTURE", "clip_loader": "ARCHITECTURE", "vae_loader": "ARCHITECTURE",
     "model_block_merger": "ARCHITECTURE", "predictive_model_merger": "ARCHITECTURE", "clip_merger": "ARCHITECTURE",
     "model_saver": "ARCHITECTURE", "lora_extractor": "ARCHITECTURE", "lora_resize": "ARCHITECTURE",
-    "multi_lora": "CONDITIONING", "lora_block_weight": "CONDITIONING", "lora_remapper": "CONDITIONING", "lora_merger": "CONDITIONING", "prompt_studio": "CONDITIONING",
+    "multi_lora": "CONDITIONING", "lora_block_weight": "CONDITIONING", "artist_picker": "CONDITIONING", "lora_remapper": "CONDITIONING", "lora_merger": "CONDITIONING", "prompt_studio": "CONDITIONING",
     "ksampler": "SAMPLING", "ksampler_dual": "SAMPLING", "ksampler_triple": "SAMPLING", "nag": "SAMPLING", "latent": "SAMPLING",
     "corner_shield": "POST_PROCESSING", "vae_decode": "POST_PROCESSING",
 }

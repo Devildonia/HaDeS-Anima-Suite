@@ -86,7 +86,7 @@ const TRIPLE_PROFILES = {
 
 // Seed + control_after_generate rendered as regular HaDeS rows. The native widgets stay in the list (hidden) so
 // ComfyUI's control_after_generate logic and serialization keep working unchanged.
-function createSeedRows(node, wSeed, wControl) {
+export function createSeedRows(node, wSeed, wControl) {
     const rows = [wSeed, wControl].filter(Boolean);
     rows.forEach(hideBackingWidget);
     if (wSeed) {
