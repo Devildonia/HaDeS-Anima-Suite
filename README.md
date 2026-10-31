@@ -1,6 +1,6 @@
 # HaDeS Anima Suite v0.3.3
 
-23 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers and a telemetry node, with a shared canvas UI.
+24 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers with a metadata reader for image savers and a telemetry node, with a shared canvas UI.
 
 Claims about what block groups, presets and schedulers do are measured with [`tools/anima_ablation.py`](tools/anima_ablation.py); results are in [`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md).
 
@@ -52,10 +52,11 @@ HaDeS Anima Suite v0.3.3
 │   ├── 9. Anima Universal LoRA Remapper
 │   ├── 10. Anima Corner Shield
 │   └── 18. Anima Suite Telemetry
-└── HaDeS_Anima_Suite/Samplers (3 Nodes)
+└── HaDeS_Anima_Suite/Samplers (4 Nodes)
     ├── 11. Anima KSampler
     ├── 12. Anima Dual-Pass KSampler
-    └── 13. Anima Triple-Pass KSampler
+    ├── 13. Anima Triple-Pass KSampler
+    └── 24. Anima Sampler Metadata
 ```
 
 ---
@@ -238,6 +239,10 @@ No group isolates one attribute: each moves composition, structure, texture and 
 - **Class:** `HaDeSAnimaTriplePassKSampler`
 - **Purpose:** Three passes: composition at `1.0x`, an intermediate pass at ~`1.35x` (denoise ~0.48) and a low-denoise pass at ~`1.75x`–`2.0x` (denoise ~0.26), as an alternative to one large upscale step that must trade duplicated details (high denoise) against blur (low denoise). Optional `model_pass2` / `model_pass3`.
 
+#### 24. `Anima Sampler Metadata`
+- **Class:** `HaDeSAnimaSamplerMetadata`
+- **Purpose:** Connect a KSampler's `info` output; it outputs `seed`, `steps`, `cfg`, `sampler_name`, `scheduler` (strings) and `denoise` for image-saver metadata nodes (e.g. Image Saver Metadata). The values are the ones actually sampled with, after the profile / preset is applied, so the metadata cannot drift from a separate settings node. Dual / Triple-Pass report pass 1, the pass that generates the image. Any other `info` string raises an error instead of saving made-up values.
+
 ---
 
 ### Part D — Loaders & VAE Decode (`HaDeS_Anima_Suite/Loaders`)
@@ -275,7 +280,7 @@ ComfyUI's stock `ConditioningSetArea` / `ConditioningSetMask` work on Anima. In 
 
 The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark palette with one accent color (green / amber / red only signal state), quiet uppercase row labels, preset buttons that highlight the active preset, and a compact status panel per node. Every node enforces a minimum width so nothing clips or overlaps, and hover tooltips explain each control.
 
-To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 23 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
+To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 24 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
 Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy.VueNodes.Enabled`) are supported, including the classic-widget toggle.
 
@@ -309,11 +314,11 @@ Comfyui-HaDeS-Anima-BlockMerger/
 ├── .github/workflows/ci.yml  # CI (Python 3.10-3.12 + JS syntax checks)
 ├── __init__.py               # 34-band topology, Diffusers remapper, info contract, 5 mergers, Model Saver, LoRA Extractor, LoRA Block Weight, LoRA Resize
 ├── anima_pipeline_nodes.py   # Prompt Studio, Artist & Character Picker, NAG, Latent, LoRA Remapper, Corner Shield, Telemetry
-├── anima_ksampler_nodes.py   # Single, Dual-Pass and Triple-Pass KSamplers, Anima schedulers
+├── anima_ksampler_nodes.py   # Single, Dual-Pass and Triple-Pass KSamplers, Sampler Metadata, Anima schedulers
 ├── anima_loader_nodes.py     # Model / text encoder / VAE loaders and VAE Decode
 ├── web/
 │   ├── icon.png
-│   ├── hades_suite.js        # Extension entry point and settings (23 nodes)
+│   ├── hades_suite.js        # Extension entry point and settings (24 nodes)
 │   ├── data/                 # Local Danbooru tag catalog (artists, characters, series) for the picker
 │   ├── hades_widgets.js      # Shared canvas widgets, design tokens, Vue-node adapter
 │   ├── hades_mergers_ui.js   # Merger, LoRA, Saver, Extractor, Block Weight and Resize node UIs
@@ -325,7 +330,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
 │   └── ABLATION_RESULTS.md   # Measured results
 ├── tests/
-│   └── test_hades_suite.py   # 30 test suites (standalone stubs or real ComfyUI)
+│   └── test_hades_suite.py   # 31 test suites (standalone stubs or real ComfyUI)
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── LICENSE

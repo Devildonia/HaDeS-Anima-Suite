@@ -1240,8 +1240,55 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     finalizeHadesNode(node, 470);
 }
 
+export function setupSamplerMetadataUI(node) {
+    applyNodeFrameStyle(node);
+    node._lastSettings = null;
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.blue,
+            customHeight: 58,
+            tooltip: `<strong>Sampler Metadata</strong><br>Settings the connected KSampler actually used (profile / preset applied). Dual / Triple-Pass report pass 1.`,
+            drawCustomHUD(ctx, rect) {
+                ctx.textAlign = "left";
+                ctx.textBaseline = "middle";
+                const s = node._lastSettings;
+                if (!s) {
+                    ctx.font = "9px ui-monospace, Consolas, monospace";
+                    ctx.fillStyle = HADES_THEME.textMuted;
+                    ctx.fillText("Connect a KSampler info output and queue", rect.x + 8, rect.y + rect.h / 2);
+                    return;
+                }
+                const [seed, steps, cfg, sampler, sched, denoise] = s;
+                ctx.font = "600 10px ui-monospace, Consolas, monospace";
+                ctx.fillStyle = HADES_THEME.textPrimary;
+                ctx.fillText(`${String(sampler).toUpperCase()}  |  ${sched}`, rect.x + 8, rect.y + 11);
+                ctx.font = "9px ui-monospace, Consolas, monospace";
+                ctx.fillStyle = HADES_THEME.emerald;
+                ctx.fillText(`STEPS: ${steps}  |  CFG: ${Number(cfg).toFixed(1)}  |  DENOISE: ${Number(denoise).toFixed(2)}`, rect.x + 8, rect.y + 25);
+                ctx.fillStyle = HADES_THEME.textMuted;
+                ctx.fillText(`SEED: ${seed}`, rect.x + 8, rect.y + 39);
+            },
+        })
+    );
+
+    const origOnExecuted = node.onExecuted;
+    node.onExecuted = function (output) {
+        origOnExecuted?.apply(this, arguments);
+        const settings = (output?.ui || output)?.settings?.[0];
+        if (settings) {
+            this._lastSettings = settings;
+            this.setDirtyCanvas(true, true);
+        }
+    };
+
+    finalizeHadesNode(node, 300);
+}
+
 export const KSAMPLER_NODE_DISPATCH = {
     HaDeSAnimaKSampler: setupAnimaKSamplerUI,
     HaDeSAnimaDualPassKSampler: setupAnimaDualPassKSamplerUI,
     HaDeSAnimaTriplePassKSampler: setupAnimaTriplePassKSamplerUI,
+    HaDeSAnimaSamplerMetadata: setupSamplerMetadataUI,
 };

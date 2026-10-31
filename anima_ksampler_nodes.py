@@ -10,7 +10,7 @@ import comfy.model_management
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
-from . import format_info
+from . import format_info, parse_info_meta
 import latent_preview
 import scipy.stats
 
@@ -499,6 +499,7 @@ class HaDeSAnimaKSampler:
         info = format_info(
             info, "ksampler", width=w_px, height=h_px, steps=int(steps), cfg=float(cfg),
             flow_shift=_resolve_flow_shift(model, flow_shift), sampler=sampler_name, scheduler=scheduler,
+            seed=int(seed), denoise=float(denoise),
         )
         return (out_latent, decoded_img, info)
 
@@ -666,6 +667,7 @@ class HaDeSAnimaDualPassKSampler:
         logger.debug(info)
         info = format_info(
             info, "ksampler_dual", width=w2, height=h2, cfg=float(cfg_pass1), flow_shift=_resolve_flow_shift(model, shift_pass1),
+            seed=int(seed), steps=int(steps_pass1), sampler=sampler_pass1, scheduler=scheduler_pass1, denoise=float(denoise_pass1),
         )
         return (final_latent, pass1_latent, decoded_img, info)
 
@@ -879,5 +881,37 @@ class HaDeSAnimaTriplePassKSampler:
         logger.debug(info)
         info = format_info(
             info, "ksampler_triple", width=w3, height=h3, cfg=float(cfg_stage1), flow_shift=_resolve_flow_shift(model, shift_stage1),
+            seed=int(seed), steps=int(steps_stage1), sampler=sampler_stage1, scheduler=scheduler_stage1, denoise=float(denoise_stage1),
         )
         return (final_latent, stage1_latent, stage2_latent, decoded_img, info)
+
+
+# ==============================================================================
+# NODE 24: HaDeS Anima Sampler Metadata (settings actually used, for image savers)
+# ==============================================================================
+class HaDeSAnimaSamplerMetadata:
+    """
+    Reads the settings a HaDeS KSampler actually sampled with (profile / preset already applied) from its
+    info output, so image-saver metadata never drifts from the widgets. Dual / Triple-Pass report pass 1,
+    the pass that generates the image (A1111 convention).
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "info": ("STRING", {"forceInput": True, "tooltip": "info output of an Anima KSampler, Dual-Pass KSampler or Triple-Pass KSampler."}),
+            },
+        }
+
+    RETURN_TYPES = ("INT", "INT", "FLOAT", "STRING", "STRING", "FLOAT")
+    RETURN_NAMES = ("seed", "steps", "cfg", "sampler_name", "scheduler", "denoise")
+    FUNCTION = "read_metadata"
+    CATEGORY = "HaDeS/Anima Samplers"
+
+    def read_metadata(self, info):
+        meta = parse_info_meta(info)
+        if meta is None or meta.get("node") not in ("ksampler", "ksampler_dual", "ksampler_triple"):
+            raise ValueError("Anima Sampler Metadata needs the info output of an Anima KSampler, Dual-Pass KSampler or Triple-Pass KSampler.")
+        values = (meta["seed"], meta["steps"], meta["cfg"], meta["sampler"], meta["scheduler"], meta["denoise"])
+        return {"ui": {"settings": [list(values)]}, "result": values}

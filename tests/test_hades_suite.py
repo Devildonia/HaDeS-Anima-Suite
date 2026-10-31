@@ -1859,7 +1859,7 @@ def test_25_info_meta_contract():
                 assert keys == set(schema[node_id]), f"{cls.name}/{node_id}: keys {sorted(keys)} != schema {sorted(schema[node_id])}"
                 covered.add(cls.name)
                 seen_ids.add(node_id)
-    missing = node_classes - covered - {"HaDeSAnimaSuiteTelemetry"}
+    missing = node_classes - covered - {"HaDeSAnimaSuiteTelemetry", "HaDeSAnimaSamplerMetadata"}
     assert not missing, f"Nodes without a HADES_META trailer: {sorted(missing)}"
     assert seen_ids == set(schema), f"Schema ids never emitted: {sorted(set(schema) - seen_ids)}"
 
@@ -2129,6 +2129,45 @@ def test_30_audit_regressions():
     print("[OK] Test 30: audit regressions (quantized merge guard, picker seed / dedupe, Telemetry adapter flags, Resize DoRA, shift clone) verified")
 
 
+def test_31_sampler_metadata():
+    m = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
+    m.add_object_patch("model_sampling", DummyModelSampling(shift=3.0, multiplier=1.0))
+    reader = hades.HaDeSAnimaSamplerMetadata()
+    lat_in = {"samples": torch.zeros(1, 16, 64, 64)}
+    orig_sample = comfy.sample.sample
+    comfy.sample.sample = lambda model, noise, steps, cfg, sampler_name, scheduler, positive, negative, latent_image, **kw: latent_image
+    try:
+        # 1. A profile overrides the widgets: metadata reports what was sampled, not what the widgets say
+        _, _, info = hades.HaDeSAnimaKSampler().sample_anima(m, [], [], lat_in, "Anima Turbo", 1234, 32, 4.5, "er_sde", "beta", 0.8, 0.0)
+        out = reader.read_metadata(info)
+        assert out["result"] == (1234, 10, 1.0, "euler", "normal", 1.0)
+        assert out["ui"]["settings"] == [list(out["result"])]
+
+        _, _, info = hades.HaDeSAnimaKSampler().sample_anima(m, [], [], lat_in, "Manual", 7, 20, 4.2, "er_sde", "anima_beta57", 0.65, 0.0)
+        assert reader.read_metadata(info)["result"] == (7, 20, 4.2, "er_sde", "anima_beta57", 0.65)
+
+        # 2. Dual-Pass reports pass 1 (the pass that generates the image)
+        _, _, _, info = hades.HaDeSAnimaDualPassKSampler().sample_dual_pass(
+            m, [], [], lat_in, "Manual (Use Widget Settings)", 99,
+            28, 4.5, "er_sde", "normal", 1.0, 0.0,
+            "Latent 16ch Variance-Preserving Bicubic", 1.5,
+            16, 4.0, "euler", "anima_beta57", 0.42, 0.0,
+        )
+        assert reader.read_metadata(info)["result"] == (99, 28, 4.5, "er_sde", "normal", 1.0)
+    finally:
+        comfy.sample.sample = orig_sample
+
+    # 3. Any other info string fails clearly instead of saving made-up metadata
+    lat_info = hades.format_info("x", "latent", width=1024, height=1024, batch=1)
+    for bad in ("plain text", lat_info):
+        try:
+            reader.read_metadata(bad)
+            raise AssertionError("non-KSampler info must raise")
+        except ValueError as e:
+            assert "KSampler" in str(e)
+    print("[OK] Test 31: Sampler Metadata (profile-applied values, Dual-Pass pass 1, foreign info rejected) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -2160,4 +2199,5 @@ if __name__ == "__main__":
     test_28_lora_resize()
     test_29_artist_character_picker()
     test_30_audit_regressions()
-    print("\nALL 30 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_31_sampler_metadata()
+    print("\nALL 31 HADES ANIMA SUITE TEST SUITES PASSED!")

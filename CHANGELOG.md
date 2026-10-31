@@ -5,6 +5,16 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Anima Sampler Metadata (node 24):** reads seed, steps, cfg, sampler, scheduler and denoise from a KSampler's `info` output for image-saver metadata. Values are the ones actually sampled with (profile / preset applied); Dual / Triple-Pass report pass 1.
+
+### Changed
+- KSampler, Dual-Pass and Triple-Pass info trailers now carry seed and denoise (multi-pass: pass 1 steps, sampler and scheduler as well).
+
+---
+
 ## [0.3.3] - 2026-10-31
 
 ### Fixed
