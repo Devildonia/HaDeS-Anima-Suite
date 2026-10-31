@@ -1712,7 +1712,8 @@ class HaDeSAnimaLoraExtractor:
             vb = sd_b[k]
             if vt.shape != vb.shape:
                 raise ValueError(f"HaDeS LoRA Extractor: shape mismatch on '{k}': {tuple(vt.shape)} vs {tuple(vb.shape)} (different Anima topologies?).")
-            diff = vt.to(device, torch.float32) - vb.to(device, torch.float32)
+            # Lazy patching casters ignore dtype in .to(); materialize on cpu first (same as the Model Saver).
+            diff = vt.to("cpu").to(device, torch.float32) - vb.to("cpu").to(device, torch.float32)
             if not torch.any(diff):
                 stats["identical"] += 1
                 continue
