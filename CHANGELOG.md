@@ -17,6 +17,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - **Block group labels and tooltips follow the measurements:** no group isolates one attribute; influence ranks B10-14 > B15-19 ~ B00-09 > B20-23 > B24-27. Labels are now Early / Early-Mid / Core / Mid-Late / Late / Final; input names, presets and saved recipes are unchanged. The "Style B" button is now "Late B" (same values).
 - **Predictive Merger preset tooltip:** describes what the presets measurably do (overall Model 2 strength; Style Transfer stays closest to Model 1). Preset math and names are unchanged.
+- **Predictive Merger "Style Transfer" is shown as "Conservative (mostly Model 1)":** sublayer swaps and a late model switch confirmed that no merge keeps Model 1's composition with Model 2's style in Anima. The stored value and the math are unchanged, so saved workflows behave the same; the tooltip points to the Dual-Pass KSampler (`model_pass2`) for Model 2 detail. Styled combos gained a `displayNames` option for this.
 - **anima_beta57 tooltips** no longer recommend it for refiner passes; measured, it converges slower than stock `beta`.
 
 ### Fixed

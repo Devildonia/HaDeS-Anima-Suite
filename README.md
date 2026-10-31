@@ -97,7 +97,7 @@ HaDeS Anima Suite v0.2.0
 - **Purpose:** Analyzes per-block angular similarity and Z-normalized inter-block Frobenius divergence (or exact Task Vectors $\Delta W_1 = W_1 - W_{\text{base}}$, $\Delta W_2 = W_2 - W_{\text{base}}$ when `base_model` is connected) to compute an optimal 34-block merge curve automatically.
 - **Inputs:**
   - `model1`, `model2` (`MODEL`), `base_model` (`MODEL`, optional).
-  - `preset`: `Style Transfer (Keep A identity, B style)`, `Interference Guard (Anti-Burn / Artifact Shield)`, `Complementary Richness (Fill gaps of A with B)`, or `Balanced Geometric Fusion`.
+  - `preset`: `Style Transfer (Keep A identity, B style)`, `Interference Guard (Anti-Burn / Artifact Shield)`, `Complementary Richness (Fill gaps of A with B)`, or `Balanced Geometric Fusion`. Measured, the presets mainly scale Model 2 strength; `Style Transfer` stays closest to Model 1 and is shown as **Conservative (mostly Model 1)** in the HaDeS UI, since no merge keeps Model 1's composition with Model 2's style ([tools/ABLATION_RESULTS.md](tools/ABLATION_RESULTS.md)). For Model 2 detail on Model 1's composition, use the Dual-Pass KSampler with `model_pass2` at low denoise.
   - `target_influence` (`0.0..1.0`, default `0.50`), `aggressiveness` (`0.1..2.5`, default `1.00`).
   - `protect_llm_adapter` (`BOOLEAN`, default `True`): Locks blocks `28..33` (`llm_adapter`) to `0.0` so Model 1's semantic bridge is never degraded.
 

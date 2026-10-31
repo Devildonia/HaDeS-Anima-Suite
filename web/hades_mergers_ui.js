@@ -242,7 +242,8 @@ export function setupPredictiveModelMergerUI(node) {
         createStyledComboWidget(node, wPreset, {
             tag: "PRESET",
             tagColor: HADES_THEME.purple,
-            tooltip: `<strong>Predictive Fusion Heuristic</strong><br>Per-block weights from weight divergence. Measured, the presets act mainly as overall Model 2 strength, weakest to strongest:<br>• <strong>Style Transfer:</strong> mostly Model 1; does not move style more than structure.<br>• <strong>Interference Guard / Balanced Geometric Fusion:</strong> a little below a plain blend at the same influence.<br>• <strong>Complementary Richness:</strong> above a plain blend.<br>See tools/ABLATION_RESULTS.md.`,
+            displayNames: { "Style Transfer (Keep A identity, B style)": "Conservative (mostly Model 1)" },
+            tooltip: `<strong>Predictive Fusion Heuristic</strong><br>Per-block weights from weight divergence. Measured, the presets act mainly as overall Model 2 strength, weakest to strongest:<br>• <strong>Conservative:</strong> mostly Model 1 (saved as "Style Transfer"). A merge cannot keep Model 1's composition with Model 2's style in Anima; for Model 2 detail on Model 1's composition use the Dual-Pass KSampler with model_pass2 at low denoise.<br>• <strong>Interference Guard / Balanced Geometric Fusion:</strong> a little below a plain blend at the same influence.<br>• <strong>Complementary Richness:</strong> above a plain blend.<br>See tools/ABLATION_RESULTS.md.`,
         })
     );
 

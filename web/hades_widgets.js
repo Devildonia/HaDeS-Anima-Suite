@@ -962,6 +962,8 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
         label = "",
         cleanFileNames = false,
         marker = null,
+        // stored value -> shown text; the backing widget keeps the stored value so workflows stay compatible
+        displayNames = null,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -997,7 +999,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             ctx.textBaseline = "middle";
 
             const rawVal = backingWidget?.value ?? "";
-            const valText = cleanFileNames ? formatCleanLabel(rawVal) : String(rawVal);
+            const valText = cleanFileNames ? formatCleanLabel(rawVal) : String(displayNames?.[rawVal] ?? rawVal);
 
             const textStartX = x + tagW + 10;
             const textMaxW = w - tagW - 26;
@@ -1061,13 +1063,14 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
                 hideHadesTooltip();
                 this._isHovered = false;
                 const values = backingWidget.options?.values || [];
-                new LiteGraph.ContextMenu(values, {
+                const entries = displayNames ? values.map((v) => ({ content: displayNames[v] ?? v, value: v })) : values;
+                new LiteGraph.ContextMenu(entries, {
                     event,
                     title: label || backingWidget.name,
                     scale: Math.max(1, app.canvas?.ds?.scale || 1),
                     callback: (selected) => {
                         if (selected !== undefined) {
-                            setWidgetValue(backingWidget, selected, n);
+                            setWidgetValue(backingWidget, displayNames ? selected.value : selected, n);
                         }
                     },
                 });

@@ -630,7 +630,7 @@ class HaDeSAnimaPredictiveModelMerger:
                     "Interference Guard (Anti-Burn / Artifact Shield)",
                     "Complementary Richness (Fill gaps of A with B)",
                     "Balanced Geometric Fusion"
-                ],),
+                ], {"tooltip": "Measured, presets mainly scale Model 2 strength. 'Style Transfer' (shown as 'Conservative' in the HaDeS UI) stays closest to Model 1; it does not transfer style (tools/ABLATION_RESULTS.md)."}),
                 "target_influence": ("FLOAT", {
                     "default": 0.50, "min": 0.0, "max": 1.0, "step": 0.01,
                     "tooltip": "Global baseline influence for Model 2"
