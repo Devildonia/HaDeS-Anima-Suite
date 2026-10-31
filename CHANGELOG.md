@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.3.1] - 2026-10-31
 
 ### Added
 - **Anima LoRA Extractor (node 20):** saves `model_tuned - model_base` as a LoRA (truncated SVD per linear layer, full diffs for norms / biases, identical tensors skipped, optional `llm_adapter`). Reads baked weights like the Model Saver and rejects quantized inputs. Info reports the share of the difference kept by the rank. Measured on base -> pixelart: rank 32 = 132 MB, 94.5% energy, every key loads in the stock LoRA loader.
