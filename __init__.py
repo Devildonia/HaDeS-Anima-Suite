@@ -40,6 +40,7 @@ HADES_META_SCHEMA = {
     "lora_merger": ("saved_path", "rank", "protect_adapter"),
     "lora_extractor": ("saved_path", "rank", "layers", "energy_kept", "include_adapter"),
     "lora_block_weight": ("lora", "strength_model", "weights", "other_layers", "protect_adapter"),
+    "lora_resize": ("saved_path", "rank", "layers", "energy_kept", "size_mb"),
     "clip_merger": ("n_layers", "modified_tensors"),
     "model_saver": ("saved_path", "format", "precision", "topology"),
     "prompt_studio": ("variant", "tag_count", "stripped_tags"),
@@ -1757,6 +1758,115 @@ class HaDeSAnimaLoraExtractor:
 
 
 # ==============================================================================
+# 22. HADES ANIMA LORA RESIZE (LOWER RANK, EXACT SVD ON THE FACTORS)
+# ==============================================================================
+class HaDeSAnimaLoraResize:
+    def __init__(self):
+        self.output_dir = default_lora_dir()
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "lora_name": (folder_paths.get_filename_list("loras"),),
+                "target_rank": ("INT", {"default": 32, "min": 1, "max": 256, "step": 1,
+                                        "tooltip": "Maximum rank per layer. Layers already at or below it are copied unchanged."}),
+                "export_filename": ("STRING", {"default": "HaDeS_Resized_LoRA"}),
+            },
+            "optional": {
+                "dynamic_energy": ("FLOAT", {
+                    "default": 0.0, "min": 0.0, "max": 1.0, "step": 0.005,
+                    "tooltip": "0 = fixed rank. Otherwise each layer gets the smallest rank that keeps this share of its energy (e.g. 0.95), capped at target_rank.",
+                }),
+                "overwrite_existing": ("BOOLEAN", {"default": False}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("saved_lora_path", "info")
+    FUNCTION = "resize_lora"
+    CATEGORY = "HaDeS/Anima Mergers"
+    OUTPUT_NODE = True
+
+    def resize_lora(self, lora_name, target_rank, export_filename, dynamic_energy=0.0, overwrite_existing=False):
+        src_path = folder_paths.get_full_path_or_raise("loras", lora_name)
+        sd, _ = canonicalize_anima_lora_sd(_convert_lora_fn(comfy.utils.load_torch_file(src_path, safe_load=True)))
+        device = comfy.model_management.get_torch_device()
+
+        out_sd = {}
+        energies = []
+        ranks = []
+        stats = {"resized": 0, "kept": 0}
+        handled = set()
+        for down_k in [k for k in sd if k.endswith(".lora_down.weight")]:
+            pfx = down_k[:-len(".lora_down.weight")]
+            up_k, alpha_k = f"{pfx}.lora_up.weight", f"{pfx}.alpha"
+            if up_k not in sd or sd[down_k].ndim != 2:
+                continue
+            up, down = sd[up_k], sd[down_k]
+            rank = down.shape[0]
+            scale = float(sd[alpha_k]) / rank if alpha_k in sd else 1.0
+            handled.update((down_k, up_k, alpha_k))
+
+            u_q, u_r = torch.linalg.qr(up.to(device, torch.float32))
+            d_q, d_r = torch.linalg.qr(down.to(device, torch.float32).T)
+            u_c, s_val, vh_c = torch.linalg.svd(u_r @ d_r.T * scale)
+            energy = s_val.square()
+            cum = torch.cumsum(energy, 0) / energy.sum().clamp(min=1e-12)
+            new_rank = min(target_rank, rank)
+            if dynamic_energy > 0.0:
+                new_rank = min(new_rank, int(torch.searchsorted(cum, torch.tensor(dynamic_energy, device=device)).item()) + 1)
+            energies.append(float(cum[new_rank - 1]))
+            ranks.append(new_rank)
+
+            if new_rank == rank and dynamic_energy == 0.0:
+                out_sd[up_k], out_sd[down_k] = up, down
+                if alpha_k in sd:
+                    out_sd[alpha_k] = sd[alpha_k]
+                stats["kept"] += 1
+                continue
+            sqrt_s = s_val[:new_rank].sqrt()
+            out_sd[up_k] = ((u_q @ u_c[:, :new_rank]) * sqrt_s).to(up.dtype).cpu().contiguous()
+            out_sd[down_k] = (sqrt_s.unsqueeze(1) * (vh_c[:new_rank] @ d_q.T)).to(down.dtype).cpu().contiguous()
+            out_sd[alpha_k] = torch.tensor(float(new_rank))
+            stats["resized"] += 1
+
+        if not ranks:
+            raise ValueError(f"HaDeS LoRA Resize: '{lora_name}' has no standard lora_up / lora_down layers to resize.")
+        passthrough = [k for k in sd if k not in handled]
+        out_sd.update({k: sd[k] for k in passthrough})
+
+        output_filepath = lora_output_path(self.output_dir, export_filename, "HaDeS_Resized_LoRA", donor_paths=(src_path,), overwrite_existing=overwrite_existing)
+        mean_energy = sum(energies) / len(energies)
+        safetensors.torch.save_file(out_sd, output_filepath, metadata={
+            "author": "HaDeS",
+            "format": "pt",
+            "hades/suite_version": __version__,
+            "hades/source_lora": lora_name,
+            "hades/target_rank": str(target_rank),
+            "hades/dynamic_energy": str(dynamic_energy),
+            "hades/energy_kept": f"{mean_energy:.4f}",
+        })
+
+        size_in = os.path.getsize(src_path) / (1024 ** 2)
+        size_out = os.path.getsize(output_filepath) / (1024 ** 2)
+        info_lines = [
+            "=== HADES ANIMA LORA RESIZE ===",
+            f"Saved to: {output_filepath}",
+            f"Size: {size_in:.1f} MB -> {size_out:.1f} MB | Rank: max {max(ranks)}, mean {sum(ranks) / len(ranks):.1f} "
+            f"({'dynamic ' + format(dynamic_energy, '.3f') if dynamic_energy > 0.0 else 'fixed'} target {target_rank})",
+            f"Energy kept: mean {mean_energy:.1%}, worst layer {min(energies):.1%} | Resized: {stats['resized']} | "
+            f"Unchanged: {stats['kept']} | Passed through (diff / bias / other formats): {len(passthrough)} keys",
+        ]
+        if mean_energy < 0.9:
+            info_lines.append("Note: below ~90% mean energy the output drifted visibly from the source LoRA in tests; raise target_rank or use dynamic_energy.")
+        return (output_filepath, format_info(
+            "\n".join(info_lines), "lora_resize", saved_path=output_filepath, rank=target_rank, layers=len(ranks),
+            energy_kept=round(mean_energy, 4), size_mb=round(size_out, 1),
+        ))
+
+
+# ==============================================================================
 # 5. HADES ANIMA CLIP BLOCK MERGER (PROPORTIONAL 28L / 36L QWEN3 DEPTH)
 # ==============================================================================
 class HaDeSAnimaCLIPBlockMerger:
@@ -2196,6 +2306,7 @@ NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaModelSaver": HaDeSAnimaModelSaver,
     "HaDeSAnimaLoraExtractor": HaDeSAnimaLoraExtractor,
     "HaDeSAnimaLoraBlockWeight": HaDeSAnimaLoraBlockWeight,
+    "HaDeSAnimaLoraResize": HaDeSAnimaLoraResize,
     "HaDeSAnimaPromptStudio": HaDeSAnimaPromptStudio,
     "HaDeSAnimaAttentionGuidance": HaDeSAnimaAttentionGuidance,
     "HaDeSAnimaLatentPipelineGuard": HaDeSAnimaLatentPipelineGuard,
@@ -2220,6 +2331,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaModelSaver": "Anima Model Saver",
     "HaDeSAnimaLoraExtractor": "Anima LoRA Extractor",
     "HaDeSAnimaLoraBlockWeight": "Anima LoRA Block Weight",
+    "HaDeSAnimaLoraResize": "Anima LoRA Resize",
     "HaDeSAnimaPromptStudio": "Anima Prompt Studio",
     "HaDeSAnimaAttentionGuidance": "Anima Attention Guidance (NAG)",
     "HaDeSAnimaLatentPipelineGuard": "Anima Latent",

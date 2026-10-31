@@ -1974,6 +1974,52 @@ def test_27_lora_block_weight():
     print("[OK] Test 27: HaDeSAnimaLoraBlockWeight (per-group strength, zero groups skipped, other layers, CLIP strength) verified")
 
 
+def test_28_lora_resize():
+    from safetensors import safe_open
+
+    torch.manual_seed(0)
+    # rank-16 LoRA whose delta has an exact rank-4 core, plus a diff key and a LoHa-style key that must pass through
+    pfx = "diffusion_model.blocks.0.self_attn.q_proj"
+    core_u, core_d = torch.randn(64, 4), torch.randn(4, 48)
+    mix = torch.randn(4, 16)
+    up = core_u @ mix
+    down = torch.linalg.pinv(mix) @ core_d
+    lora = {
+        f"{pfx}.lora_up.weight": up, f"{pfx}.lora_down.weight": down, f"{pfx}.alpha": torch.tensor(8.0),
+        "diffusion_model.blocks.0.self_attn.q_norm.diff": torch.ones(16),
+        "diffusion_model.blocks.1.mlp.layer1.hada_w1_a": torch.ones(4, 4),
+    }
+    delta = up @ down * (8.0 / 16)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        safetensors.torch.save_file(lora, os.path.join(tmpdir, "src.safetensors"))
+        orig_get_full_path = folder_paths.get_full_path_or_raise
+        folder_paths.get_full_path_or_raise = lambda folder, name: os.path.join(tmpdir, name)
+        try:
+            node = hades.HaDeSAnimaLoraResize()
+            node.output_dir = tmpdir
+            path, info = node.resize_lora("src.safetensors", 4, "src")
+            assert os.path.basename(path) == "src_001.safetensors", "must never overwrite the source LoRA"
+            meta = hades.parse_info_meta(info)
+            assert meta["node"] == "lora_resize" and meta["layers"] == 1 and meta["energy_kept"] > 0.999
+            with safe_open(path, framework="pt") as f:
+                new_up, new_down = f.get_tensor(f"{pfx}.lora_up.weight"), f.get_tensor(f"{pfx}.lora_down.weight")
+                alpha = float(f.get_tensor(f"{pfx}.alpha"))
+                assert new_up.shape == (64, 4) and new_down.shape == (4, 48)
+                assert torch.allclose(new_up @ new_down * (alpha / 4), delta, atol=1e-3), "resized LoRA must keep the same delta"
+                assert "diffusion_model.blocks.0.self_attn.q_norm.diff" in f.keys()
+                assert "diffusion_model.blocks.1.mlp.layer1.hada_w1_a" in f.keys(), "unsupported formats pass through"
+
+            # dynamic: a 0.5 energy target picks fewer than 4 components for this layer
+            path2, info2 = node.resize_lora("src.safetensors", 16, "dyn", dynamic_energy=0.5)
+            with safe_open(path2, framework="pt") as f:
+                assert f.get_tensor(f"{pfx}.lora_down.weight").shape[0] < 4
+            assert hades.parse_info_meta(info2)["energy_kept"] >= 0.5
+        finally:
+            folder_paths.get_full_path_or_raise = orig_get_full_path
+    print("[OK] Test 28: HaDeSAnimaLoraResize (exact rank reduction, dynamic energy, pass-through keys, source protection) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -2002,4 +2048,5 @@ if __name__ == "__main__":
     test_25_info_meta_contract()
     test_26_lora_extractor()
     test_27_lora_block_weight()
-    print("\nALL 27 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_28_lora_resize()
+    print("\nALL 28 HADES ANIMA SUITE TEST SUITES PASSED!")

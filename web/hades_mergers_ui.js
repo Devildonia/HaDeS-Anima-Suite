@@ -827,6 +827,118 @@ export function setupLoraBlockWeightUI(node) {
     finalizeHadesNode(node, 430);
 }
 
+export function setupLoraResizeUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wLora = findW("lora_name");
+    const wRank = findW("target_rank");
+    const wFile = findW("export_filename");
+    const wDynamic = findW("dynamic_energy");
+    const wOverwrite = findW("overwrite_existing");
+
+    [wLora, wRank, wFile, wDynamic, wOverwrite].forEach(hideBackingWidget);
+
+    const rankAction = (r) => ({
+        label: `R${r}`,
+        isActive: () => Number(wRank?.value) === r && Number(wDynamic?.value ?? 0) === 0,
+        tooltip: `<strong>Fixed rank ${r}</strong><br>Every layer above rank ${r} is reduced to ${r}.`,
+        onClick: () => {
+            setWidgetValue(wRank, r, node);
+            setWidgetValue(wDynamic, 0.0, node);
+        },
+    });
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.purple,
+            tooltip: `<strong>LoRA Resize</strong><br>Lowers a LoRA's rank with an exact SVD of its low-rank factors and saves a new file in models/loras/ (the source is never overwritten). Norm / bias diffs and unsupported formats (LoHa, LoKr, DoRA) are copied unchanged. The info output reports the energy kept and the size before / after.`,
+            actions: [
+                rankAction(8),
+                rankAction(16),
+                rankAction(32),
+                {
+                    label: "95% Dyn",
+                    isActive: () => Number(wDynamic?.value) === 0.95,
+                    tooltip: `<strong>Dynamic 95%</strong><br>Each layer keeps the smallest rank that holds 95% of its energy, up to the target rank.`,
+                    onClick: () => setWidgetValue(wDynamic, 0.95, node),
+                },
+            ],
+        })
+    );
+
+    node.addCustomWidget(
+        createStyledComboWidget(node, wLora, {
+            tag: "LORA",
+            tagColor: HADES_THEME.purple,
+            cleanFileNames: true,
+            tooltip: `<strong>Source LoRA</strong><br>Diffusers, Kohya, OneTrainer and Musubi keys are remapped to native Anima keys in the output.`,
+        })
+    );
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wRank, {
+            tag: "RANK",
+            label: "Target Rank (max)",
+            color: HADES_THEME.purple,
+            min: 1,
+            max: 256,
+            visMin: 1,
+            visMax: 128,
+            step: 1,
+            defaultVal: 32,
+            isInt: true,
+            tooltip: `<strong>Target Rank</strong><br>Maximum rank per layer; layers already at or below it are copied unchanged.`,
+        })
+    );
+
+    if (wDynamic) {
+        node.addCustomWidget(
+            createSpectralSliderWidget(node, wDynamic, {
+                tag: "DYN",
+                label: "Dynamic Energy (0 = off)",
+                color: HADES_THEME.cyan,
+                min: 0.0,
+                max: 1.0,
+                visMin: 0.0,
+                visMax: 1.0,
+                step: 0.005,
+                defaultVal: 0.0,
+                decimals: 3,
+                zeroLabel: "OFF",
+                tooltip: `<strong>Dynamic Energy</strong><br>0 = fixed rank. Otherwise each layer gets the smallest rank that keeps this share of its energy, capped at the target rank.`,
+            })
+        );
+    }
+
+    if (wOverwrite) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wOverwrite, {
+                tag: "WRITE",
+                color: HADES_THEME.amber,
+                label: "Overwrite Existing Output File",
+                onText: "OVERWRITE",
+                offText: "AUTO-INC",
+                tooltip: `<strong>File Overwrite Policy</strong><br>When OFF, appends _001, _002… instead of replacing an existing file. The source LoRA is never overwritten.`,
+            })
+        );
+    }
+
+    node.addCustomWidget(
+        createStyledTextRowWidget(node, wFile, {
+            tag: "FILE",
+            color: HADES_THEME.emerald,
+            promptTitle: "Export LoRA Filename (saved in models/loras/)",
+            suffix: ".safetensors",
+            emptyPlaceholder: "HaDeS_Resized_LoRA",
+            tooltip: `<strong>Export Filename</strong><br>Name of the resized LoRA file in ComfyUI models/loras/.`,
+        })
+    );
+
+    finalizeHadesNode(node, 400);
+}
+
 export function setupCLIPBlockMergerUI(node) {
     applyNodeFrameStyle(node);
     const findW = (name) => node.widgets?.find((w) => w.name === name);
@@ -1180,4 +1292,5 @@ export const MERGER_NODE_DISPATCH = {
     HaDeSAnimaModelSaver: setupModelSaverUI,
     HaDeSAnimaLoraExtractor: setupLoraExtractorUI,
     HaDeSAnimaLoraBlockWeight: setupLoraBlockWeightUI,
+    HaDeSAnimaLoraResize: setupLoraResizeUI,
 };

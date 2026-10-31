@@ -11,6 +11,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 - **Anima LoRA Extractor (node 20):** saves `model_tuned - model_base` as a LoRA (truncated SVD per linear layer, full diffs for norms / biases, identical tensors skipped, optional `llm_adapter`). Reads baked weights like the Model Saver and rejects quantized inputs. Info reports the share of the difference kept by the rank. Measured on base -> pixelart: rank 32 = 132 MB, 94.5% energy, every key loads in the stock LoRA loader.
 
 - **Anima LoRA Block Weight (node 21):** one LoRA with a multiplier per DiT depth group plus `other_layers`, optional CLIP strength and adapter stripping. No fixed presets: measured, where a LoRA acts differs per LoRA.
+- **Anima LoRA Resize (node 22):** lowers a LoRA's rank with an exact SVD of its factors, fixed or per layer by an energy target; diffs and unsupported formats pass through and the source is never overwritten. Info reports size and energy kept and warns below 90%. Measured on two LoRAs: rank 32 / dynamic 0.90 stay close to the source, rank 16 is fine for one and visibly drifts for the other.
 - **`tools/anima_ablation.py` `lora` / `lora_presets` modes:** per-group swap-in / leave-out for one LoRA (through LoRA Block Weight) and the Multi-LoRA presets against plain stacking. Results for two style LoRAs and a regional-prompt test in `tools/ABLATION_RESULTS.md`.
 
 ### Changed
