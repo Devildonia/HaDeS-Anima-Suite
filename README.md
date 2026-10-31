@@ -237,6 +237,8 @@ The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark 
 
 To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 19 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
+Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy.VueNodes.Enabled`) are supported, including the classic-widget toggle.
+
 ---
 
 ## Official Workflow Examples (`examples/`)

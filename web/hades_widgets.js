@@ -111,6 +111,16 @@ export function finalizeHadesNode(node, minW) {
         this.size[0] = Math.max(this.size[0], minW);
         this.size[1] = Math.max(this.size[1], this.computeSize()[1]);
     };
+    // Frontend-driven value changes (control_after_generate, links) only fire the backing widget callback.
+    for (const w of node.widgets || []) {
+        if (!w._isHadesBacking) continue;
+        const origCallback = w.callback;
+        w.callback = function () {
+            const r = origCallback?.apply(this, arguments);
+            redrawVueWidgets(node);
+            return r;
+        };
+    }
     const sz = node.computeSize();
     node.setSize([Math.max(minW, node.size?.[0] || 0), sz[1] + 8]);
 }
@@ -127,6 +137,31 @@ export function clampNum(val, min, max, decimals = 2) {
     const clamped = Math.max(min, Math.min(max, num));
     const factor = 10 ** decimals;
     return Math.round(clamped * factor) / factor;
+}
+
+// Vue nodes paint each legacy widget into its own <canvas> (WidgetLegacy), sized from getBoundingClientRect(),
+// which includes the graph zoom. Re-fit it to its CSS layout width so drawn bounds match pointer offsets at any zoom.
+function wrapVueWidgetDraw(widget) {
+    const draw = widget.draw;
+    widget.draw = function (ctx, node, width, y, height) {
+        const el = ctx.canvas;
+        if (LiteGraph.vueNodesMode && el !== app.canvas?.canvas) {
+            el._hadesWidget = this;
+            if (el.clientWidth && Math.abs(el.clientWidth - width) > 1) {
+                const ratio = el.width / width;
+                width = el.clientWidth;
+                this.width = width;
+                el.width = width * ratio;
+                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            }
+        }
+        return draw.call(this, ctx, node, width, y, height);
+    };
+}
+
+// WidgetLegacy only repaints on resize or the widget's own callback; our rows read hidden backing widgets.
+function redrawVueWidgets(node) {
+    for (const w of node._hadesCustomWidgets || []) w.triggerDraw?.();
 }
 
 export function setWidgetValue(widget, value, node) {
@@ -157,7 +192,8 @@ let _hadesTooltipEl = null;
 
 if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
     window._hadesTooltipGlobalInit = true;
-    window.addEventListener("pointerdown", () => hideHadesTooltip(), { passive: true });
+    // Capture phase: Vue node widget canvases stop pointer event propagation.
+    window.addEventListener("pointerdown", () => hideHadesTooltip(), { passive: true, capture: true });
     window.addEventListener("wheel", () => hideHadesTooltip(), { passive: true });
 
     window.addEventListener(
@@ -165,22 +201,30 @@ if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
         (e) => {
             const canvas = app?.canvas;
             if (!canvas) return;
-            const node = canvas.node_over;
-            if (!node || !node.widgets) {
-                hideHadesTooltip();
-                return;
+            let widgets, localX, localY;
+            if (LiteGraph.vueNodesMode) {
+                // Each widget has its own canvas there, drawn at y = 0, so bounds are canvas-local.
+                const vueWidget = e.target?._hadesWidget;
+                if (!vueWidget) {
+                    hideHadesTooltip();
+                    return;
+                }
+                widgets = [vueWidget];
+                localX = e.offsetX;
+                localY = e.offsetY;
+            } else {
+                const node = canvas.node_over;
+                const graphMouse = canvas.graph_mouse;
+                if (!node?.widgets || !graphMouse) {
+                    hideHadesTooltip();
+                    return;
+                }
+                widgets = node.widgets;
+                localX = graphMouse[0] - node.pos[0];
+                localY = graphMouse[1] - node.pos[1];
             }
 
-            const graphMouse = canvas.graph_mouse;
-            if (!graphMouse) {
-                hideHadesTooltip();
-                return;
-            }
-
-            const localX = graphMouse[0] - node.pos[0];
-            const localY = graphMouse[1] - node.pos[1];
-
-            for (const w of node.widgets) {
+            for (const w of widgets) {
                 if (w.hidden) continue;
 
                 // 1. Check banner action buttons
@@ -237,7 +281,7 @@ if (typeof window !== "undefined" && !window._hadesTooltipGlobalInit) {
 
             hideHadesTooltip();
         },
-        { passive: true }
+        { passive: true, capture: true }
     );
 }
 
@@ -583,12 +627,18 @@ export function applyNodeFrameStyle(node) {
         node.addCustomWidget = function (widget) {
             if (widget) {
                 widget._isHadesCustom = true;
+                if (widget.draw) wrapVueWidgetDraw(widget);
                 if (!widget._origComputeSize) widget._origComputeSize = widget.computeSize;
                 if (!widget._origDraw) widget._origDraw = widget.draw;
                 this._hadesCustomWidgets = this._hadesCustomWidgets || [];
                 this._hadesCustomWidgets.push(widget);
             }
             return origAddCustomWidget.apply(this, arguments);
+        };
+        const origSetDirtyCanvas = node.setDirtyCanvas;
+        node.setDirtyCanvas = function () {
+            redrawVueWidgets(this);
+            return origSetDirtyCanvas.apply(this, arguments);
         };
     }
 
