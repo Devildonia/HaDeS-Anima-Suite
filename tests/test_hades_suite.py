@@ -2063,6 +2063,12 @@ def test_29_artist_character_picker():
     assert pipe._normalize_character_entry(wchar) == wchar.split(", ")
     assert pipe._normalize_character_entry("(hakurei_reimu:1.2)") == ["(hakurei reimu:1.2)"]
 
+    # Catalog tags ending in ':digits' are names, not weights ('reverse:1999' must not become weight 1999)
+    a, c, _ = node.pick("7:08, re:1:1.2", "", "reverse:1999", 0, 200, 0)["result"]
+    assert a == "@7:08, (@re:1:1.2)" and c == "reverse:1999", (a, c)
+    _, c, _ = node.pick("", "", "reverse:1999:0.8", 0, 200, 0)["result"]
+    assert c == "(reverse:1999:0.8)", c
+
     # Random artists: deterministic per seed, above the post threshold, never repeating a chosen one
     with open(os.path.join(pipe._CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
         catalog = json.load(f)

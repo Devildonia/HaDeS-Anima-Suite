@@ -3,6 +3,7 @@ import re
 import json
 import random
 import datetime
+import functools
 import torch
 import torch.nn.functional as F
 import folder_paths
@@ -638,13 +639,26 @@ def _catalog_tag(name):
     return _UNESCAPED_PAREN_RE.sub(r"\\\1", tag)
 
 
-def _format_picker_entry(entry, artist=False):
-    """'name' or 'name:1.2' -> Anima tag, wrapped as (tag:1.2) when weighted; artists get the '@' prefix."""
-    entry = entry.strip()
+@functools.lru_cache(maxsize=None)
+def _weight_like_tags(kind):
+    """The few catalog tags that end in ':digits' themselves (series 'reverse:1999', artist '7:08')."""
+    with open(os.path.join(_CATALOG_DIR, f"anima_{kind}.json"), encoding="utf-8") as f:
+        return frozenset(t for t in json.load(f)["tags"] if _PICKER_WEIGHT_RE.match(t))
+
+
+def _split_picker_weight(entry, kind):
+    """'name:1.2' -> ('name', 1.2); a catalog tag such as 'reverse:1999' is a name, never a weight."""
     m = _PICKER_WEIGHT_RE.match(entry)
-    name, weight = (m.group(1), float(m.group(2))) if m else (entry, 1.0)
+    if not m or entry.lstrip("@").strip().lower().replace(" ", "_") in _weight_like_tags(kind):
+        return entry, 1.0
+    return m.group(1), float(m.group(2))
+
+
+def _format_picker_entry(entry, kind):
+    """'name' or 'name:1.2' -> Anima tag, wrapped as (tag:1.2) when weighted; artists get the '@' prefix."""
+    name, weight = _split_picker_weight(entry.strip(), kind)
     tag = _catalog_tag(name)
-    if artist:
+    if kind == "artists":
         tag = "@" + tag.lstrip("@").strip()
     return tag if weight == 1.0 else f"({tag}:{weight:g})"
 
@@ -674,12 +688,12 @@ class HaDeSAnimaArtistCharacterPicker:
         if random_artists > 0:
             with open(os.path.join(_CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
                 catalog = json.load(f)
-            taken = {_PICKER_WEIGHT_RE.sub(r"\1", a).replace("\\", "").lstrip("@").strip().lower().replace(" ", "_") for a in chosen}
+            taken = {_split_picker_weight(a, "artists")[0].replace("\\", "").lstrip("@").strip().lower().replace(" ", "_") for a in chosen}
             pool = [t for t, c in zip(catalog["tags"], catalog["counts"]) if c >= random_min_posts and t not in taken]
             drawn = random.Random(seed).sample(pool, min(random_artists, len(pool)))
 
-        artist_out = ", ".join(_format_picker_entry(a, artist=True) for a in chosen + drawn)
-        character_out = ", ".join(_format_picker_entry(t) for t in (character, series) if t.strip())
+        artist_out = ", ".join(_format_picker_entry(a, "artists") for a in chosen + drawn)
+        character_out = ", ".join(_format_picker_entry(t, kind) for t, kind in ((character, "characters"), (series, "series")) if t.strip())
         info = f"HaDeS Artist & Character Picker | Artist: {artist_out or '-'} | Character: {character_out or '-'}"
         if drawn:
             info += f" | Random ({random_artists}, >= {random_min_posts} posts, seed {seed}): {', '.join(drawn)}"

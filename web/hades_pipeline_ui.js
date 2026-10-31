@@ -274,7 +274,7 @@ export function setupPromptStudioUI(node) {
                 tagWidth: TAG_W,
                 promptTitle: "Artwork title / alt-text (header line 2)",
                 emptyPlaceholder: "Optional artwork title (header line 2)",
-                tooltip: `<strong>Artwork title</strong><br>Optional line 2 of the canonical header. Leave empty to omit it. Right-click to clear.`,
+                tooltip: `<strong>Artwork title</strong><br>Optional line 2 of the canonical header. Leave empty to omit it.`,
             })
         );
     }
@@ -1302,6 +1302,8 @@ function openCatalogSearch(kind, title, event, onPick, selected) {
     Object.assign(list.style, { maxHeight: "300px", overflowY: "auto", marginTop: "6px" });
     const chips = document.createElement("div");
     Object.assign(chips.style, { display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" });
+    // Catalog tags that end in ':digits' themselves (series 'reverse:1999') are names, never weights
+    let weightLike = new Set();
     const renderChips = () => {
         chips.replaceChildren(
             ...selected.list().map((entry, i) => {
@@ -1310,7 +1312,7 @@ function openCatalogSearch(kind, title, event, onPick, selected) {
                     background: "#2a3140", border: "1px solid #3b4454", borderRadius: "10px", padding: "1px 4px 1px 8px",
                     display: "inline-flex", alignItems: "center", gap: "4px", maxWidth: "100%",
                 });
-                const m = entry.match(WEIGHT_SUFFIX_RE);
+                const m = weightLike.has(entry) ? null : entry.match(WEIGHT_SUFFIX_RE);
                 const name = m ? m[1] : entry;
                 const weight = m ? Number(m[2]) : 1;
                 const btn = "cursor:pointer;color:#a0a7b3;padding:0 3px";
@@ -1391,6 +1393,8 @@ function openCatalogSearch(kind, title, event, onPick, selected) {
     };
     loadCatalog(kind).then((cat) => {
         input.placeholder = `Search ${cat.tags.length.toLocaleString()} tags…`;
+        weightLike = new Set(cat.tags.filter((t) => WEIGHT_SUFFIX_RE.test(t)));
+        renderChips();
         const update = () => {
             rows = searchCatalog(cat, input.value);
             render();
@@ -1475,7 +1479,7 @@ export function setupArtistCharacterPickerUI(node) {
                 }
                 const entries = () => String(wArtists.value || "").split(",").map((a) => a.trim()).filter(Boolean);
                 const add = (tag) => {
-                    if (!entries().some((a) => (a.match(WEIGHT_SUFFIX_RE)?.[1] ?? a) === tag)) setWidgetValue(wArtists, [...entries(), tag].join(", "), node);
+                    if (!entries().some((a) => a === tag || a.match(WEIGHT_SUFFIX_RE)?.[1] === tag)) setWidgetValue(wArtists, [...entries(), tag].join(", "), node);
                 };
                 openCatalogSearch("artists", "Add artist", event, add, {
                     list: entries,

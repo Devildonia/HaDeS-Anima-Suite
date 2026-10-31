@@ -175,9 +175,9 @@ export function setupManualBlockMergerUI(node) {
             createStyledTextRowWidget(node, wRecipe, {
                 tag: "RECIPE",
                 color: HADES_THEME.cyan,
-                promptTitle: "Paste 34-Block CSV Vector or Predictive JSON Recipe (Right-click to clear)",
+                promptTitle: "Paste 34-Block CSV Vector or Predictive JSON Recipe (empty clears)",
                 emptyPlaceholder: "None (sliders active). Click to paste a CSV / JSON recipe",
-                tooltip: `<strong>CSV / JSON Recipe Vector</strong><br>Paste a custom 34-element vector or predictive recipe to override sliders. Right-click to clear.`,
+                tooltip: `<strong>CSV / JSON Recipe Vector</strong><br>Paste a custom 34-element vector or predictive recipe to override sliders. Submit an empty value to clear.`,
             })
         );
     }

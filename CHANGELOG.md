@@ -5,6 +5,14 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Picker read some catalog tags as weights:** tags that end in `:digits` themselves (series `reverse:1999`, `yarofes:2023`; artists `7:08`, `re:1`, `code:074`) were split into a name plus a weight, so `reverse:1999` became weight 1999 and random draws could do the same. A tag that exists in the catalog as written is now always a name; weights still append (`reverse:1999:1.2`).
+- Removed leftover "Right-click to clear" hints (merger recipe, Prompt Studio title); that option no longer exists.
+
+---
+
 ## [0.3.6] - 2026-10-31
 
 ### Added
