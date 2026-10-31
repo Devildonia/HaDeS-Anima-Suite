@@ -283,7 +283,7 @@ Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy
 
 ## Example Workflows (`examples/`)
 
-1. **`HaDeS Anima Suite - Simple Pass Generation Example.json`:** loaders, Prompt Studio, NAG, `Anima KSampler`, tiled VAE decode and Telemetry.
+1. **`HaDeS Anima Suite - Simple Pass Generation Example.json`:** loaders, Prompt Studio, Latent, `Anima KSampler` and VAE decode.
 2. **`HaDeS Anima Suite - Dual Pass Generation Example.json`:** composition at 1.0 MP and a 1.5x refinement pass with the 16-channel latent bridge and `model_pass2`.
 3. **`HaDeS Anima Suite - Triple Pass Generation Example.json`:** `1.0x → 1.35x → 1.75x` with `Anima Triple-Pass KSampler`.
 4. **`HaDeS - Anima Suite - Merge Workflow Example - Medium.json`:** `Anima Model Block Merger`, `Anima Predictive Multi-LoRA` and `Anima LoRA Merger` with key remapping and adapter protection.

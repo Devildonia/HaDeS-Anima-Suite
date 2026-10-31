@@ -33,7 +33,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install numpy safetensors
+          pip install numpy safetensors scipy
 
       - name: Run test suite
         run: python tests/test_hades_suite.py

@@ -1,4 +1,4 @@
-import math
+import copy
 import logging
 import torch
 import torch.nn.functional as F
@@ -11,41 +11,16 @@ import comfy.model_management
 logger = logging.getLogger("HaDeSAnimaSuite")
 
 from . import format_info
+import latent_preview
+import scipy.stats
 
-try:
-    import latent_preview
-except ImportError:
-    latent_preview = None
-
-try:
-    import scipy.stats
-except ImportError:
-    scipy = None
-
-
-ANIMA_SAMPLER_LIST = list(getattr(
-    comfy.samplers,
-    "SAMPLER_NAMES",
-    getattr(comfy.samplers, "KSAMPLER_NAMES", [
-        "er_sde", "euler", "euler_ancestral", "dpmpp_2m_sde_gpu", "dpmpp_2m", "heun", "uni_pc"
-    ]),
-))
-if "er_sde" in ANIMA_SAMPLER_LIST:
-    # Place Anima's top recommended samplers at the top of the list for convenience
-    preferred = ["er_sde", "euler", "euler_ancestral", "dpmpp_2m_sde_gpu", "dpmpp_2m"]
-    ANIMA_SAMPLER_LIST = [s for s in preferred if s in ANIMA_SAMPLER_LIST] + [
-        s for s in ANIMA_SAMPLER_LIST if s not in preferred
-    ]
-
-DISCARD_PENULTIMATE_SIGMA_SAMPLERS = set(getattr(
-    comfy.samplers,
-    "DISCARD_PENULTIMATE_SIGMA_SAMPLERS",
-    {"dpm_2", "dpm_2_ancestral", "uni_pc", "uni_pc_bh2"},
-))
-
-BASE_SCHEDULER_LIST = list(getattr(comfy.samplers, "SCHEDULER_NAMES", [
-    "normal", "beta", "simple", "sgm_uniform", "karras", "exponential", "ddim_uniform"
-]))
+# Anima's recommended samplers first, then the rest of ComfyUI's list
+_PREFERRED_SAMPLERS = ["er_sde", "euler", "euler_ancestral", "dpmpp_2m_sde_gpu", "dpmpp_2m"]
+ANIMA_SAMPLER_LIST = [s for s in _PREFERRED_SAMPLERS if s in comfy.samplers.SAMPLER_NAMES] + [
+    s for s in comfy.samplers.SAMPLER_NAMES if s not in _PREFERRED_SAMPLERS
+]
+DISCARD_PENULTIMATE_SIGMA_SAMPLERS = set(comfy.samplers.KSampler.DISCARD_PENULTIMATE_SIGMA_SAMPLERS)
+BASE_SCHEDULER_LIST = list(comfy.samplers.SCHEDULER_NAMES)
 ANIMA_SCHEDULER_LIST = ["normal", "beta", "anima_beta57", "anima_lightning_tdm"] + [
     s for s in BASE_SCHEDULER_LIST if s not in ("normal", "beta", "anima_beta57", "anima_lightning_tdm")
 ]
@@ -102,44 +77,13 @@ def clone_model_with_anima_shift(model, flow_shift: float):
     m = model.clone()
     shift_val = max(0.1, float(flow_shift))
     orig_ms = m.get_model_object("model_sampling")
+    if abs(float(orig_ms.shift) - shift_val) < 1e-4:
+        return m
 
-    if orig_ms is not None and hasattr(orig_ms, "shift"):
-        orig_shift = float(getattr(orig_ms, "shift", 3.0))
-        if abs(orig_shift - shift_val) < 1e-4:
-            return m
-
-    multiplier = float(getattr(orig_ms, "multiplier", 1.0)) if orig_ms is not None else 1.0
-    inner_cfg = getattr(getattr(m, "model", None), "model_config", None)
-
-    if (
-        inner_cfg is not None
-        and hasattr(inner_cfg, "sampling_settings")
-        and hasattr(comfy.model_sampling, "ModelSamplingDiscreteFlow")
-        and hasattr(comfy.model_sampling, "CONST")
-    ):
-        class _AnimaFlowSampling(comfy.model_sampling.ModelSamplingDiscreteFlow, comfy.model_sampling.CONST):
-            pass
-
-        new_ms = _AnimaFlowSampling(inner_cfg)
-        new_ms.set_parameters(shift=shift_val, multiplier=multiplier)
-        if orig_ms is not None and hasattr(orig_ms, "noise_scale"):
-            new_ms.set_noise_scale(orig_ms.noise_scale)
-        if hasattr(m, "add_object_patch"):
-            m.add_object_patch("model_sampling", new_ms)
-        else:
-            m._hades_model_sampling = new_ms
-    elif orig_ms is not None:
-        import copy
-        new_ms = copy.deepcopy(orig_ms)
-        if hasattr(new_ms, "set_parameters"):
-            new_ms.set_parameters(shift=shift_val, multiplier=multiplier)
-        else:
-            new_ms.shift = shift_val
-            new_ms.multiplier = multiplier
-        if hasattr(m, "add_object_patch"):
-            m.add_object_patch("model_sampling", new_ms)
-        else:
-            m._hades_model_sampling = new_ms
+    # Copy the model's own sampling object so its type, multiplier and buffers are kept; only the shift changes.
+    new_ms = copy.deepcopy(orig_ms)
+    new_ms.set_parameters(shift=shift_val, multiplier=float(orig_ms.multiplier))
+    m.add_object_patch("model_sampling", new_ms)
 
     # Synchronize any upstream HaDeS NAG sigma window with the newly shifted model_sampling
     nag_state = getattr(m, "model_options", {}).get("_hades_nag_state")
@@ -167,27 +111,6 @@ def _resolve_flow_shift(model, flow_shift: float) -> float:
     if float(flow_shift) > 0.0:
         return float(flow_shift)
     return float(getattr(model.get_model_object("model_sampling"), "shift", 3.0))
-
-
-def _beta_ppf_approx(q: float, alpha: float = 0.5, beta: float = 0.7) -> float:
-    """Fast and accurate numerical inverse of Regularized Incomplete Beta I_x(alpha, beta) = q."""
-    if q <= 0.0:
-        return 0.0
-    if q >= 1.0:
-        return 1.0
-    if scipy is not None and hasattr(scipy, "stats"):
-        return float(scipy.stats.beta.ppf(q, alpha, beta))
-
-    # Singularity-free trigonometric quadrature t = sin^2(theta) on [0, pi/2]
-    n_grid = 1024
-    theta = (torch.arange(n_grid, dtype=torch.float64) + 0.5) * (math.pi / (2.0 * n_grid))
-    sin_t = torch.sin(theta)
-    cos_t = torch.cos(theta)
-    w = (sin_t ** (2.0 * alpha - 1.0)) * (cos_t ** (2.0 * beta - 1.0))
-    cdf = torch.cumsum(w, dim=0)
-    cdf = cdf / cdf[-1]
-    idx = int(torch.searchsorted(cdf, torch.tensor(q, dtype=torch.float64)).clamp(0, n_grid - 1).item())
-    return float((sin_t[idx] ** 2).item())
 
 
 def _time_snr_shift_scalar(shift: float, t: float) -> float:
@@ -239,7 +162,7 @@ def build_anima_sigmas(
         last_s = -1.0
         for i in range(total_steps):
             u = 1.0 - (i / float(total_steps))
-            t_beta = _beta_ppf_approx(u, alpha_b, beta_b)
+            t_beta = float(scipy.stats.beta.ppf(u, alpha_b, beta_b))
             s_val = _time_snr_shift_scalar(shift, t_beta)
             if len(sigs) == 0 or abs(s_val - last_s) > 1e-6:
                 sigs.append(s_val)
@@ -435,14 +358,8 @@ def run_anima_ksampler_pass(
 
     # Map custom scheduler name to a valid base scheduler name for KSampler.__init__, while passing our exact sigmas
     fallback_sched = scheduler if scheduler in BASE_SCHEDULER_LIST else "normal"
-    callback = None
-    if latent_preview is not None and hasattr(latent_preview, "prepare_callback"):
-        try:
-            callback = latent_preview.prepare_callback(patched_model, max(1, len(sigmas) - 1))
-        except Exception:
-            callback = None
-
-    disable_pbar = not getattr(comfy.utils, "PROGRESS_BAR_ENABLED", True)
+    callback = latent_preview.prepare_callback(patched_model, max(1, len(sigmas) - 1))
+    disable_pbar = not comfy.utils.PROGRESS_BAR_ENABLED
 
     samples = comfy.sample.sample(
         patched_model,

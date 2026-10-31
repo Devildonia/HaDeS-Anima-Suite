@@ -583,16 +583,13 @@ class HaDeSAnimaVAEDecode:
             if mp > float(auto_tile_mp_threshold):
                 use_tiled = True
                 tile_reason = f"Auto-Tile ({mp:.2f} MP > {float(auto_tile_mp_threshold):.2f} MP threshold)"
-            elif hasattr(vae, "memory_used_decode") and hasattr(vae, "device"):
-                try:
-                    shape_5d = (latent.shape[0], latent.shape[1], 1, h_lat, w_lat) if latent.ndim == 4 else latent.shape
-                    est_mem = float(vae.memory_used_decode(shape_5d, getattr(vae, "vae_dtype", torch.bfloat16)))
-                    free_mem = float(comfy.model_management.get_free_memory(vae.device))
-                    if free_mem > 0 and est_mem > (free_mem * 0.75):
-                        use_tiled = True
-                        tile_reason = "Auto-Tile (Low Free VRAM Guard)"
-                except Exception:
-                    pass
+            else:
+                shape_5d = (latent.shape[0], latent.shape[1], 1, h_lat, w_lat) if latent.ndim == 4 else latent.shape
+                est_mem = float(vae.memory_used_decode(shape_5d, vae.vae_dtype))
+                free_mem = float(comfy.model_management.get_free_memory(vae.device))
+                if free_mem > 0 and est_mem > (free_mem * 0.75):
+                    use_tiled = True
+                    tile_reason = "Auto-Tile (Low Free VRAM Guard)"
 
         eff_tile_px = max(256, int(tile_size_px))
         eff_overlap_px = min(eff_tile_px // 4, max(32, int(tile_overlap_px)))

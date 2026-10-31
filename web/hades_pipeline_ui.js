@@ -1359,7 +1359,8 @@ export function setupArtistCharacterPickerUI(node) {
     const wRandom = findW("random_artists");
     const wMinPosts = findW("random_min_posts");
     const wSeed = findW("seed");
-    const wControl = findW("control_after_generate");
+    // The frontend names this control after its default value ("fixed"), so reach it through the seed's link
+    const wControl = wSeed?.linkedWidgets?.[0];
 
     [wArtists, wCharacter, wSeries, wRandom, wMinPosts, wSeed, wControl].forEach(hideBackingWidget);
 

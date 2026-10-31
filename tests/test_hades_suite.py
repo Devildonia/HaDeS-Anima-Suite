@@ -75,7 +75,7 @@ def _install_standalone_comfy_stubs():
     comfy.samplers = types.ModuleType("comfy.samplers")
     comfy.samplers.SAMPLER_NAMES = ["er_sde", "euler", "euler_ancestral", "dpmpp_2m_sde_gpu", "dpmpp_2m", "uni_pc"]
     comfy.samplers.SCHEDULER_NAMES = ["normal", "beta", "simple", "sgm_uniform", "karras", "exponential", "ddim_uniform"]
-    comfy.samplers.DISCARD_PENULTIMATE_SIGMA_SAMPLERS = {"dpm_2", "dpm_2_ancestral", "uni_pc", "uni_pc_bh2"}
+    comfy.samplers.KSampler = type("KSampler", (), {"DISCARD_PENULTIMATE_SIGMA_SAMPLERS": {"dpm_2", "dpm_2_ancestral", "uni_pc", "uni_pc_bh2"}})
 
     comfy.model_sampling = types.ModuleType("comfy.model_sampling")
 
@@ -113,6 +113,13 @@ def _install_standalone_comfy_stubs():
     sys.modules["comfy.samplers"] = comfy.samplers
     sys.modules["comfy.model_sampling"] = comfy.model_sampling
 
+    comfy.lora_convert = types.ModuleType("comfy.lora_convert")
+    comfy.lora_convert.convert_lora = lambda sd: sd
+    sys.modules["comfy.lora_convert"] = comfy.lora_convert
+    latent_preview = types.ModuleType("latent_preview")
+    latent_preview.prepare_callback = lambda model, steps, x0_output_dict=None: None
+    sys.modules["latent_preview"] = latent_preview
+
 
 if os.environ.get("HADES_FORCE_STANDALONE_STUBS"):
     _install_standalone_comfy_stubs()
@@ -144,6 +151,10 @@ else:
         import comfy.sample
         import comfy.samplers
         import comfy.model_sampling
+
+# Latent previews need a real model's load_device / latent_format; the dummy patchers have neither
+import latent_preview
+latent_preview.prepare_callback = lambda model, steps, x0_output_dict=None: None
 
 if not hasattr(folder_paths, "get_output_directory"):
     folder_paths.get_output_directory = lambda: tempfile.gettempdir()
@@ -288,6 +299,11 @@ class DummyVAE:
         self.latent_channels = latent_channels
         self.noisy_corner = noisy_corner
         self.last_decode_method = None
+        self.device = torch.device("cpu")
+        self.vae_dtype = torch.float32
+
+    def memory_used_decode(self, shape, dtype):
+        return 0.0
 
     def spacial_compression_decode(self):
         return 8
@@ -643,8 +659,8 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
         raw_pos,
         "worst_quality, low_quality, score_1, score_2, score_3, artist_name",
         clip=clip,
-        character_in="fern",
-        artist_in="(@yalmyu:1.0)",
+        character="fern",
+        artist="(@yalmyu:1.0)",
     )
     assert "score_9" not in fmt_pos and "score_7_up" not in fmt_pos and "masterpiece" not in fmt_pos
     assert "score_1" not in fmt_neg and "worst quality" in fmt_neg, f"Expected score_* stripped from Aesthetic negative prompt, got: {fmt_neg}"
@@ -1651,7 +1667,6 @@ def test_22_anima_suite_telemetry():
 
 
 def test_23_anima_model_saver():
-    import tempfile
     from safetensors import safe_open
 
     saver = hades.HaDeSAnimaModelSaver()
@@ -2051,6 +2066,69 @@ def test_29_artist_character_picker():
     print("[OK] Test 29: HaDeSAnimaArtistCharacterPicker (escaping, weights, Prompt Studio round trip, seeded random) verified")
 
 
+def test_30_audit_regressions():
+    import json
+    from safetensors import safe_open
+
+    # 1. Mergers refuse quantized (int8 / ConvRot) weights instead of silently leaving them out of the merge
+    sd_f = {"diffusion_model.blocks.0.self_attn.q_proj.weight": torch.randn(8, 8)}
+    sd_q = {"diffusion_model.blocks.0.self_attn.q_proj.weight": torch.randint(-127, 127, (8, 8), dtype=torch.int8)}
+    for call in (lambda: hades.apply_model_block_merge(DummyModelPatcher(sd_q), DummyModelPatcher(sd_f), [0.5] * 34, 0.5),
+                 lambda: hades.HaDeSAnimaPredictiveModelMerger().predictive_merge(DummyModelPatcher(sd_f), DummyModelPatcher(sd_q), "Balanced Geometric Fusion", 0.5, 1.0)):
+        try:
+            call()
+            raise AssertionError("quantized weights must raise")
+        except ValueError as e:
+            assert "quantized" in str(e)
+
+    # 2. Picker seed defaults to fixed (randomize re-ran the whole downstream graph every queue); listed artists are never redrawn
+    seed_opts = hades.anima_pipeline_nodes.HaDeSAnimaArtistCharacterPicker.INPUT_TYPES()["required"]["seed"][1]
+    assert seed_opts.get("control_after_generate") == "fixed"
+    with open(os.path.join(hades.anima_pipeline_nodes._CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
+        top = json.load(f)["tags"][:3]
+    listed = ", ".join(["@" + top[0].replace("_", " "), top[1].replace("_", " ") + ":1.1", top[2]])
+    for seed in range(20):
+        _, _, info = hades.anima_pipeline_nodes.HaDeSAnimaArtistCharacterPicker().pick(listed, "", "", 4, 100000, seed)
+        drawn = hades.parse_info_meta(info)["artists"][3:]
+        assert not set(drawn) & set(top), f"seed {seed} redrew a listed artist: {drawn}"
+
+    # 3. Telemetry: LoRA Block Weight counts for adapter protection; no LoRA at all is null, not unsafe
+    tel = hades.HaDeSAnimaSuiteTelemetry()
+    bw = hades.format_info("x", "lora_block_weight", lora="a.safetensors", strength_model=1.0, weights=[1.0] * 6, other_layers=1.0, protect_adapter=False)
+    data = json.loads(tel.audit_telemetry("JSON Raw Data", "bw", info_1=bw)["result"][1])
+    assert data["extracted_telemetry"]["llm_adapter_safe"] is False
+    assert any("strip_llm_adapter" in i["message"] for i in data["diagnostics"]["issues"])
+    ks = hades.format_info("x", "ksampler", width=1024, height=1024, steps=20, cfg=4.5, flow_shift=3.0, sampler="euler", scheduler="normal")
+    data = json.loads(tel.audit_telemetry("JSON Raw Data", "none", info_1=ks)["result"][1])
+    assert data["extracted_telemetry"]["llm_adapter_safe"] is None
+
+    # 4. LoRA Resize passes DoRA layers through unchanged
+    pfx = "diffusion_model.blocks.0.self_attn.q_proj"
+    lora = {f"{pfx}.lora_up.weight": torch.randn(16, 8), f"{pfx}.lora_down.weight": torch.randn(8, 12), f"{pfx}.dora_scale": torch.ones(16, 1),
+            "diffusion_model.blocks.1.mlp.layer1.lora_up.weight": torch.randn(16, 8), "diffusion_model.blocks.1.mlp.layer1.lora_down.weight": torch.randn(8, 12)}
+    with tempfile.TemporaryDirectory() as tmpdir:
+        safetensors.torch.save_file(lora, os.path.join(tmpdir, "dora.safetensors"))
+        orig_get_full_path = folder_paths.get_full_path_or_raise
+        folder_paths.get_full_path_or_raise = lambda folder, name: os.path.join(tmpdir, name)
+        try:
+            node = hades.HaDeSAnimaLoraResize()
+            node.output_dir = tmpdir
+            path, _ = node.resize_lora("dora.safetensors", 4, "dora_out")
+            with safe_open(path, framework="pt") as f:
+                assert f.get_tensor(f"{pfx}.lora_down.weight").shape[0] == 8, "DoRA layer must not be resized"
+                assert f.get_tensor("diffusion_model.blocks.1.mlp.layer1.lora_down.weight").shape[0] == 4
+        finally:
+            folder_paths.get_full_path_or_raise = orig_get_full_path
+
+    # 5. Flow shift clone: single path keeps the model's own sampling object type / multiplier and leaves the original untouched
+    m = DummyModelPatcher({"blocks.0.weight": torch.ones(2, 2)})
+    m.add_object_patch("model_sampling", DummyModelSampling(shift=3.0, multiplier=1000.0))
+    ms = hades.clone_model_with_anima_shift(m, 4.0).get_model_object("model_sampling")
+    assert isinstance(ms, DummyModelSampling) and ms.shift == 4.0 and ms.multiplier == 1000.0
+    assert m.get_model_object("model_sampling").shift == 3.0
+    print("[OK] Test 30: audit regressions (quantized merge guard, picker seed / dedupe, Telemetry adapter flags, Resize DoRA, shift clone) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -2081,4 +2159,5 @@ if __name__ == "__main__":
     test_27_lora_block_weight()
     test_28_lora_resize()
     test_29_artist_character_picker()
-    print("\nALL 29 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_30_audit_regressions()
+    print("\nALL 30 HADES ANIMA SUITE TEST SUITES PASSED!")

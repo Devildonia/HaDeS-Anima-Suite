@@ -13,13 +13,9 @@ import comfy.lora
 import comfy.model_management
 import comfy.model_patcher
 import comfy.quant_ops
+import comfy.lora_convert
 
-try:
-    import comfy.lora_convert
-    _convert_lora_fn = comfy.lora_convert.convert_lora
-except ImportError:
-    def _convert_lora_fn(sd):
-        return sd
+_convert_lora_fn = comfy.lora_convert.convert_lora
 
 __version__ = "0.3.2"
 
@@ -492,6 +488,16 @@ def compute_subspace_metrics(up1, down1, scale1, up2, down2, scale2):
     }
 
 
+def require_unquantized(key, *weights):
+    """Raw state_dict weights of quantized (int8 / ConvRot) models are not values that can be blended."""
+    for w in weights:
+        if key.endswith(".weight") and not (w.is_floating_point() or w.dtype in _FP8_DTYPES):
+            raise ValueError(
+                f"HaDeS Anima Merger: '{key}' is quantized ({w.dtype}); load both models unquantized "
+                f"(e.g. the bf16 checkpoint) to merge them."
+            )
+
+
 def apply_model_block_merge(model1, model2, block_ratios_34, fallback_ratio):
     m = model1.clone()
     base_sd1 = m.model.state_dict()
@@ -513,6 +519,7 @@ def apply_model_block_merge(model1, model2, block_ratios_34, fallback_ratio):
         base_w2 = base_sd2[k]
         if base_w1.shape != base_w2.shape:
             raise ValueError(f"HaDeS Anima Merger: Tensor shape mismatch on key '{k}': {tuple(base_w1.shape)} vs {tuple(base_w2.shape)}.")
+        require_unquantized(k, base_w1, base_w2)
 
         if k.endswith(".scale_weight") or not (base_w1.is_floating_point() or base_w1.dtype in _FP8_DTYPES):
             continue
@@ -672,6 +679,7 @@ class HaDeSAnimaPredictiveModelMerger:
                 continue
             if valid_keys is not None and k not in valid_keys:
                 continue
+            require_unquantized(k, base_w1, base_sd2[k])
             if k.endswith(".scale_weight") or not (base_w1.is_floating_point() or base_w1.dtype in _FP8_DTYPES):
                 continue
 
@@ -1802,7 +1810,7 @@ class HaDeSAnimaLoraResize:
         for down_k in [k for k in sd if k.endswith(".lora_down.weight")]:
             pfx = down_k[:-len(".lora_down.weight")]
             up_k, alpha_k = f"{pfx}.lora_up.weight", f"{pfx}.alpha"
-            if up_k not in sd or sd[down_k].ndim != 2:
+            if up_k not in sd or sd[down_k].ndim != 2 or f"{pfx}.dora_scale" in sd:
                 continue
             up, down = sd[up_k], sd[down_k]
             rank = down.shape[0]

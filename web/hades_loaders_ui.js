@@ -1,6 +1,5 @@
 import {
     HADES_THEME,
-    formatCleanLabel,
     setWidgetValue,
     drawRoundedRect,
     hideBackingWidget,

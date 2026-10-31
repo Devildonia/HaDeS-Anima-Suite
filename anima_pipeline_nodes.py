@@ -575,14 +575,7 @@ class HaDeSAnimaPromptStudio:
                        clip=None, artist=None, character=None,
                        header_mode="Canonical (1 Trigger + Title)",
                        header_trigger="ye-pop",
-                       artwork_title="",
-                       artist_in=None, character_in=None):
-        # Backwards-compatibility fallback for legacy socket names
-        if artist is None and artist_in is not None:
-            artist = artist_in
-        if character is None and character_in is not None:
-            character = character_in
-
+                       artwork_title=""):
         # Merge external sockets with inline widgets without duplicates
         merged_chars = []
         for src in (character, character_tag):
@@ -669,7 +662,7 @@ class HaDeSAnimaArtistCharacterPicker:
                 "series": ("STRING", {"default": "", "tooltip": "Danbooru copyright / series tag (e.g. vocaloid)."}),
                 "random_artists": ("INT", {"default": 0, "min": 0, "max": 4, "tooltip": "Extra artists drawn from the local catalog by seed."}),
                 "random_min_posts": ("INT", {"default": 200, "min": 20, "max": 20000, "step": 10, "tooltip": "Only draw random artists with at least this many Danbooru posts."}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": "fixed"}),
             },
         }
 
@@ -684,7 +677,7 @@ class HaDeSAnimaArtistCharacterPicker:
         if random_artists > 0:
             with open(os.path.join(_CATALOG_DIR, "anima_artists.json"), encoding="utf-8") as f:
                 catalog = json.load(f)
-            taken = {_PICKER_WEIGHT_RE.sub(r"\1", a).lower() for a in chosen}
+            taken = {_PICKER_WEIGHT_RE.sub(r"\1", a).replace("\\", "").lstrip("@").strip().lower().replace(" ", "_") for a in chosen}
             pool = [t for t, c in zip(catalog["tags"], catalog["counts"]) if c >= random_min_posts and t not in taken]
             drawn = random.Random(seed).sample(pool, min(random_artists, len(pool)))
 
@@ -1551,14 +1544,14 @@ class HaDeSAnimaSuiteTelemetry:
                 vae_channels = meta["latent_channels"]
             elif kind == "corner_shield":
                 corner_status = ", ".join(meta["detected"]) if meta["detected"] else "Clean (Low HF Energy)"
-            elif kind in ("lora_remapper", "lora_merger") or (kind == "multi_lora" and meta["active_loras"] > 0):
+            elif kind in ("lora_remapper", "lora_merger", "lora_block_weight") or (kind == "multi_lora" and meta["active_loras"] > 0):
                 lora_protect_flags.append(bool(meta["protect_adapter"]))
-        # The canvas the user picked (Latent node) is what the 32px check is about; fall back to sampler / decode sizes.
+        # The canvas the user picked (Latent node) is what the grid check is about; fall back to sampler / decode sizes.
         for kind in ("latent", "ksampler", "vae_decode"):
             if kind in meta_res:
                 res_w, res_h = meta_res[kind]
                 break
-        llm_adapter_safe = bool(lora_protect_flags) and all(lora_protect_flags)
+        llm_adapter_safe = all(lora_protect_flags) if lora_protect_flags else None
 
         # 4. Run automated diagnostic checks
         checks = []
