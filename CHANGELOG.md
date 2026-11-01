@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.2] - 2026-11-01
 
 ### Added
 - **Frontend test in a headless browser** (`tests/frontend_test.py` + `tests/frontend_checks.js`): creates all 24 nodes in the classic canvas and in Nodes 2.0 on a real ComfyUI and checks the LiteGraph internals the HaDeS widgets rely on (native widgets hidden, links dropped on a row reaching its input, sockets on their rows, complete vanilla view, dropdown filter box) plus browser errors from the pack. CI runs it with Playwright's Chromium against the latest ComfyUI frontend. Reverting each of the recent frontend fixes makes it fail.
