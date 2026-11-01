@@ -335,7 +335,8 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
 │   └── ABLATION_RESULTS.md   # Measured results
 ├── tests/
-│   └── test_hades_suite.py   # 31 test suites (standalone stubs or real ComfyUI)
+│   ├── test_hades_suite.py   # 31 test suites (standalone stubs or real ComfyUI)
+│   └── smoke_test.py         # Boots a real ComfyUI server and runs graphs through it
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── LICENSE
@@ -351,6 +352,14 @@ python tests/test_hades_suite.py
 ```
 
 Set `HADES_FORCE_STANDALONE_STUBS=1` to run against the bundled stubs instead of a ComfyUI install.
+
+The smoke test starts a real ComfyUI with only this pack loaded, checks that all nodes and web files register and runs a graph through the execution engine (CI does this on CPU with the latest ComfyUI):
+
+```bash
+python tests/smoke_test.py --comfy-dir /path/to/ComfyUI
+```
+
+Add `--models --lora <an Anima LoRA>` to also merge, apply a LoRA, sample, extract a LoRA and save a ConvRot INT8 checkpoint with real Anima models (defaults: `anima-base-v1.0`, `anima-aesthetic-v1.1`, `qwen_3_06b_base`, `qwen_image_vae`; override with `--unet`, `--unet2`, `--clip`, `--vae`). Run it from the ComfyUI environment before a release.
 
 ---
 

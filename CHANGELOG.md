@@ -7,6 +7,9 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Smoke test against a real ComfyUI** (`tests/smoke_test.py`): boots ComfyUI with only this pack, checks that all 24 nodes and web files register and runs a graph through the real execution engine; CI runs it on CPU against the latest ComfyUI. `--models` adds a release check with real Anima models (merge, LoRA, sampling, LoRA extraction, ConvRot INT8 save); it reproduces the 0.3.9 LoRA Extractor bf16 failure when that fix is reverted.
+
 ### Changed
 - **Mergers no longer keep merged copies of the model in RAM:** Model Block Merger, Predictive Model Merger and CLIP Merger stored every merged tensor as a CPU copy (~6 GiB per DiT merge). They now add lazy merge patches that reference both models and are evaluated when the model loads. Measured on the Merge example: peak RAM +21.7 GiB -> +8.3 GiB, one Block Merger +6.0 GiB -> ~0, CLIP Merger +1.2 GiB -> ~0. Output is bit-identical to 0.4.0 (same images for the same seed, LoRA-patched inputs included).
 

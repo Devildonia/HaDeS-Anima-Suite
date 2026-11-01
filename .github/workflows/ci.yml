@@ -42,3 +42,31 @@ jobs:
       - name: Show result
         if: always()
         run: echo "=== HaDeS Anima Suite CI ==="
+
+  smoke:
+    # Real ComfyUI (latest), this pack only, CPU: node registration + a graph through the real execution engine
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ComfyUI
+        uses: actions/checkout@v4
+        with:
+          repository: comfyanonymous/ComfyUI
+          path: ComfyUI
+
+      - name: Checkout this pack into custom_nodes
+        uses: actions/checkout@v4
+        with:
+          path: ComfyUI/custom_nodes/Comfyui-HaDeS-Anima-BlockMerger
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ComfyUI
+        run: |
+          pip install --upgrade pip
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -r ComfyUI/requirements.txt
+
+      - name: Smoke test
+        run: python ComfyUI/custom_nodes/Comfyui-HaDeS-Anima-BlockMerger/tests/smoke_test.py --comfy-dir ComfyUI --cpu
