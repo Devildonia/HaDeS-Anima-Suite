@@ -7,6 +7,9 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- **Mergers no longer keep merged copies of the model in RAM:** Model Block Merger, Predictive Model Merger and CLIP Merger stored every merged tensor as a CPU copy (~6 GiB per DiT merge). They now add lazy merge patches that reference both models and are evaluated when the model loads. Measured on the Merge example: peak RAM +21.7 GiB -> +8.3 GiB, one Block Merger +6.0 GiB -> ~0, CLIP Merger +1.2 GiB -> ~0. Output is bit-identical to 0.4.0 (same images for the same seed, LoRA-patched inputs included).
+
 ### Fixed
 - **Picker lost `seed` and `control after generate` in the vanilla view:** the seed widgets were hidden twice, and the second pass stored the hidden stubs as their originals, so switching to the vanilla (classic ComfyUI) view left them at zero height. Hiding a backing widget is now idempotent.
 

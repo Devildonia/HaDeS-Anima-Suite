@@ -14,6 +14,7 @@ import comfy.model_management
 import comfy.model_patcher
 import comfy.quant_ops
 import comfy.lora_convert
+import comfy.weight_adapter
 
 _convert_lora_fn = comfy.lora_convert.convert_lora
 
@@ -488,6 +489,30 @@ def compute_subspace_metrics(up1, down1, scale1, up2, down2, scale2):
     }
 
 
+def _key_patches_weight(key_patches, device, key):
+    """One get_key_patches() entry baked like a saved model: patches applied in float32, rounded to the stored dtype."""
+    (w, convert), patches = key_patches[0], key_patches[1:]
+    baked = comfy.lora.calculate_weight(patches, convert(comfy.model_management.cast_to_device(w, device, torch.float32, copy=True), inplace=True), key)
+    return baked.to(w.dtype).float()
+
+
+class AnimaMergeAdapter(comfy.weight_adapter.WeightAdapterBase):
+    """Lazy merge patch: (1 - ratio) * model1 + ratio * model2, each with its own patches, computed in float32 at load time
+    and rounded to model1's storage dtype, so the loaded weights match a merge baked into that dtype. Both sides start from
+    the stored tensors: the incoming weight may already be cast to a lossy compute dtype (fp16 lora_compute_dtype)."""
+    name = "hades_merge"
+
+    def __init__(self, loaded_keys, weights):
+        self.loaded_keys = loaded_keys
+        self.weights = weights  # (model1 key patches, model2 key patches, ratio, model1 storage dtype)
+
+    def calculate_weight(self, weight, key, strength, strength_model, offset, function, intermediate_dtype=torch.float32, original_weight=None):
+        key_patches1, key_patches2, ratio, storage_dtype = self.weights
+        w1 = _key_patches_weight(key_patches1, weight.device, key)
+        w2 = _key_patches_weight(key_patches2, weight.device, key)
+        return (w1 + (w2 - w1) * ratio).to(storage_dtype).to(weight.dtype)
+
+
 def require_unquantized(key, *weights):
     """Raw state_dict weights of quantized (int8 / ConvRot) models are not values that can be blended."""
     for w in weights:
@@ -503,9 +528,11 @@ def apply_model_block_merge(model1, model2, block_ratios_34, fallback_ratio):
     base_sd1 = m.model.state_dict()
     base_sd2 = model2.model.state_dict()
     valid_keys = m.model_keys if hasattr(m, "model_keys") else None
+    # Both models' stored weights plus their patches, merged lazily at load time (no merged copies in RAM)
+    key_patches1 = m.get_key_patches("diffusion_model.")
+    key_patches2 = model2.get_key_patches("diffusion_model.")
 
     n_dit, n_adapter = detect_anima_topology(base_sd1.keys())
-    patches_to_add = {}
     merged_tensors = 0
     compatible_keys = 0
     warned_fp8 = False
@@ -534,23 +561,13 @@ def apply_model_block_merge(model1, model2, block_ratios_34, fallback_ratio):
 
         if abs(target_ratio) > 1e-5:
             patch_key = f"diffusion_model.{k}" if not k.startswith("diffusion_model.") else k
-            baked1_float = get_baked_weight(m, patch_key, base_w1).float()
-            baked2_float = get_baked_weight(model2, patch_key, base_w2).to(baked1_float.device).float()
-
-            if torch.equal(baked1_float, baked2_float):
+            if patch_key not in m.patches and patch_key not in model2.patches and torch.equal(base_w1, base_w2):
                 continue
-
-            v_modified = baked1_float + ((baked2_float - baked1_float) * target_ratio)
-            v_target = v_modified.to(base_w1.dtype)
-
-            patches_to_add[patch_key] = ("set", (v_target.cpu(),))
+            m.add_patches({patch_key: AnimaMergeAdapter(set(), (key_patches1[patch_key], key_patches2[patch_key], target_ratio, base_w1.dtype))}, 1.0)
             merged_tensors += 1
 
     if compatible_keys == 0:
         raise ValueError("HaDeS Anima Merger: model1 and model2 share 0 compatible floating-point tensors.")
-
-    if patches_to_add:
-        m.add_patches(patches_to_add, 1.0)
 
     return m, merged_tensors, (n_dit, n_adapter)
 
@@ -1905,7 +1922,8 @@ class HaDeSAnimaCLIPBlockMerger:
         c = clip1.clone()
         base_sd1 = c.patcher.model.state_dict()
         base_sd2 = clip2.patcher.model.state_dict()
-        patches_to_add = {}
+        key_patches1 = c.patcher.get_key_patches()
+        key_patches2 = clip2.patcher.get_key_patches()
         merged_blocks = 0
         compatible_keys = 0
         valid_keys = c.patcher.model_keys if hasattr(c.patcher, "model_keys") else None
@@ -1953,24 +1971,14 @@ class HaDeSAnimaCLIPBlockMerger:
                         target_ratio = style_abstraction
 
             if abs(target_ratio) > 1e-5:
-                patch_key = k
-                baked1_float = get_baked_weight(c.patcher, patch_key, base_w1).float()
-                baked2_float = get_baked_weight(clip2.patcher, patch_key, base_w2).to(baked1_float.device).float()
-
-                if torch.equal(baked1_float, baked2_float):
+                if k not in c.patcher.patches and k not in clip2.patcher.patches and torch.equal(base_w1, base_w2):
                     continue
-
-                v_modified = baked1_float + ((baked2_float - baked1_float) * target_ratio)
-                v_target = v_modified.to(base_w1.dtype)
-
-                patches_to_add[patch_key] = ("set", (v_target.cpu(),))
+                c.patcher.add_patches({k: AnimaMergeAdapter(set(), (key_patches1[k], key_patches2[k], target_ratio, base_w1.dtype))}, 1.0)
                 merged_blocks += 1
 
         if compatible_keys == 0:
             raise ValueError("HaDeS CLIP Merger: clip1 and clip2 share 0 compatible tensors.")
 
-        if patches_to_add:
-            c.patcher.add_patches(patches_to_add, 1.0)
         return (c, format_info(
             f"HaDeS Anima CLIP Merged | Depth: {n_clip_layers}L (0..{early_cutoff-1} / {early_cutoff}..{mid_cutoff-1} / {mid_cutoff}+) | Modified Tensors: {merged_blocks}",
             "clip_merger", n_layers=n_clip_layers, modified_tensors=merged_blocks,

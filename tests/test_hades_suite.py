@@ -56,6 +56,10 @@ def _install_standalone_comfy_stubs():
     comfy.model_management.intermediate_device = lambda: torch.device("cpu")
     comfy.model_management.get_free_memory = lambda dev=None: 8 * (1024 ** 3)
     comfy.model_management.load_models_gpu = lambda models, **kw: None
+    comfy.model_management.cast_to_device = lambda t, device, dtype, copy=False: t.to(device=device, dtype=dtype, copy=copy)
+
+    comfy.weight_adapter = types.ModuleType("comfy.weight_adapter")
+    comfy.weight_adapter.WeightAdapterBase = type("WeightAdapterBase", (), {})
 
     comfy.model_patcher = types.ModuleType("comfy.model_patcher")
 
@@ -112,6 +116,7 @@ def _install_standalone_comfy_stubs():
     sys.modules["comfy.sample"] = comfy.sample
     sys.modules["comfy.samplers"] = comfy.samplers
     sys.modules["comfy.model_sampling"] = comfy.model_sampling
+    sys.modules["comfy.weight_adapter"] = comfy.weight_adapter
 
     comfy.lora_convert = types.ModuleType("comfy.lora_convert")
     comfy.lora_convert.convert_lora = lambda sd: sd
@@ -239,6 +244,14 @@ class DummyModelPatcher:
         for k, v in patches.items():
             self.patches.setdefault(k, []).append((strength_patch, v, strength_model, None, None))
 
+    def get_key_patches(self, filter_prefix=None):
+        # Mirrors ComfyUI: [(stored weight, convert_func)] + the key's patches. Dummy state dicts may omit "diffusion_model."
+        out = {}
+        for k, v in self.model.state_dict().items():
+            pk = k if filter_prefix is None or k.startswith(filter_prefix) else filter_prefix + k
+            out[pk] = [(v, lambda a, **kw: a)] + self.patches.get(pk, [])
+        return out
+
     def set_model_patch(self, patch, name):
         to = self.model_options["transformer_options"]
         to.setdefault("patches", {})
@@ -261,8 +274,10 @@ class DummyModelPatcher:
 
     def calculate_weight(self, patches, weight, key):
         out = weight.clone()
-        for strength, v, _, _, _ in patches:
-            if isinstance(v, tuple) and len(v) == 2 and v[0] == "diff":
+        for strength, v, strength_model, offset, function in patches:
+            if isinstance(v, comfy.weight_adapter.WeightAdapterBase):
+                out = v.calculate_weight(out, key, strength, strength_model, offset, function)
+            elif isinstance(v, tuple) and len(v) == 2 and v[0] == "diff":
                 out += strength * v[1][0].to(out.device, out.dtype)
             elif isinstance(v, tuple) and len(v) == 2 and v[0] == "set":
                 out.copy_(v[1][0].to(out.device, out.dtype))
@@ -506,6 +521,17 @@ def test_3_reactive_predictive_model_merger_and_llm_adapter_lock():
     m_same2 = DummyModelPatcher(sd1)
     _, merged_same, _ = hades.apply_model_block_merge(m_same1, m_same2, [0.5] * 34, 0.5)
     assert merged_same == 0, f"Expected 0 patches for identical model weights, got {merged_same}"
+
+    # Lazy merge: the patch references model2's stored tensor (no merged copy in RAM) and bakes to w1 + (w2 - w1) * r
+    k_mlp = "blocks.3.mlp.weight"
+    m_lazy, n_lazy, _ = hades.apply_model_block_merge(DummyModelPatcher(sd1), m2, [0.3] * 34, 0.3)
+    assert n_lazy > 0
+    adapter = m_lazy.patches["diffusion_model." + k_mlp][0][1]
+    assert isinstance(adapter, hades.AnimaMergeAdapter)
+    assert adapter.weights[1][0][0] is m2.model.state_dict()[k_mlp], "merge patch must reference model2's tensor, not a copy"
+    w1, w2 = sd1[k_mlp].float(), sd2[k_mlp].float()
+    baked = m_lazy.calculate_weight(m_lazy.patches["diffusion_model." + k_mlp], sd1[k_mlp], k_mlp)
+    assert torch.equal(baked, (w1 + (w2 - w1) * 0.3).to(sd1[k_mlp].dtype)), "lazy merge must match the baked formula"
 
     # Task Vectors test
     _, info_tv = pred.predictive_merge(
