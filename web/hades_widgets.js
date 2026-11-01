@@ -1087,6 +1087,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
                 new LiteGraph.ContextMenu(entries, {
                     event,
                     title: label || backingWidget.name,
+                    className: "dark",
                     scale: Math.max(1, app.canvas?.ds?.scale || 1),
                     callback: (selected) => {
                         if (selected !== undefined) {
@@ -1784,6 +1785,7 @@ export function createSlotRowWidget(node, slotIndex, wOn, wLora, wStrength, wEna
                     new LiteGraph.ContextMenu(values, {
                         event,
                         title: `Slot ${slotIndex} LoRA`,
+                        className: "dark",
                         scale: Math.max(1, app.canvas?.ds?.scale || 1),
                         callback: (selected) => {
                             if (wLora && selected !== undefined) {
