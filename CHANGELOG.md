@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.0] - 2026-11-01
 
 ### Added
 - **Type-to-filter in every suite dropdown:** model, LoRA, text encoder, VAE and option lists now show ComfyUI's native "Filter list" box (type to narrow, arrows to move, Enter to pick), the same one core combos use.

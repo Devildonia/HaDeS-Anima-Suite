@@ -17,7 +17,7 @@ import comfy.lora_convert
 
 _convert_lora_fn = comfy.lora_convert.convert_lora
 
-__version__ = "0.3.9"
+__version__ = "0.4.0"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 
