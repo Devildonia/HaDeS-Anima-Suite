@@ -489,6 +489,11 @@ def compute_subspace_metrics(up1, down1, scale1, up2, down2, scale2):
     }
 
 
+def _same_weight(a, b):
+    """Exact equality of two stored weights that may sit on different devices (one model already loaded on the GPU)."""
+    return torch.equal(a, b.to(a.device))
+
+
 def _key_patches_weight(key_patches, device, key):
     """One get_key_patches() entry baked like a saved model: patches applied in float32, rounded to the stored dtype."""
     (w, convert), patches = key_patches[0], key_patches[1:]
@@ -561,7 +566,7 @@ def apply_model_block_merge(model1, model2, block_ratios_34, fallback_ratio):
 
         if abs(target_ratio) > 1e-5:
             patch_key = f"diffusion_model.{k}" if not k.startswith("diffusion_model.") else k
-            if patch_key not in m.patches and patch_key not in model2.patches and torch.equal(base_w1, base_w2):
+            if patch_key not in m.patches and patch_key not in model2.patches and _same_weight(base_w1, base_w2):
                 continue
             m.add_patches({patch_key: AnimaMergeAdapter(set(), (key_patches1[patch_key], key_patches2[patch_key], target_ratio, base_w1.dtype))}, 1.0)
             merged_tensors += 1
@@ -1971,7 +1976,7 @@ class HaDeSAnimaCLIPBlockMerger:
                         target_ratio = style_abstraction
 
             if abs(target_ratio) > 1e-5:
-                if k not in c.patcher.patches and k not in clip2.patcher.patches and torch.equal(base_w1, base_w2):
+                if k not in c.patcher.patches and k not in clip2.patcher.patches and _same_weight(base_w1, base_w2):
                     continue
                 c.patcher.add_patches({k: AnimaMergeAdapter(set(), (key_patches1[k], key_patches2[k], target_ratio, base_w1.dtype))}, 1.0)
                 merged_blocks += 1

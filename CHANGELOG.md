@@ -5,6 +5,13 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Model Block Merger, Predictive Model Merger and CLIP Merger failed on a re-run** (since 0.4.1) with `Expected all tensors to be on the same device`: after a first run left one model loaded on the GPU, the check that skips identical tensors compared it with a model still on the CPU. Typical case: change a merge ratio and queue again. The comparison now brings both weights to one device. The smoke test's model graph re-runs the merge with the models loaded.
+
+---
+
 ## [0.4.2] - 2026-11-01
 
 ### Added

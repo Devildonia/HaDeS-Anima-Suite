@@ -181,10 +181,13 @@ def check_models(object_info, server, args):
         saved = outputs[saver]["saved_path"][0]
         assert os.path.getsize(saved) > 1 << 30, saved
         assert os.path.getsize(lora_path) > 0, lora_path
+        # Same graph with a new ratio: the merger now runs while its models are already loaded on the GPU
+        g.prompt[merged]["inputs"]["BLOCKS_Art_Style_Medium"] = 0.45
+        server.run(g.prompt)
     finally:
         if os.path.basename(lora_path) == "hades_smoke_extract.safetensors" and os.path.exists(lora_path):
             os.remove(lora_path)
-    print(f"[OK] model graph ({time.time() - t0:.0f}s): merge + LoRA + NAG -> sample -> decode, extract, ConvRot INT8 save")
+    print(f"[OK] model graph ({time.time() - t0:.0f}s): merge + LoRA + NAG -> sample -> decode, extract, ConvRot INT8 save, re-merge with loaded models")
 
 
 def main():
