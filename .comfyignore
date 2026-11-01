@@ -1,0 +1,6 @@
+# Left out of the Comfy Registry package (comfy node publish); they stay in the GitHub repo and CI
+tests/
+.github/
+tools/*
+# Measurements cited by the README and the node tooltips
+!tools/ABLATION_RESULTS.md

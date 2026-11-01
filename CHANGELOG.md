@@ -5,6 +5,13 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **Registry package no longer ships tests, tools and CI:** `comfy node publish` packs every git-tracked file, so `tests/`, `tools/anima_ablation.py` and `.github/` went to every Comfy Registry install. A `.comfyignore` now leaves them out (they stay on GitHub); `tools/ABLATION_RESULTS.md` stays in the package because the README and node tooltips cite it.
+
+---
+
 ## [0.4.4] - 2026-11-01
 
 ### Fixed
