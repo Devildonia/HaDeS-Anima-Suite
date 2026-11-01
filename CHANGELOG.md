@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.3] - 2026-11-01
 
 ### Added
 - **Anima Multi-Model Merger** (node 25): merges 2–4 models with TIES, DARE, DARE-TIES, Task Arithmetic or Model Stock against a `base_model`, or SLERPs two models, with per-model weights, `density`, `scale`, a DARE `seed` and the `llm_adapter` kept from the base by default. It uses the same lazy merge patches as the other mergers: merging 4 models measured about +0.05 GiB of RAM, and sampling ~3 s slower than one model at 1024². Which method gives better images is not measured. The Merge example gains a SLERP branch and telemetry knows the node.
