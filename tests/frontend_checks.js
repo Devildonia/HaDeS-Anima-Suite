@@ -12,7 +12,7 @@ async (mode) => {
     LGraphCanvas.active_canvas = app.canvas;
 
     const types = Object.keys(LiteGraph.registered_node_types).filter((t) => t.startsWith("HaDeSAnima")).sort();
-    if (types.length !== 24) fail(`expected 24 HaDeS node types, got ${types.length}`);
+    if (types.length !== 25) fail(`expected 25 HaDeS node types, got ${types.length}`);
 
     const nodes = [];
     let x = 0;

@@ -119,7 +119,7 @@ class Graph:
 
 def check_registration(object_info, server):
     hades = sorted(k for k in object_info if k.startswith("HaDeSAnima"))
-    assert len(hades) == 24, f"expected 24 HaDeS nodes, got {len(hades)}: {hades}"
+    assert len(hades) == 25, f"expected 25 HaDeS nodes, got {len(hades)}: {hades}"
     assert "IMPORT FAILED" not in server.tail(400), server.tail()
     served = server.get("/extensions")
     missing = [f for f in WEB_FILES if not any(e.endswith(f"/{PACK_NAME}/{f}") for e in served)]

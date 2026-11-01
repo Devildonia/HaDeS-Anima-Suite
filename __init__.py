@@ -4,6 +4,7 @@ import json
 import math
 import logging
 import datetime
+import zlib
 import torch
 import folder_paths
 import safetensors.torch
@@ -33,6 +34,7 @@ HADES_META_PREFIX = "HADES_META "
 HADES_META_SCHEMA = {
     "model_block_merger": ("mode", "n_dit", "n_adapter", "modified_tensors"),
     "predictive_model_merger": ("preset", "n_dit", "n_adapter", "modified_tensors", "protect_adapter"),
+    "multi_model_merger": ("method", "models", "density", "scale", "modified_tensors", "protect_adapter"),
     "multi_lora": ("active_loras", "protect_adapter"),
     "lora_merger": ("saved_path", "rank", "protect_adapter"),
     "lora_extractor": ("saved_path", "rank", "layers", "energy_kept", "include_adapter"),
@@ -831,6 +833,206 @@ class HaDeSAnimaPredictiveModelMerger:
         return (m, format_info(
             "\n".join(info_lines), "predictive_model_merger", preset=preset, n_dit=n_dit, n_adapter=n_adapter,
             modified_tensors=merged_blocks, protect_adapter=bool(protect_llm_adapter),
+        ))
+
+
+# ==============================================================================
+# 25. HADES ANIMA MULTI-MODEL MERGER (TIES / DARE / MODEL STOCK / SLERP)
+# ==============================================================================
+MULTI_MERGE_METHODS = ("TIES", "DARE-TIES", "DARE", "Task Arithmetic", "Model Stock", "SLERP")
+
+
+def _ties_trim(tau, density):
+    """Keep the `density` fraction of entries with the largest magnitude."""
+    k = int(tau.numel() * density)
+    if k >= tau.numel():
+        return tau
+    if k <= 0:
+        return torch.zeros_like(tau)
+    # The (n - k)-th smallest magnitude; a sort is ~40x faster than kthvalue on CUDA for these sizes
+    threshold = tau.abs().flatten().sort().values[tau.numel() - k - 1]
+    return tau * (tau.abs() > threshold)
+
+
+def _dare_drop(tau, density, generator):
+    """Drop entries with probability 1 - density and rescale the rest, so the expected task vector is unchanged."""
+    keep = torch.rand(tau.shape, generator=generator, device=tau.device) < density
+    return tau * keep / density
+
+
+def _sign_consensus(taus):
+    """TIES merge: elect each entry's sign from the summed task vectors, then average only the agreeing ones."""
+    stacked = torch.stack(taus)
+    sign = torch.sign(stacked.sum(0))
+    agree = (torch.sign(stacked) == sign) & (stacked != 0)
+    return (stacked * agree).sum(0) / agree.sum(0).clamp(min=1)
+
+
+def _slerp(a, b, t):
+    """Spherical interpolation of two whole weight tensors; linear when they are (nearly) parallel."""
+    cos = torch.nn.functional.cosine_similarity(a.flatten(), b.flatten(), dim=0).clamp(-1.0, 1.0)
+    omega = torch.arccos(cos)
+    if float(omega) < 1e-4:
+        return a + (b - a) * t
+    so = torch.sin(omega)
+    return a * (torch.sin((1.0 - t) * omega) / so) + b * (torch.sin(t * omega) / so)
+
+
+def multi_merge_tensor(method, base, thetas, weights, density, scale, generators=None):
+    """One tensor of a multi-model merge, in float32. `base` is None for SLERP; every other method works on task
+    vectors (model - base). Weighted methods are normalized by the weight sum, so scale 1.0 has the strength of an
+    average and higher values extrapolate."""
+    if method == "SLERP":
+        return _slerp(thetas[0], thetas[1], weights[1] / (weights[0] + weights[1]))
+    taus = [theta - base for theta in thetas]
+    if method == "Model Stock":
+        # Jang et al. 2024: interpolate between the average and the base by the angle between the task vectors
+        n = len(taus)
+        flat = [tau.flatten() for tau in taus]
+        cos = [float(torch.nn.functional.cosine_similarity(flat[i], flat[j], dim=0)) for i in range(n) for j in range(i + 1, n)]
+        c = max(0.0, sum(cos) / len(cos))
+        t = n * c / (1.0 + (n - 1) * c)
+        return base + t * torch.stack(taus).mean(0)
+    total = sum(weights)
+    taus = [tau * (w * len(weights) / total) for tau, w in zip(taus, weights)]
+    if method in ("DARE", "DARE-TIES"):
+        taus = [_dare_drop(tau, density, g) for tau, g in zip(taus, generators)]
+    if method == "TIES":
+        taus = [_ties_trim(tau, density) for tau in taus]
+    if method in ("TIES", "DARE-TIES"):
+        return base + scale * _sign_consensus(taus)
+    return base + scale * torch.stack(taus).mean(0)
+
+
+class AnimaMultiMergeAdapter(comfy.weight_adapter.WeightAdapterBase):
+    """Lazy multi-model merge patch, evaluated at load time like AnimaMergeAdapter (no merged copies in RAM)."""
+    name = "hades_multi_merge"
+
+    def __init__(self, loaded_keys, weights):
+        self.loaded_keys = loaded_keys
+        # (base key patches or None, model key patches, model weights, method, density, scale, seed, storage dtype)
+        self.weights = weights
+
+    def calculate_weight(self, weight, key, strength, strength_model, offset, function, intermediate_dtype=torch.float32, original_weight=None):
+        base_kp, model_kps, model_weights, method, density, scale, seed, storage_dtype = self.weights
+        device = weight.device
+        base = _key_patches_weight(base_kp, device, key) if base_kp is not None else None
+        thetas = [_key_patches_weight(kp, device, key) for kp in model_kps]
+        generators = None
+        if method in ("DARE", "DARE-TIES"):
+            # Same seed -> same drop mask on every load (per key and per model)
+            key_seed = zlib.crc32(key.encode("utf-8"))
+            generators = [torch.Generator(device=device).manual_seed((seed + key_seed + 1000003 * i) % (1 << 63)) for i in range(len(thetas))]
+        merged = multi_merge_tensor(method, base, thetas, model_weights, density, scale, generators)
+        return merged.to(storage_dtype).to(weight.dtype)
+
+
+class HaDeSAnimaMultiModelMerger:
+    @classmethod
+    def INPUT_TYPES(s):
+        weight = lambda n: ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                                      "tooltip": f"Relative weight of model_{n} (normalized by the sum of the connected models' weights)."})
+        return {
+            "required": {
+                "model_1": ("MODEL",),
+                "model_2": ("MODEL",),
+                "method": (list(MULTI_MERGE_METHODS), {
+                    "default": "TIES",
+                    "tooltip": "TIES: trim each task vector to its largest entries, elect a sign per entry, average the agreeing ones. "
+                               "DARE: randomly drop entries and rescale the rest (DARE-TIES then elects signs like TIES). "
+                               "Task Arithmetic: weighted average of the task vectors. Model Stock: average pulled toward base_model "
+                               "by the angle between the task vectors (ignores weights, density and scale). "
+                               "SLERP: spherical blend of model_1 and model_2 only, t = weight_2 / (weight_1 + weight_2); needs no base_model.",
+                }),
+                "density": ("FLOAT", {"default": 0.5, "min": 0.05, "max": 1.0, "step": 0.05,
+                                      "tooltip": "TIES: fraction of each task vector kept (largest entries). DARE: probability of keeping each entry."}),
+                "scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                                    "tooltip": "Strength of the merged task vector on top of base_model. 1.0 has the strength of an average; above 1.0 extrapolates."}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": "fixed",
+                                 "tooltip": "DARE drop mask. The same seed gives the same merge on the same kind of device."}),
+                "weight_1": weight(1),
+                "weight_2": weight(2),
+            },
+            "optional": {
+                "base_model": ("MODEL", {"tooltip": "The checkpoint the models were finetuned from (e.g. anima-base-v1.0). Required by every method except SLERP."}),
+                "model_3": ("MODEL",),
+                "model_4": ("MODEL",),
+                "weight_3": weight(3),
+                "weight_4": weight(4),
+                "protect_llm_adapter": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Keep the llm_adapter from base_model (from model_1 for SLERP), per Anima's llm_adapter_lr=0 rule.",
+                }),
+            },
+        }
+
+    RETURN_TYPES = ("MODEL", "STRING")
+    RETURN_NAMES = ("MODEL", "info")
+    FUNCTION = "merge_models"
+    CATEGORY = "HaDeS/Anima Mergers"
+
+    def merge_models(self, model_1, model_2, method, density, scale, seed, weight_1, weight_2,
+                     base_model=None, model_3=None, model_4=None, weight_3=1.0, weight_4=1.0, protect_llm_adapter=True):
+        models = [(m, w) for m, w in ((model_1, weight_1), (model_2, weight_2), (model_3, weight_3), (model_4, weight_4)) if m is not None]
+        if method == "SLERP":
+            if len(models) != 2:
+                raise ValueError("HaDeS Multi-Model Merger: SLERP blends exactly model_1 and model_2; disconnect model_3 / model_4.")
+            if weight_1 + weight_2 <= 0:
+                raise ValueError("HaDeS Multi-Model Merger: SLERP needs weight_1 + weight_2 > 0.")
+            anchor = model_1
+        else:
+            if base_model is None:
+                raise ValueError(f"HaDeS Multi-Model Merger: {method} needs base_model, the checkpoint the models were finetuned from.")
+            if sum(w for _, w in models) <= 0:
+                raise ValueError("HaDeS Multi-Model Merger: the model weights add up to 0.")
+            anchor = base_model
+
+        m = anchor.clone()
+        sd0 = anchor.model.state_dict()
+        sds = [mm.model.state_dict() for mm, _ in models]
+        kp0 = anchor.get_key_patches("diffusion_model.") if method != "SLERP" else None
+        kps = [mm.get_key_patches("diffusion_model.") for mm, _ in models]
+        model_weights = tuple(float(w) for _, w in models)
+        n_dit, n_adapter = detect_anima_topology(sd0.keys())
+
+        merged = 0
+        adapter_kept = 0
+        for k, w0 in sd0.items():
+            if k.endswith(".scale_weight") or not (w0.is_floating_point() or w0.dtype in _FP8_DTYPES):
+                continue
+            if any(k not in sd for sd in sds):
+                continue
+            require_unquantized(k, w0, *(sd[k] for sd in sds))
+            for sd in sds:
+                if sd[k].shape != w0.shape:
+                    raise ValueError(f"HaDeS Multi-Model Merger: shape mismatch on '{k}': {tuple(w0.shape)} vs {tuple(sd[k].shape)} (different Anima topologies?).")
+            if protect_llm_adapter and "llm_adapter" in k:
+                adapter_kept += 1
+                continue
+            patch_key = k if k.startswith("diffusion_model.") else f"diffusion_model.{k}"
+            patched = patch_key in m.patches or any(patch_key in mm.patches for mm, _ in models)
+            if not patched and all(_same_weight(w0, sd[k]) for sd in sds):
+                continue
+            adapter = AnimaMultiMergeAdapter(set(), (
+                kp0[patch_key] if kp0 is not None else None, tuple(kp[patch_key] for kp in kps),
+                model_weights, method, float(density), float(scale), int(seed), w0.dtype,
+            ))
+            m.add_patches({patch_key: adapter}, 1.0)
+            merged += 1
+
+        if merged == 0:
+            raise ValueError("HaDeS Multi-Model Merger: the models are identical to the base in every merged tensor.")
+        params = "weights, density and scale unused" if method == "Model Stock" else (
+            f"t = {model_weights[1] / sum(model_weights):.2f}" if method == "SLERP" else f"Density: {density:.2f} | Scale: {scale:.2f}")
+        adapter_note = f"kept from {'model_1' if method == 'SLERP' else 'base'} ({adapter_kept} tensors)" if protect_llm_adapter else "merged"
+        info = (
+            f"HaDeS Anima Multi-Model Merge | Method: {method} | Models: {len(models)} | {params} | "
+            f"Weights: {', '.join(f'{w:.2f}' for w in model_weights)} | Topology: {n_dit}+{n_adapter} | "
+            f"Modified Tensors: {merged} | llm_adapter: {adapter_note}"
+        )
+        return (m, format_info(
+            info, "multi_model_merger", method=method, models=len(models), density=float(density), scale=float(scale),
+            modified_tensors=merged, protect_adapter=bool(protect_llm_adapter),
         ))
 
 
@@ -2325,6 +2527,7 @@ class HaDeSAnimaModelSaver:
 NODE_CLASS_MAPPINGS = {
     "HaDeSAnimaModelBlockMerger": HaDeSAnimaModelBlockMerger,
     "HaDeSAnimaPredictiveModelMerger": HaDeSAnimaPredictiveModelMerger,
+    "HaDeSAnimaMultiModelMerger": HaDeSAnimaMultiModelMerger,
     "HaDeSAnimaPredictiveMultiLoraLoader": HaDeSAnimaPredictiveMultiLoraLoader,
     "HaDeSAnimaStandaloneLoraMerger": HaDeSAnimaStandaloneLoraMerger,
     "HaDeSAnimaCLIPBlockMerger": HaDeSAnimaCLIPBlockMerger,
@@ -2352,6 +2555,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "HaDeSAnimaModelBlockMerger": "Anima Model Block Merger",
     "HaDeSAnimaPredictiveModelMerger": "Anima Predictive Model Merger",
+    "HaDeSAnimaMultiModelMerger": "Anima Multi-Model Merger",
     "HaDeSAnimaPredictiveMultiLoraLoader": "Anima Predictive Multi-LoRA",
     "HaDeSAnimaStandaloneLoraMerger": "Anima LoRA Merger",
     "HaDeSAnimaCLIPBlockMerger": "Anima CLIP Block Merger",

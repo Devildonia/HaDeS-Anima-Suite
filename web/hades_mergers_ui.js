@@ -1282,9 +1282,196 @@ export function setupModelSaverUI(node) {
     finalizeHadesNode(node, 390);
 }
 
+export function setupMultiModelMergerUI(node) {
+    applyNodeFrameStyle(node);
+    const findW = (name) => node.widgets?.find((w) => w.name === name);
+
+    const wMethod = findW("method");
+    const wDensity = findW("density");
+    const wScale = findW("scale");
+    const wSeed = findW("seed");
+    // The frontend names this control after its default value ("fixed"), so reach it through the seed's link
+    const wControl = wSeed?.linkedWidgets?.[0];
+    const wWeights = [1, 2, 3, 4].map((i) => findW(`weight_${i}`));
+    const wProtect = findW("protect_llm_adapter");
+
+    [wMethod, wDensity, wScale, wSeed, wControl, ...wWeights, wProtect].forEach(hideBackingWidget);
+
+    const isLinked = (name) => node.inputs?.find((i) => i.name === name)?.link != null;
+    const origOnConnectionsChange = node.onConnectionsChange;
+    node.onConnectionsChange = function () {
+        origOnConnectionsChange?.apply(this, arguments);
+        this.setDirtyCanvas(true, true);
+    };
+    const setMethod = (method, density) => {
+        setWidgetValue(wMethod, method, node);
+        if (density !== undefined) setWidgetValue(wDensity, density, node);
+    };
+
+    node.addCustomWidget(
+        createSpectralBannerWidget(node, {
+            title: "",
+            accentColor: HADES_THEME.purple,
+            customHeight: 68,
+            actions: [
+                {
+                    label: "TIES",
+                    isActive: () => wMethod?.value === "TIES",
+                    tooltip: `<strong>TIES (density 0.5)</strong><br>Keeps each model's largest changes, settles sign conflicts by vote and averages the agreeing ones.`,
+                    onClick: () => setMethod("TIES", 0.5),
+                },
+                {
+                    label: "DARE-TIES",
+                    isActive: () => wMethod?.value === "DARE-TIES",
+                    tooltip: `<strong>DARE-TIES (density 0.5)</strong><br>Randomly drops half of each model's changes (rescaling the rest), then votes signs like TIES. Change the seed for another drop pattern.`,
+                    onClick: () => setMethod("DARE-TIES", 0.5),
+                },
+                {
+                    label: "Stock",
+                    isActive: () => wMethod?.value === "Model Stock",
+                    tooltip: `<strong>Model Stock</strong><br>Average of the models, pulled toward base_model per layer by how much the models agree. No density, scale or weights.`,
+                    onClick: () => setMethod("Model Stock"),
+                },
+                {
+                    label: "SLERP",
+                    isActive: () => wMethod?.value === "SLERP",
+                    tooltip: `<strong>SLERP (model_1 ↔ model_2)</strong><br>Spherical blend of exactly two models; t = weight_2 / (weight_1 + weight_2). No base_model needed.`,
+                    onClick: () => setMethod("SLERP"),
+                },
+            ],
+            drawCustomHUD(ctx, rect) {
+                const method = String(wMethod?.value || "TIES");
+                const nModels = 2 + (isLinked("model_3") ? 1 : 0) + (isLinked("model_4") ? 1 : 0);
+                const w = wWeights.slice(0, nModels).map((x) => Number(x?.value ?? 1));
+                ctx.font = "600 9px ui-monospace, Consolas, monospace";
+                ctx.textBaseline = "middle";
+
+                ctx.textAlign = "left";
+                ctx.fillStyle = HADES_THEME.emerald;
+                ctx.fillText(`METHOD: ${method.toUpperCase()}`, rect.x + 8, rect.y + 11);
+                ctx.textAlign = "right";
+                ctx.fillStyle = HADES_THEME.cyan;
+                ctx.fillText(`${method === "SLERP" ? 2 : nModels} MODELS`, rect.x + rect.w - 8, rect.y + 11);
+
+                let detail;
+                let warn = null;
+                if (method === "SLERP") {
+                    detail = `t = ${(w[1] / Math.max(1e-6, w[0] + w[1])).toFixed(2)} (MODEL 1 → 2)`;
+                    if (nModels > 2) warn = "SLERP TAKES 2 MODELS";
+                } else {
+                    detail = method === "Model Stock"
+                        ? "AUTO RATIO PER LAYER"
+                        : `DENSITY ${Number(wDensity?.value ?? 0.5).toFixed(2)} | SCALE ${Number(wScale?.value ?? 1).toFixed(2)}`;
+                    if (!isLinked("base_model")) warn = "NEEDS BASE_MODEL";
+                }
+                ctx.textAlign = "left";
+                ctx.fillStyle = HADES_THEME.textMuted;
+                ctx.fillText(detail, rect.x + 8, rect.y + 25);
+                ctx.textAlign = "right";
+                ctx.fillStyle = warn ? HADES_THEME.amber : HADES_THEME.textMuted;
+                ctx.fillText(warn || `W ${w.map((x) => x.toFixed(2)).join(" / ")}`, rect.x + rect.w - 8, rect.y + 25);
+            },
+        })
+    );
+
+    node.addCustomWidget(
+        createStyledComboWidget(node, wMethod, {
+            tag: "METHOD",
+            tagColor: HADES_THEME.purple,
+            tooltip: `<strong>Merge Method</strong><br>Every method except SLERP works on task vectors (model − base_model).<br>• <strong>TIES:</strong> trim to the largest entries, vote a sign per entry, average the agreeing ones.<br>• <strong>DARE / DARE-TIES:</strong> random drop + rescale, then average (DARE) or vote signs (DARE-TIES).<br>• <strong>Task Arithmetic:</strong> weighted average of the task vectors.<br>• <strong>Model Stock:</strong> average pulled toward the base by the angle between task vectors.<br>• <strong>SLERP:</strong> spherical blend of model_1 and model_2.`,
+        })
+    );
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wDensity, {
+            tag: "DENSITY",
+            label: "Kept Fraction",
+            color: HADES_THEME.emerald,
+            min: 0.05,
+            max: 1.0,
+            visMin: 0.05,
+            visMax: 1.0,
+            step: 0.05,
+            defaultVal: 0.5,
+            tooltip: `<strong>Density (TIES / DARE)</strong><br>TIES: fraction of each task vector kept, largest entries first. DARE: probability of keeping each entry. 1.0 keeps everything.`,
+        })
+    );
+
+    node.addCustomWidget(
+        createSpectralSliderWidget(node, wScale, {
+            tag: "SCALE",
+            label: "Merge Strength",
+            color: HADES_THEME.amber,
+            min: 0.0,
+            max: 2.0,
+            visMin: 0.0,
+            visMax: 2.0,
+            step: 0.05,
+            defaultVal: 1.0,
+            tooltip: `<strong>Scale</strong><br>Strength of the merged task vector on top of base_model. 1.0 has the strength of an average; above 1.0 extrapolates.`,
+        })
+    );
+
+    wWeights.forEach((wWeight, i) => {
+        if (!wWeight) return;
+        node.addCustomWidget(
+            createSpectralSliderWidget(node, wWeight, {
+                tag: `W${i + 1}`,
+                label: `Model ${i + 1} Weight`,
+                color: HADES_THEME.blue,
+                min: 0.0,
+                max: 2.0,
+                visMin: 0.0,
+                visMax: 2.0,
+                step: 0.05,
+                defaultVal: 1.0,
+                tooltip: `<strong>Weight of model_${i + 1}</strong><br>Relative to the other connected models (normalized by their sum). Ignored by Model Stock${i > 1 ? "; unused while model_" + (i + 1) + " is not connected" : ""}.`,
+            })
+        );
+    });
+
+    if (wSeed) {
+        node.addCustomWidget(
+            createStyledTextRowWidget(node, wSeed, {
+                tag: "SEED",
+                color: HADES_THEME.amber,
+                numeric: true,
+                promptTitle: "DARE seed",
+                isDisabled: () => node.getSlotFromWidget(wSeed)?.link != null,
+                disabledText: "From the linked seed input",
+                tooltip: `<strong>DARE Seed</strong><br>Picks which entries DARE drops. The same seed gives the same merge on the same kind of device. Unused by the other methods.`,
+            })
+        );
+    }
+    if (wControl) {
+        node.addCustomWidget(
+            createStyledComboWidget(node, wControl, {
+                tag: "AFTER RUN",
+                tooltip: `<strong>Control after generate</strong><br>Keep it on <code>fixed</code> so the merge does not change between runs.`,
+            })
+        );
+    }
+
+    if (wProtect) {
+        node.addCustomWidget(
+            createStyledToggleWidget(node, wProtect, {
+                tag: "BRIDGE",
+                color: HADES_THEME.cyan,
+                label: "Keep llm_adapter from base",
+                onText: "LOCKED",
+                offText: "MERGED",
+                tooltip: `<strong>Lock llm_adapter</strong><br>Keeps Anima's text adapter from base_model (from model_1 for SLERP), per Anima's llm_adapter_lr=0 rule.`,
+            })
+        );
+    }
+
+    finalizeHadesNode(node, 430);
+}
+
 export const MERGER_NODE_DISPATCH = {
     HaDeSAnimaModelBlockMerger: setupManualBlockMergerUI,
     HaDeSAnimaPredictiveModelMerger: setupPredictiveModelMergerUI,
+    HaDeSAnimaMultiModelMerger: setupMultiModelMergerUI,
     HaDeSAnimaPredictiveMultiLoraLoader: setupMultiLoraLoaderUI,
     HaDeSAnimaStandaloneLoraMerger: setupStandaloneLoraMergerUI,
     HaDeSAnimaCLIPBlockMerger: setupCLIPBlockMergerUI,

@@ -1,6 +1,6 @@
 # HaDeS Anima Suite v0.4.2
 
-24 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers with a metadata reader for image savers and a telemetry node, with a shared canvas UI.
+25 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block, multi-model (TIES / DARE / Model Stock / SLERP) and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers with a metadata reader for image savers and a telemetry node, with a shared canvas UI.
 
 Claims about what block groups, presets and schedulers do are measured with [`tools/anima_ablation.py`](tools/anima_ablation.py); results are in [`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md).
 
@@ -34,9 +34,10 @@ HaDeS Anima Suite v0.4.2
 │   ├── 15. Anima Text Encoder Loader
 │   ├── 16. Anima VAE Loader
 │   └── 17. Anima VAE Decode
-├── HaDeS/Anima Mergers (9 Nodes)
+├── HaDeS/Anima Mergers (10 Nodes)
 │   ├── 1. Anima Model Block Merger
 │   ├── 2. Anima Predictive Model Merger
+│   ├── 25. Anima Multi-Model Merger
 │   ├── 3. Anima Predictive Multi-LoRA
 │   ├── 4. Anima LoRA Merger
 │   ├── 5. Anima CLIP Block Merger
@@ -101,6 +102,22 @@ No group isolates one attribute: each moves composition, structure, texture and 
   - `preset`: `Style Transfer (Keep A identity, B style)`, `Interference Guard (Anti-Burn / Artifact Shield)`, `Complementary Richness (Fill gaps of A with B)`, or `Balanced Geometric Fusion`. Measured, the presets mainly scale Model 2 strength; `Style Transfer` stays closest to Model 1 and is shown as **Conservative (mostly Model 1)** in the HaDeS UI, since no merge keeps Model 1's composition with Model 2's style. For Model 2 detail on Model 1's composition, use the Dual-Pass KSampler with `model_pass2` at low denoise.
   - `target_influence` (`0.0..1.0`, default `0.50`), `aggressiveness` (`0.1..2.5`, default `1.00`).
   - `protect_llm_adapter` (`BOOLEAN`, default `True`): locks blocks `28..33` to Model 1.
+
+#### 25. `Anima Multi-Model Merger`
+- **Class:** `HaDeSAnimaMultiModelMerger`
+- **Purpose:** Merges 2–4 Anima models with the community's standard methods. Every method except SLERP works on task vectors (`model − base_model`):
+  - `TIES`: keeps each task vector's largest entries (`density`), elects a sign per entry from their sum and averages the agreeing ones.
+  - `DARE` / `DARE-TIES`: drops entries at random with keep probability `density` and rescales the rest, then averages (`DARE`) or elects signs like TIES (`DARE-TIES`). `seed` fixes the drop mask.
+  - `Task Arithmetic`: weighted average of the task vectors.
+  - `Model Stock` (Jang et al. 2024): the average of the models pulled toward `base_model`, per tensor, by the angle between their task vectors; it ignores weights, `density` and `scale`. When the models changed the base in unrelated directions it stays close to the base.
+  - `SLERP`: spherical blend of `model_1` and `model_2` only, `t = weight_2 / (weight_1 + weight_2)`; needs no `base_model`.
+- **Inputs:**
+  - `model_1`, `model_2` (`MODEL`), `model_3`, `model_4`, `base_model` (`MODEL`, optional; `base_model` is required by every method except SLERP and should be the checkpoint the models were finetuned from).
+  - `weight_1`…`weight_4` (`0.0..2.0`): relative weights, normalized by their sum over the connected models.
+  - `density` (`0.05..1.0`, default `0.5`), `scale` (`0.0..2.0`, default `1.0`; `1.0` has the strength of an average, higher extrapolates), `seed`.
+  - `protect_llm_adapter` (`BOOLEAN`, default `True`): keeps the `llm_adapter` from `base_model` (from `model_1` for SLERP).
+- **Memory:** like the other mergers it adds lazy patches that reference the input models and are evaluated when the model loads. Measured with four models (base + 3): about +0.05 GiB of RAM, and sampling takes ~3 s longer than a single model at 1024² (the merge is recomputed whenever the model is loaded).
+- **Not measured:** which method gives better images. On a test with `anima-aesthetic-v1.1`, a pixel-art and a 3D finetune, the methods gave clearly different results and none kept the pixel-art look; pick by eye for your models.
 
 #### 3. `Anima Predictive Multi-LoRA`
 - **Class:** `HaDeSAnimaPredictiveMultiLoraLoader`
@@ -191,7 +208,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 #### 7. `Anima Attention Guidance (NAG)`
 - **Class:** `HaDeSAnimaAttentionGuidance`
-- **Purpose:** Normalized Attention Guidance on cross-attention only (tagged through `attn1_patch` / `attn2_patch`), inside a `start_percent` → `end_percent` window converted with `percent_to_sigma`. The positive queries re-attend over the negative prompt's keys / values and are blended with the reference NAG formula (scale, L1-norm ceiling `nag_tau`, `nag_alpha`).
+- **Purpose:** Normalized Attention Guidance on cross-attention only (recognized by its text keys, which are shorter than the image queries), inside a `start_percent` → `end_percent` window converted with `percent_to_sigma`. The positive queries re-attend over the negative prompt's keys / values and are blended with the reference NAG formula (scale, L1-norm ceiling `nag_tau`, `nag_alpha`).
 - **Use:** negative prompts at `CFG = 1.0` on Anima-Turbo / Lightning. `nag_scale = 1.0` disables it. `only_anima = True` (default) bypasses non-Anima models via `unet_config.image_model`.
 
 #### 8. `Anima Latent`
@@ -280,7 +297,7 @@ ComfyUI's stock `ConditioningSetArea` / `ConditioningSetMask` work on Anima. In 
 
 The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark palette with one accent color (green / amber / red only signal state), quiet uppercase row labels, preset buttons that highlight the active preset, and a compact status panel per node. Every node enforces a minimum width so nothing clips or overlaps, and hover tooltips explain each control.
 
-To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 24 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
+To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 25 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
 Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy.VueNodes.Enabled`) are supported, including the classic-widget toggle.
 
@@ -294,7 +311,7 @@ Both the classic LiteGraph canvas and the Vue node renderer (*Nodes 2.0*, `Comfy
 4. **`HaDeS Anima Suite - Artist Picker & Sampler Metadata Example.json`:** the Simple Pass graph with `Anima Artist & Character Picker` feeding Prompt Studio's artist / character inputs (one listed artist plus one random draw) and `Anima Sampler Metadata` reading the KSampler's info; previews stand in for an image-saver metadata node.
 5. **`HaDeS Anima Suite - LoRA Toolkit Example.json`:** `Anima Universal LoRA Remapper` and `Anima LoRA Block Weight` in the generation graph, plus a bypassed group with `Anima LoRA Extractor`, `Anima LoRA Resize` and `Anima LoRA Merger` (they write files to `models/loras`; enable a node with Ctrl+B).
 6. **`HaDeS Anima Suite - NAG, Corner Shield & Telemetry Example.json`:** `Anima Attention Guidance (NAG)` before the KSampler, `Anima Corner Shield` after the decode and `Anima Suite Telemetry` auditing the info outputs of 8 nodes.
-7. **`HaDeS - Anima Suite - Merge Workflow Example - Medium.json`:** two donors (`anima-base-v1.0`, `anima-aesthetic-v1.1`) through `Anima Model Block Merger`, `Anima Predictive Model Merger`, `Anima CLIP Block Merger` and `Anima Predictive Multi-LoRA`, with a preview per result, merge telemetry and a bypassed `Anima Model Saver`.
+7. **`HaDeS - Anima Suite - Merge Workflow Example - Medium.json`:** two donors (`anima-base-v1.0`, `anima-aesthetic-v1.1`) through `Anima Model Block Merger`, `Anima Predictive Model Merger`, `Anima Multi-Model Merger` (SLERP of the two donors), `Anima CLIP Block Merger` and `Anima Predictive Multi-LoRA`, with a preview per result, merge telemetry and a bypassed `Anima Model Saver`.
 
 All examples use only HaDeS and core ComfyUI nodes.
 
@@ -323,7 +340,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 ├── anima_loader_nodes.py     # Model / text encoder / VAE loaders and VAE Decode
 ├── web/
 │   ├── icon.png
-│   ├── hades_suite.js        # Extension entry point and settings (24 nodes)
+│   ├── hades_suite.js        # Extension entry point and settings (25 nodes)
 │   ├── data/                 # Local Danbooru tag catalog (artists, characters, series) for the picker
 │   ├── hades_widgets.js      # Shared canvas widgets, design tokens, Vue-node adapter
 │   ├── hades_mergers_ui.js   # Merger, LoRA, Saver, Extractor, Block Weight and Resize node UIs
@@ -363,7 +380,7 @@ python tests/smoke_test.py --comfy-dir /path/to/ComfyUI
 
 Add `--models --lora <an Anima LoRA>` to also merge, apply a LoRA, sample, extract a LoRA and save a ConvRot INT8 checkpoint with real Anima models (defaults: `anima-base-v1.0`, `anima-aesthetic-v1.1`, `qwen_3_06b_base`, `qwen_image_vae`; override with `--unet`, `--unet2`, `--clip`, `--vae`). Run it from the ComfyUI environment before a release.
 
-The frontend test opens that server in a headless browser and checks the HaDeS widgets on all 24 nodes, in the classic canvas and in Nodes 2.0: native widgets hidden, links dropped on a row reaching its input, sockets on their rows, the vanilla view complete and the dropdown filter box. It needs `pip install playwright`; CI runs it with Playwright's Chromium, locally `--channel msedge` or `--channel chrome` uses an installed browser:
+The frontend test opens that server in a headless browser and checks the HaDeS widgets on all 25 nodes, in the classic canvas and in Nodes 2.0: native widgets hidden, links dropped on a row reaching its input, sockets on their rows, the vanilla view complete and the dropdown filter box. It needs `pip install playwright`; CI runs it with Playwright's Chromium, locally `--channel msedge` or `--channel chrome` uses an installed browser:
 
 ```bash
 python tests/frontend_test.py --comfy-dir /path/to/ComfyUI --channel msedge

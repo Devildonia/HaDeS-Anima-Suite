@@ -1,6 +1,6 @@
 """Frontend test: the HaDeS widgets in a real ComfyUI frontend, in a headless browser (needs `pip install playwright`).
 
-Creates all 24 nodes in the classic canvas and in Nodes 2.0 (Vue) and runs tests/frontend_checks.js on them: HaDeS UI
+Creates all 25 nodes in the classic canvas and in Nodes 2.0 (Vue) and runs tests/frontend_checks.js on them: HaDeS UI
 installed, native widgets hidden, links dropped on a row reach its input, sockets on their rows, vanilla view complete,
 dropdown filter box. Any browser error from the pack's scripts also fails the test.
 
@@ -44,7 +44,7 @@ def main():
             for mode in ("classic", "vue"):
                 mode_failures = page.evaluate(checks, mode)
                 failures += mode_failures
-                print(f"[{'OK' if not mode_failures else 'FAIL'}] {mode}: 24 nodes checked")
+                print(f"[{'OK' if not mode_failures else 'FAIL'}] {mode}: 25 nodes checked")
             browser.close()
         failures += [e for e in browser_errors if "hades" in e.lower() or PACK_NAME.lower() in e.lower()]
     except Exception:

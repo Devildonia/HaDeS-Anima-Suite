@@ -1318,7 +1318,7 @@ class HaDeSAnimaCornerScribbleShield:
 # HADES_META node id -> report bucket
 _META_BUCKETS = {
     "model_loader": "ARCHITECTURE", "clip_loader": "ARCHITECTURE", "vae_loader": "ARCHITECTURE",
-    "model_block_merger": "ARCHITECTURE", "predictive_model_merger": "ARCHITECTURE", "clip_merger": "ARCHITECTURE",
+    "model_block_merger": "ARCHITECTURE", "predictive_model_merger": "ARCHITECTURE", "multi_model_merger": "ARCHITECTURE", "clip_merger": "ARCHITECTURE",
     "model_saver": "ARCHITECTURE", "lora_extractor": "ARCHITECTURE", "lora_resize": "ARCHITECTURE",
     "multi_lora": "CONDITIONING", "lora_block_weight": "CONDITIONING", "artist_picker": "CONDITIONING", "lora_remapper": "CONDITIONING", "lora_merger": "CONDITIONING", "prompt_studio": "CONDITIONING",
     "ksampler": "SAMPLING", "ksampler_dual": "SAMPLING", "ksampler_triple": "SAMPLING", "nag": "SAMPLING", "latent": "SAMPLING",

@@ -2226,6 +2226,82 @@ def test_31_sampler_metadata():
     print("[OK] Test 31: Sampler Metadata (profile-applied values, Dual-Pass pass 1, foreign info rejected) verified")
 
 
+def test_32_multi_model_merger():
+    mm = hades.multi_merge_tensor
+    zero = torch.zeros(4)
+
+    # TIES by hand: density 0.5 keeps the 2 largest entries of each task vector (ties at the threshold drop),
+    # the sign is elected from the sum, only agreeing entries are averaged
+    t1 = torch.tensor([3.0, -1.0, 0.5, 2.0])
+    t2 = torch.tensor([-2.0, -1.0, 0.1, 1.0])
+    assert torch.equal(mm("TIES", zero, [t1, t2], (1.0, 1.0), 0.5, 1.0), torch.tensor([3.0, 0.0, 0.0, 2.0]))
+    # density 1.0: plain sign consensus (entry 0: +3 vs -2 -> +, only 3 agrees)
+    assert torch.allclose(mm("TIES", zero, [t1, t2], (1.0, 1.0), 1.0, 1.0), torch.tensor([3.0, -1.0, 0.3, 1.5]))
+
+    # Task Arithmetic: base + scale * weighted average of the task vectors
+    base = torch.tensor([1.0, 1.0, 1.0, 1.0])
+    out = mm("Task Arithmetic", base, [base + t1, base + t2], (1.0, 3.0), 1.0, 2.0)
+    assert torch.allclose(out, base + 2.0 * (t1 + 3.0 * t2) / 4.0)
+
+    # DARE: density 1.0 drops nothing (= Task Arithmetic); same seed -> same mask; expectation preserved
+    gens = lambda seed: [torch.Generator().manual_seed(seed + i) for i in range(2)]
+    big1, big2 = torch.randn(20000), torch.randn(20000)
+    assert torch.allclose(mm("DARE", zero.new_zeros(20000), [big1, big2], (1.0, 1.0), 1.0, 1.0, gens(1)), (big1 + big2) / 2)
+    d_a = mm("DARE", zero.new_zeros(20000), [big1, big2], (1.0, 1.0), 0.3, 1.0, gens(5))
+    assert torch.equal(d_a, mm("DARE", zero.new_zeros(20000), [big1, big2], (1.0, 1.0), 0.3, 1.0, gens(5)))
+    assert not torch.equal(d_a, mm("DARE", zero.new_zeros(20000), [big1, big2], (1.0, 1.0), 0.3, 1.0, gens(6)))
+    kept = (mm("DARE", zero.new_zeros(20000), [big1, big1], (1.0, 1.0), 0.3, 1.0, gens(9)) != 0).float().mean().item()
+    assert 0.45 < kept < 0.55, kept  # each of 2 masks keeps 30%: 1 - 0.7^2 = 51% of entries survive in at least one
+    assert abs(d_a.mean().item() - ((big1 + big2) / 2).mean().item()) < 0.05
+
+    # Model Stock: orthogonal task vectors -> stays at base; identical ones -> base + task vector
+    e1, e2 = torch.tensor([1.0, 0.0, 0.0, 0.0]), torch.tensor([0.0, 1.0, 0.0, 0.0])
+    assert torch.allclose(mm("Model Stock", base, [base + e1, base + e2], (1.0, 1.0), 0.5, 1.0), base)
+    assert torch.allclose(mm("Model Stock", base, [base + e1, base + e1], (1.0, 1.0), 0.5, 1.0), base + e1)
+
+    # SLERP: t = w2 / (w1 + w2); orthogonal unit vectors meet at 45 degrees, parallel ones blend linearly
+    assert torch.allclose(mm("SLERP", None, [e1, e2], (1.0, 1.0), 0.5, 1.0), (e1 + e2) / 2 ** 0.5, atol=1e-6)
+    assert torch.allclose(mm("SLERP", None, [e1, 3 * e1], (1.0, 3.0), 0.5, 1.0), e1 + (3 * e1 - e1) * 0.75)
+
+    # The node: lazy adapters that reference the stored tensors, bake to multi_merge_tensor, keep the adapter from base
+    torch.manual_seed(3)
+    keys = ["blocks.0.mlp.weight", "blocks.5.self_attn.q_proj.weight", "llm_adapter.blocks.0.self_attn.q_proj.weight"]
+    sd0 = {k: torch.randn(16, 16) for k in keys}
+    sds = [{k: v + torch.randn(16, 16) * 0.1 for k, v in sd0.items()} for _ in range(3)]
+    base_m, m1, m2, m3 = DummyModelPatcher(sd0), DummyModelPatcher(sds[0]), DummyModelPatcher(sds[1]), DummyModelPatcher(sds[2])
+    node = hades.HaDeSAnimaMultiModelMerger()
+    out_m, info = node.merge_models(m1, m2, "TIES", 0.5, 1.0, 7, 1.0, 1.0, base_model=base_m, model_3=m3, weight_3=0.5)
+    meta = hades.parse_info_meta(info)
+    assert meta["method"] == "TIES" and meta["models"] == 3 and meta["modified_tensors"] == 2, meta
+    assert not any("llm_adapter" in k for k in out_m.patches), "llm_adapter must stay from base"
+    pk = "diffusion_model.blocks.0.mlp.weight"
+    adapter = out_m.patches[pk][0][1]
+    assert isinstance(adapter, hades.AnimaMultiMergeAdapter)
+    assert adapter.weights[1][2][0][0] is m3.model.state_dict()["blocks.0.mlp.weight"], "patch must reference model_3's tensor"
+    baked = out_m.calculate_weight(out_m.patches[pk], sd0["blocks.0.mlp.weight"], pk)
+    expected = mm("TIES", sd0["blocks.0.mlp.weight"], [sd["blocks.0.mlp.weight"] for sd in sds], (1.0, 1.0, 0.5), 0.5, 1.0)
+    assert torch.equal(baked, expected)
+
+    # DARE through the node is reproducible for a fixed seed
+    dare_m, _ = node.merge_models(m1, m2, "DARE-TIES", 0.4, 1.0, 11, 1.0, 1.0, base_model=base_m)
+    bake = lambda mdl: mdl.calculate_weight(mdl.patches[pk], sd0["blocks.0.mlp.weight"], pk)
+    assert torch.equal(bake(dare_m), bake(node.merge_models(m1, m2, "DARE-TIES", 0.4, 1.0, 11, 1.0, 1.0, base_model=base_m)[0]))
+
+    # Clear errors: SLERP takes exactly two models, the other methods need base_model
+    for call, needle in (
+        (lambda: node.merge_models(m1, m2, "SLERP", 0.5, 1.0, 0, 1.0, 1.0, model_3=m3), "exactly model_1 and model_2"),
+        (lambda: node.merge_models(m1, m2, "TIES", 0.5, 1.0, 0, 1.0, 1.0), "needs base_model"),
+    ):
+        try:
+            call()
+            raise AssertionError(f"expected an error containing {needle!r}")
+        except ValueError as e:
+            assert needle in str(e), e
+    slerp_m, _ = node.merge_models(m1, m2, "SLERP", 0.5, 1.0, 0, 1.0, 1.0)
+    assert slerp_m.patches[pk][0][1].weights[0] is None
+    print("[OK] Test 32: Multi-Model Merger (TIES / DARE / Task Arithmetic / Model Stock / SLERP math, lazy adapters, adapter lock, errors) verified")
+
+
 if __name__ == "__main__":
     test_1_dynamic_topology_and_diffusers_keys()
     test_2_qr_svd_accuracy_and_speed()
@@ -2258,4 +2334,5 @@ if __name__ == "__main__":
     test_29_artist_character_picker()
     test_30_audit_regressions()
     test_31_sampler_metadata()
-    print("\nALL 31 HADES ANIMA SUITE TEST SUITES PASSED!")
+    test_32_multi_model_merger()
+    print("\nALL 32 HADES ANIMA SUITE TEST SUITES PASSED!")
