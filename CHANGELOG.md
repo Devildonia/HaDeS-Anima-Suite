@@ -5,6 +5,13 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Picker lost `seed` and `control after generate` in the vanilla view:** the seed widgets were hidden twice, and the second pass stored the hidden stubs as their originals, so switching to the vanilla (classic ComfyUI) view left them at zero height. Hiding a backing widget is now idempotent.
+
+---
+
 ## [0.4.0] - 2026-11-01
 
 ### Added

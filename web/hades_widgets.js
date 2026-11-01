@@ -463,7 +463,8 @@ export function setGlobalClassicUI(enableGlobalClassic) {
 }
 
 export function hideBackingWidget(widget) {
-    if (!widget) return;
+    // A second call would save the hidden stubs as the originals and break the vanilla toggle
+    if (!widget || widget._isHadesBacking) return;
     if (widget.computeSize && !widget._origComputeSize) widget._origComputeSize = widget.computeSize;
     if (widget.draw && !widget._origDraw) widget._origDraw = widget.draw;
     widget._isHadesBacking = true;
