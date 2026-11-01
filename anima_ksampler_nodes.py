@@ -84,20 +84,6 @@ def clone_model_with_anima_shift(model, flow_shift: float):
     new_ms = copy.deepcopy(orig_ms)
     new_ms.set_parameters(shift=shift_val, multiplier=float(orig_ms.multiplier))
     m.add_object_patch("model_sampling", new_ms)
-
-    # Synchronize any upstream HaDeS NAG sigma window with the newly shifted model_sampling
-    nag_state = getattr(m, "model_options", {}).get("_hades_nag_state")
-    if isinstance(nag_state, dict):
-        active_ms = m.get_model_object("model_sampling")
-        if active_ms is not None and hasattr(active_ms, "percent_to_sigma"):
-            nag_state = nag_state.copy()
-            nag_state["sigma_start"] = float(active_ms.percent_to_sigma(nag_state["start_percent"]))
-            nag_state["sigma_end"] = float(active_ms.percent_to_sigma(nag_state["end_percent"]))
-            m.model_options["_hades_nag_state"] = nag_state
-            if "transformer_options" in m.model_options:
-                m.model_options["transformer_options"] = m.model_options["transformer_options"].copy()
-                m.model_options["transformer_options"]["_hades_nag_state"] = nag_state
-
     return m
 
 

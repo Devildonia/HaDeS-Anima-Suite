@@ -58,6 +58,9 @@ def _install_standalone_comfy_stubs():
     comfy.model_management.load_models_gpu = lambda models, **kw: None
     comfy.model_management.cast_to_device = lambda t, device, dtype, copy=False: t.to(device=device, dtype=dtype, copy=copy)
 
+    comfy.patcher_extension = types.ModuleType("comfy.patcher_extension")
+    comfy.patcher_extension.WrappersMP = types.SimpleNamespace(APPLY_MODEL="apply_model")
+
     comfy.weight_adapter = types.ModuleType("comfy.weight_adapter")
     comfy.weight_adapter.WeightAdapterBase = type("WeightAdapterBase", (), {})
 
@@ -117,6 +120,7 @@ def _install_standalone_comfy_stubs():
     sys.modules["comfy.samplers"] = comfy.samplers
     sys.modules["comfy.model_sampling"] = comfy.model_sampling
     sys.modules["comfy.weight_adapter"] = comfy.weight_adapter
+    sys.modules["comfy.patcher_extension"] = comfy.patcher_extension
 
     comfy.lora_convert = types.ModuleType("comfy.lora_convert")
     comfy.lora_convert.convert_lora = lambda sd: sd
@@ -211,6 +215,7 @@ class DummyModelPatcher:
         self.patches = {}
         self.backup = {}
         self.object_patches = {}
+        self.wrappers = {}
         self.model_keys = set(sd.keys())
         self.model_options = {"transformer_options": {}}
 
@@ -222,11 +227,29 @@ class DummyModelPatcher:
         c.patches = {k: list(v) for k, v in self.patches.items()}
         c.backup = dict(self.backup)
         c.object_patches = dict(self.object_patches)
+        c.wrappers = {t: {k: list(v) for k, v in w.items()} for t, w in self.wrappers.items()}
         c.model_options = {k: (v.copy() if hasattr(v, "copy") else v) for k, v in self.model_options.items()}
         return c
 
     def add_object_patch(self, name, obj):
         self.object_patches[name] = obj
+
+    def add_wrapper_with_key(self, wrapper_type, key, wrapper):
+        self.wrappers.setdefault(wrapper_type, {}).setdefault(key, []).append(wrapper)
+
+    def run_apply_model_wrappers(self, sigma, transformer_options):
+        """Emulates BaseModel.apply_model running the APPLY_MODEL wrappers; returns the transformer_options they pass on."""
+        seen = {}
+        executor = types.SimpleNamespace(class_obj=types.SimpleNamespace(model_sampling=self.get_model_object("model_sampling")))
+        executor.__call__ = None
+        for wrapper in self.wrappers.get("apply_model", {}).get("hades_nag", []):
+            class _Exec:
+                class_obj = executor.class_obj
+
+                def __call__(self, x, t, c_concat, c_crossattn, control, to, **kw):
+                    seen.update(to)
+            wrapper(_Exec(), None, torch.tensor([float(sigma)]), None, None, None, transformer_options)
+        return seen
 
     def get_model_object(self, name):
         if name in self.object_patches:
@@ -785,11 +808,6 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
     print("[OK] Test 7: Prompt Studio (Canonical Ordering, Multi-Word Slop Scrubbing, NL Grammatical Colons, Character/Artist Sockets, Multi-Artist Weight Syntax, NL Capitalization & T5 Scaling) verified")
 
 
-def _run_attn_patches(patcher, name):
-    for patch in patcher.model_options["transformer_options"].get("patches", {}).get(name, []):
-        patch(None, None, None, pe=None, attn_mask=None, extra_options={})
-
-
 def test_8_nag_attention_guidance():
     m = DummyModelPatcher({"blocks.0.weight": torch.ones(8, 8)})
     nag_node = hades.HaDeSAnimaAttentionGuidance()
@@ -813,16 +831,27 @@ def test_8_nag_attention_guidance():
         dim=0,
     )
 
-    t_opts = {"sigmas": torch.tensor([0.8]), "cond_or_uncond": [1, 0]}
+    t_opts = m_guided.run_apply_model_wrappers(0.8, {"cond_or_uncond": [1, 0]})
+    assert t_opts["_hades_nag_active"] is True
     base_out = dummy_attn(q, k, v, 8)
 
-    # Self-attention (tagged by the attn1 patch) must never be guided
-    _run_attn_patches(m_guided, "attn1_patch")
-    out_self = override_fn(dummy_attn, q, k, v, 8, transformer_options=t_opts)
-    assert torch.allclose(out_self, base_out)
+    # Self-attention (keys as long as the queries) must never be guided
+    out_self = override_fn(dummy_attn, q, q, v, 8, transformer_options=t_opts)
+    assert torch.allclose(out_self, dummy_attn(q, q, v, 8))
 
-    _run_attn_patches(m_guided, "attn2_patch")
+    # Cross-attention: text keys (8 tokens) against 16 image queries
+    k = torch.ones(2, 8, 64, dtype=torch.float16)
+    v = torch.cat([torch.ones(1, 8, 64, dtype=torch.float16) * 0.5, torch.ones(1, 8, 64, dtype=torch.float16) * 2.0], dim=0)
+
+    def dummy_attn(q, k, v, heads, mask=None, **kwargs):
+        return q + v.mean(dim=1, keepdim=True)
+
+    base_out = dummy_attn(q, k, v, 8)
     out_active = override_fn(dummy_attn, q, k, v, 8, transformer_options=t_opts)
+    # Outside the window (wrapper flag off) nothing is guided
+    t_off = m_guided.run_apply_model_wrappers(0.05, {"cond_or_uncond": [1, 0]})
+    assert t_off["_hades_nag_active"] is False
+    assert torch.allclose(override_fn(dummy_attn, q, k, v, 8, transformer_options=t_off), base_out)
     assert out_active.dtype == torch.float16 and out_active.shape == q.shape
     # Uncond branch (index 0) must remain unchanged while cond branch (index 1) is guided
     assert torch.allclose(out_active[0], base_out[0])
@@ -838,13 +867,14 @@ def test_8_nag_attention_guidance():
     assert torch.allclose(out_active[1:], expected, atol=1e-2)
 
     # Test 4D q, k, v ([B, H, S, D] with skip_reshape=True): without a negative branch there is nothing to guide
+    q4 = torch.randn(1, 8, 16, 8, dtype=torch.float16)
+    k4 = torch.randn(1, 8, 4, 8, dtype=torch.float16)
+    v4 = torch.randn(1, 8, 4, 8, dtype=torch.float16)
+
     def dummy_attn_4d(q, k, v, heads, mask=None, **kwargs):
         b, h, s, d = q.shape
-        return (q + v).permute(0, 2, 1, 3).reshape(b, s, h * d)
+        return (q + v.mean(dim=2, keepdim=True)).permute(0, 2, 1, 3).reshape(b, s, h * d)
 
-    q4 = torch.randn(1, 8, 16, 8, dtype=torch.float16)
-    k4 = torch.randn(1, 8, 16, 8, dtype=torch.float16)
-    v4 = torch.randn(1, 8, 16, 8, dtype=torch.float16)
     out_4d = override_fn(
         dummy_attn_4d,
         q4,
@@ -852,14 +882,14 @@ def test_8_nag_attention_guidance():
         v4,
         8,
         skip_reshape=True,
-        transformer_options={"sigmas": torch.tensor([0.8]), "cond_or_uncond": [0]},
+        transformer_options={"_hades_nag_active": True, "cond_or_uncond": [0]},
     )
     assert out_4d.shape == (1, 16, 64) and out_4d.dtype == torch.float16
     assert torch.allclose(out_4d, dummy_attn_4d(q4, k4, v4, 8))
 
     # When mask is present, must bypass cleanly
     out_masked = override_fn(
-        dummy_attn, q, k, v, 8, mask=torch.ones(2, 16, 16), transformer_options={"sigmas": torch.tensor([0.8])}
+        dummy_attn, q, k, v, 8, mask=torch.ones(2, 16, 8), transformer_options=t_opts
     )
     assert torch.allclose(out_masked, dummy_attn(q, k, v, 8))
 
@@ -874,9 +904,10 @@ def test_8_nag_attention_guidance():
     m_chain.model_options["transformer_options"] = {"optimized_attention_override": upstream_override}
     m_chained, _ = nag_node.apply_nag(m_chain, "Balanced Quality & Anatomy", 2.5, 0.35, 2.5, 0.0, 0.65)
     chained_fn = m_chained.model_options["transformer_options"]["optimized_attention_override"]
-    _ = chained_fn(dummy_attn, q, k, v, 8, transformer_options={"sigmas": torch.tensor([6.0]), "cond_or_uncond": [1, 0]})
-    assert upstream_called["count"] == 1, "Expected upstream optimized_attention_override to be chained and invoked!"
-    print("[OK] Test 8: NAG Attention Guidance (cond_or_uncond=[1,0], override chaining, 4D skip_reshape, L1 norm) verified")
+    _ = chained_fn(dummy_attn, q, k, v, 8, transformer_options={"_hades_nag_active": True, "cond_or_uncond": [1, 0]})
+    # Active NAG calls the upstream attention twice: the full batch, then the positive queries over the negative keys
+    assert upstream_called["count"] == 2, "Expected upstream optimized_attention_override to be chained and invoked!"
+    print("[OK] Test 8: NAG Attention Guidance (cond_or_uncond=[1,0], self/cross by key length, sigma window wrapper, override chaining, 4D skip_reshape, L1 norm) verified")
 
 
 def test_9_latent_pipeline_guard():
@@ -1517,32 +1548,16 @@ def test_21_nag_dynamic_shift_propagation():
         end_percent=0.65,
         only_anima=False,
     )
-    initial_sigma_end = m_nag.model_options["_hades_nag_state"]["sigma_end"]
+    sigma_end_30 = DummyModelSampling(shift=3.0).percent_to_sigma(0.65)
+    sigma_end_45 = DummyModelSampling(shift=4.5).percent_to_sigma(0.65)
+    assert sigma_end_45 > sigma_end_30
 
-    # Clone model with shifted flow (4.5) as done in KSampler
+    # Clone model with shifted flow (4.5) as done in KSampler: the window must follow the new shift
     m_shifted = hades.clone_model_with_anima_shift(m_nag, 4.5)
-    shifted_sigma_end = m_shifted.model_options["_hades_nag_state"]["sigma_end"]
-    assert shifted_sigma_end > initial_sigma_end, (
-        f"Expected shifted sigma_end ({shifted_sigma_end}) > initial ({initial_sigma_end})"
-    )
-
-    # Verify override reads dynamically from transformer_options
-    override = m_shifted.model_options["transformer_options"]["optimized_attention_override"]
-    called = []
-    def dummy_func(*args, **kwargs):
-        called.append(True)
-        return torch.zeros(1, 10, 64)
-
-    # Within shifted window
-    q = torch.zeros(1, 10, 64)
-    k = torch.zeros(1, 10, 64)
-    v = torch.zeros(1, 10, 64)
-    t_opts = {
-        "sigmas": torch.tensor([shifted_sigma_end + 0.05]),
-        "_hades_nag_state": m_shifted.model_options["_hades_nag_state"],
-    }
-    override(dummy_func, q, k, v, 1, transformer_options=t_opts)
-    assert len(called) > 0, "Expected attention override to execute within shifted sigma window"
+    between = (sigma_end_30 + sigma_end_45) / 2
+    assert m_nag.run_apply_model_wrappers(between, {})["_hades_nag_active"] is True
+    assert m_shifted.run_apply_model_wrappers(between, {})["_hades_nag_active"] is False
+    assert m_shifted.run_apply_model_wrappers(sigma_end_45 + 0.05, {})["_hades_nag_active"] is True
     print("[OK] Test 21: NAG dynamic sigma shift propagation across cloned patchers verified")
 
 

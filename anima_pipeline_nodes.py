@@ -12,6 +12,7 @@ import comfy.sd
 import comfy.utils
 import comfy.lora
 import comfy.model_management
+import comfy.patcher_extension
 
 from . import (
     _convert_lora_fn,
@@ -780,14 +781,6 @@ class HaDeSAnimaAttentionGuidance:
             sigma_start = float("inf")
             sigma_end = 0.0
 
-        nag_state = {
-            "start_percent": float(start_percent),
-            "end_percent": float(end_percent),
-            "sigma_start": sigma_start,
-            "sigma_end": sigma_end,
-        }
-        m.model_options["_hades_nag_state"] = nag_state
-
         prev_override = m.model_options.get("transformer_options", {}).get("optimized_attention_override", None)
 
         def _call_base_attn(func, *args, **kwargs):
@@ -808,39 +801,23 @@ class HaDeSAnimaAttentionGuidance:
             z_final = float(nag_alpha) * z_normed + (1.0 - float(nag_alpha)) * zp
             return z_final.to(orig_dtype)
 
-        # Cosmos/Anima blocks run attn1_patch right before self-attention and attn2_patch right before
-        # cross-attention, so these no-op patches tag which kind of attention reaches the override next.
-        attn_kind = {"cross": False}
-
-        def _mark_self_attn(q, k, v, extra_options=None, **kwargs):
-            attn_kind["cross"] = False
-            return {}
-
-        def _mark_cross_attn(q, k, v, extra_options=None, **kwargs):
-            attn_kind["cross"] = True
-            return {}
+        def hades_nag_window(executor, x, t, c_concat=None, c_crossattn=None, control=None, transformer_options={}, **kwargs):
+            # One sigma check per model call instead of one per block; the window follows the shift in effect now
+            # (a KSampler flow_shift override included)
+            model_sampling = executor.class_obj.model_sampling
+            sigma = float(t.flatten()[0])
+            active = float(model_sampling.percent_to_sigma(end_percent)) <= sigma <= float(model_sampling.percent_to_sigma(start_percent))
+            transformer_options = {**transformer_options, "_hades_nag_active": active}
+            return executor(x, t, c_concat, c_crossattn, control, transformer_options, **kwargs)
 
         def hades_nag_attention_override(func, *args, **kwargs):
             q, k, v = args[0], args[1], args[2]
-            mask = kwargs.get("mask", None)
-
-            if mask is not None or not attn_kind["cross"]:
-                return _call_base_attn(func, *args, **kwargs)
-
             t_opts = kwargs.get("transformer_options", {})
-            sigmas = t_opts.get("sigmas", None)
-            if sigmas is not None:
-                active_state = (
-                    t_opts.get("_hades_nag_state")
-                    or t_opts.get("model_options", {}).get("_hades_nag_state")
-                    or (m.model_options.get("_hades_nag_state") if hasattr(m, "model_options") else None)
-                    or nag_state
-                )
-                s_start = active_state["sigma_start"]
-                s_end = active_state["sigma_end"]
-                curr_sigma = float(sigmas[0].item()) if isinstance(sigmas, torch.Tensor) else float(sigmas)
-                if not (s_end <= curr_sigma <= s_start):
-                    return _call_base_attn(func, *args, **kwargs)
+            # Self-attention keys come from the image tokens, so they are as long as the queries; cross-attention keys
+            # come from the text. A self-attention can never pass this check.
+            seq_dim = -2 if kwargs.get("skip_reshape", False) else 1
+            if not t_opts.get("_hades_nag_active", False) or kwargs.get("mask") is not None or k.shape[seq_dim] == q.shape[seq_dim]:
+                return _call_base_attn(func, *args, **kwargs)
 
             cond_or_uncond = t_opts.get("cond_or_uncond", [])
             n_chunks = len(cond_or_uncond)
@@ -865,11 +842,8 @@ class HaDeSAnimaAttentionGuidance:
             m.model_options["transformer_options"] = {}
         else:
             m.model_options["transformer_options"] = m.model_options["transformer_options"].copy()
-        m.model_options["_hades_nag_state"] = nag_state
-        m.model_options["transformer_options"]["_hades_nag_state"] = nag_state
         m.model_options["transformer_options"]["optimized_attention_override"] = hades_nag_attention_override
-        m.set_model_attn1_patch(_mark_self_attn)
-        m.set_model_attn2_patch(_mark_cross_attn)
+        m.add_wrapper_with_key(comfy.patcher_extension.WrappersMP.APPLY_MODEL, "hades_nag", hades_nag_window)
         m.model_options["disable_cfg1_optimization"] = True
 
         info = (

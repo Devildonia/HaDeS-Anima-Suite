@@ -157,8 +157,9 @@ def check_models(object_info, server, args):
     studio = g.add("HaDeSAnimaPromptStudio", clip=g.out(clip))
     latent = g.add("HaDeSAnimaLatentPipelineGuard", resolution_preset="Custom (Auto-Snap to 32px Grid)",
                    custom_width=512, custom_height=512, model=g.out(tuned), vae=g.out(vae))
-    sampler = g.add("HaDeSAnimaKSampler", model=g.out(tuned), positive=g.out(studio, 0), negative=g.out(studio, 1),
-                    latent_image=g.out(latent), steps=4, seed=1)
+    guided = g.add("HaDeSAnimaAttentionGuidance", model=g.out(tuned))
+    sampler = g.add("HaDeSAnimaKSampler", model=g.out(guided), positive=g.out(studio, 0), negative=g.out(studio, 1),
+                    latent_image=g.out(latent), steps=4, seed=1, flow_shift=4.0)
     image = g.add("HaDeSAnimaVAEDecode", samples=g.out(sampler), vae=g.out(vae))
     g.add("PreviewImage", images=g.out(image))
     meta = g.add("HaDeSAnimaSamplerMetadata", info=g.out(sampler, 2))
@@ -183,7 +184,7 @@ def check_models(object_info, server, args):
     finally:
         if os.path.basename(lora_path) == "hades_smoke_extract.safetensors" and os.path.exists(lora_path):
             os.remove(lora_path)
-    print(f"[OK] model graph ({time.time() - t0:.0f}s): merge + LoRA -> sample -> decode, extract, ConvRot INT8 save")
+    print(f"[OK] model graph ({time.time() - t0:.0f}s): merge + LoRA + NAG -> sample -> decode, extract, ConvRot INT8 save")
 
 
 def main():
