@@ -19,7 +19,7 @@ import comfy.weight_adapter
 
 _convert_lora_fn = comfy.lora_convert.convert_lora
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 
 logger = logging.getLogger("HaDeSAnimaSuite")
 

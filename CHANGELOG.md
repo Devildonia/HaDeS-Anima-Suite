@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.4] - 2026-11-01
 
 ### Fixed
 - **Multi-Model Merger banner showed the wrong weight** with `model_4` connected and `model_3` empty: it listed `weight_3` where the merge uses `weight_4`. Display only; the merge itself was right.
