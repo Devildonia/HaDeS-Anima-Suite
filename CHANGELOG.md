@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.1] - 2026-11-01
 
 ### Added
 - **Smoke test against a real ComfyUI** (`tests/smoke_test.py`): boots ComfyUI with only this pack, checks that all 24 nodes and web files register and runs a graph through the real execution engine; CI runs it on CPU against the latest ComfyUI. `--models` adds a release check with real Anima models (merge, LoRA, sampling, LoRA extraction, ConvRot INT8 save); it reproduces the 0.3.9 LoRA Extractor bf16 failure when that fix is reverted.
