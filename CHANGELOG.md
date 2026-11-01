@@ -13,6 +13,9 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - **NAG no longer depends on attention call order:** it told self- from cross-attention by a flag that two no-op attention patches set right before each call, so a change in that order would have guided self-attention silently. Cross-attention is now recognized by its text-length keys (a self-attention can never match), and the sigma window is checked once per model call by an `APPLY_MODEL` wrapper that reads the shift in effect, replacing the 28 per-step GPU syncs and the window state the KSampler had to re-sync on a `flow_shift` override. Output is pixel-identical (CFG 4.5 and 1.0, KSampler shift overrides); speed is unchanged, since NAG already cost ~0.4% here. The smoke test's model graph now includes NAG with a shift override.
 
+### Fixed
+- **Frontend test in CI:** its dropdown check used the Model Loader list, which is empty on a fresh install, and ComfyUI only adds the filter box to lists of more than 4 entries. It now checks the KSampler sampler list.
+
 ---
 
 ## [0.4.1] - 2026-11-01

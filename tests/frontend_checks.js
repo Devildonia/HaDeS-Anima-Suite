@@ -78,27 +78,29 @@ async (mode) => {
         }
     }
 
-    // Dropdowns open ComfyUI's searchable menu ("Filter list"); the row needs to be drawn once to know its bounds
+    // Dropdowns open ComfyUI's searchable menu ("Filter list"). ComfyUI adds the box only to lists of more than 4
+    // entries, so this uses the sampler list (a fresh install has no model files to fill the loader lists).
+    // The row needs to be drawn once to know its bounds.
     app.graph.clear();
-    const loader = LiteGraph.createNode("HaDeSAnimaModelLoader");
-    app.graph.add(loader);
-    loader.pos = [50, 50];
+    const sampler = LiteGraph.createNode("HaDeSAnimaKSampler");
+    app.graph.add(sampler);
+    sampler.pos = [50, 50];
     app.canvas.ds.offset = [0, 0];
     app.canvas.ds.scale = 1;
     app.canvas.setDirty(true, true);
     app.canvas.draw(true, true);
     await tick(mode === "vue" ? 1500 : 100);
-    const combo = loader.widgets.find((w) => w.name === "hades_combo_unet_name");
+    const combo = sampler.widgets.find((w) => w.name === "hades_combo_sampler_name");
     if (combo?._bounds) {
-        app.canvas.current_node = loader;
+        app.canvas.current_node = sampler;
         const b = combo._bounds;
-        combo.mouse(new PointerEvent("pointerdown", { clientX: 200, clientY: 200 }), [b.x + 40, b.y + 5], loader);
+        combo.mouse(new PointerEvent("pointerdown", { clientX: 200, clientY: 200 }), [b.x + 40, b.y + 5], sampler);
         await tick(300);
         const menu = document.querySelector(".litecontextmenu");
-        if (!menu?.querySelector(".comfy-context-menu-filter")) fail("model dropdown has no filter box");
+        if (!menu?.querySelector(".comfy-context-menu-filter")) fail("sampler dropdown has no filter box");
         menu?.remove();
     } else {
-        fail("Model Loader dropdown row was not drawn");
+        fail("KSampler sampler dropdown row was not drawn");
     }
 
     app.graph.clear();
