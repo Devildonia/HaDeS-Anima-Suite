@@ -7,6 +7,9 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Frontend test in a headless browser** (`tests/frontend_test.py` + `tests/frontend_checks.js`): creates all 24 nodes in the classic canvas and in Nodes 2.0 on a real ComfyUI and checks the LiteGraph internals the HaDeS widgets rely on (native widgets hidden, links dropped on a row reaching its input, sockets on their rows, complete vanilla view, dropdown filter box) plus browser errors from the pack. CI runs it with Playwright's Chromium against the latest ComfyUI frontend. Reverting each of the recent frontend fixes makes it fail.
+
 ### Changed
 - **NAG no longer depends on attention call order:** it told self- from cross-attention by a flag that two no-op attention patches set right before each call, so a change in that order would have guided self-attention silently. Cross-attention is now recognized by its text-length keys (a self-attention can never match), and the sigma window is checked once per model call by an `APPLY_MODEL` wrapper that reads the shift in effect, replacing the 28 per-step GPU syncs and the window state the KSampler had to re-sync on a `flow_shift` override. Output is pixel-identical (CFG 4.5 and 1.0, KSampler shift overrides); speed is unchanged, since NAG already cost ~0.4% here. The smoke test's model graph now includes NAG with a shift override.
 

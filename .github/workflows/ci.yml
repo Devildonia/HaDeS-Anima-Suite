@@ -70,3 +70,11 @@ jobs:
 
       - name: Smoke test
         run: python ComfyUI/custom_nodes/Comfyui-HaDeS-Anima-BlockMerger/tests/smoke_test.py --comfy-dir ComfyUI --cpu
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Frontend test (classic canvas + Nodes 2.0)
+        run: python ComfyUI/custom_nodes/Comfyui-HaDeS-Anima-BlockMerger/tests/frontend_test.py --comfy-dir ComfyUI --cpu
