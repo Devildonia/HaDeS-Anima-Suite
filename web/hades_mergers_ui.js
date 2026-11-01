@@ -1341,8 +1341,10 @@ export function setupMultiModelMergerUI(node) {
             ],
             drawCustomHUD(ctx, rect) {
                 const method = String(wMethod?.value || "TIES");
-                const nModels = 2 + (isLinked("model_3") ? 1 : 0) + (isLinked("model_4") ? 1 : 0);
-                const w = wWeights.slice(0, nModels).map((x) => Number(x?.value ?? 1));
+                // Same models as the merge: model_4 without model_3 is the third model and brings weight_4
+                const connected = [1, 2, ...[3, 4].filter((i) => isLinked(`model_${i}`))];
+                const nModels = connected.length;
+                const w = connected.map((i) => Number(wWeights[i - 1]?.value ?? 1));
                 ctx.font = "600 9px ui-monospace, Consolas, monospace";
                 ctx.textBaseline = "middle";
 
