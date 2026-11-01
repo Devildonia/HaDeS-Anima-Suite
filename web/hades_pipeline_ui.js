@@ -1430,6 +1430,10 @@ export function setupArtistCharacterPickerUI(node) {
 
     [wArtists, wCharacter, wSeries, wRandom, wMinPosts, wSeed, wControl].forEach(hideBackingWidget);
 
+    // An INT link dropped on the node connects to the first free INT input: make that the seed, not random_artists
+    const seedIdx = node.inputs?.findIndex((i) => i.name === "seed") ?? -1;
+    if (seedIdx > 0) node.inputs.unshift(...node.inputs.splice(seedIdx, 1));
+
     const editRaw = (w, title) =>
         app.canvas?.prompt(title, String(w.value || ""), (val) => setWidgetValue(w, String(val ?? "").trim(), node));
 

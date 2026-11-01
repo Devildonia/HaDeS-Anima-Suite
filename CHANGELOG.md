@@ -5,6 +5,13 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Picker seed could not be driven by a seed generator:** an INT link dropped on the node went to `random_artists` (the first INT input), and a link dropped on any styled row ignored that row. Links dropped on a HaDeS row now connect to that row's input (classic mode), and a new Picker takes INT links on `seed` first. A linked seed dims the SEED row (Picker and KSamplers).
+
+---
+
 ## [0.3.9] - 2026-10-31
 
 ### Fixed

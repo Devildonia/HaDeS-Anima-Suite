@@ -90,10 +90,17 @@ export function createSeedRows(node, wSeed, wControl) {
     const rows = [wSeed, wControl].filter(Boolean);
     rows.forEach(hideBackingWidget);
     if (wSeed) {
+        const origOnConnectionsChange = node.onConnectionsChange;
+        node.onConnectionsChange = function () {
+            origOnConnectionsChange?.apply(this, arguments);
+            this.setDirtyCanvas(true, true);
+        };
         rows.push(node.addCustomWidget(createStyledTextRowWidget(node, wSeed, {
             tag: "SEED",
             numeric: true,
             promptTitle: "Seed",
+            isDisabled: () => node.getSlotFromWidget(wSeed)?.link != null,
+            disabledText: "From the linked seed input",
             tooltip: "<strong>Seed</strong><br>Click to type a seed. Later passes use seed + 1 / seed + 2.",
         })));
     }

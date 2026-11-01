@@ -640,6 +640,11 @@ export function applyNodeFrameStyle(node) {
             redrawVueWidgets(this);
             return origSetDirtyCanvas.apply(this, arguments);
         };
+        // A link dropped on a styled row targets its hidden backing widget's input, not the first input of that type
+        const origGetSlotFromWidget = node.getSlotFromWidget;
+        node.getSlotFromWidget = function (widget) {
+            return origGetSlotFromWidget.call(this, widget?._hadesBackingWidget ?? widget);
+        };
     }
 
     node.color = "#1f2228";
@@ -971,6 +976,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
 
     return {
         name: `hades_combo_${backingWidget?.name || label}`,
+        _hadesBackingWidget: backingWidget,
         type: "custom",
         value: "",
         tooltip: plainTooltip,
@@ -1105,6 +1111,7 @@ export function createSpectralSliderWidget(node, backingWidget, config = {}) {
 
     return {
         name: `hades_slider_${backingWidget?.name || label}`,
+        _hadesBackingWidget: backingWidget,
         type: "custom",
         value: "",
         tooltip: plainTooltip,
@@ -1382,6 +1389,7 @@ export function createStyledTextRowWidget(node, backingWidget, config = {}) {
 
     return {
         name: `hades_text_${backingWidget?.name || tag}`,
+        _hadesBackingWidget: backingWidget,
         type: "custom",
         value: "",
         tooltip: plainTooltip,
@@ -1488,6 +1496,7 @@ export function createStyledToggleWidget(node, backingWidget, config = {}) {
 
     return {
         name: `hades_toggle_${backingWidget?.name || label}`,
+        _hadesBackingWidget: backingWidget,
         type: "custom",
         value: "",
         tooltip: plainTooltip,
