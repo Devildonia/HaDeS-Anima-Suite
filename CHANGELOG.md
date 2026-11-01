@@ -9,6 +9,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - **Picker seed could not be driven by a seed generator:** an INT link dropped on the node went to `random_artists` (the first INT input), and a link dropped on any styled row ignored that row. Links dropped on a HaDeS row now connect to that row's input (classic mode), and a new Picker takes INT links on `seed` first. A linked seed dims the SEED row (Picker and KSamplers).
+- **Widget input sockets sat at the top of HaDeS nodes:** the sockets of inputs shown as styled rows (seed, steps, cfg, ...) were drawn on the node's first line, so a link seemed to go to an unrelated node. They now sit on their row (classic mode).
 
 ---
 

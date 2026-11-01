@@ -645,6 +645,20 @@ export function applyNodeFrameStyle(node) {
         node.getSlotFromWidget = function (widget) {
             return origGetSlotFromWidget.call(this, widget?._hadesBackingWidget ?? widget);
         };
+        // Hidden backing widgets are skipped by the layout, so their input sockets sat at the top of the node.
+        // Give them their styled row's position (centered on the 24px row surface) and re-place the sockets.
+        const origArrange = node.arrange;
+        node.arrange = function () {
+            origArrange.apply(this, arguments);
+            let moved = false;
+            for (const w of this.widgets || []) {
+                const backing = w._hadesBackingWidget;
+                if (!backing || w.y == null || backing.y === w.y + 4) continue;
+                backing.y = w.y + 4;
+                moved = true;
+            }
+            if (moved) origArrange.apply(this, arguments);
+        };
     }
 
     node.color = "#1f2228";
