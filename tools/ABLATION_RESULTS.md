@@ -166,6 +166,22 @@ Findings:
   with S2's style. It is shown as "Favor Slot 1 (PRI)" in the HaDeS UI (stored value unchanged).
 - The other three are within 0.03 of plain stacking. The LoRA Merger presets use the same formula family and were not measured separately.
 
+**Can the weights predict where a LoRA acts? (2026-11-02)** Weight statistics per group of the same two LoRAs, compared with the
+swap-in / leave-out means of the four metrics above. ΔW = up·down·alpha/rank; Spearman ρ over the 6 groups; top = strongest group.
+
+| Predictor | dungeon ρ swap / leave, top | niji ρ swap / leave, top |
+|---|---|---|
+| Energy (Σ‖ΔW‖²) | 0.77 / 0.49, 05-09 | 0.09 / 0.43, 15-19 |
+| ‖ΔW‖ / ‖W_base‖ (mean per layer) | 0.37 / 0.20, 00-04 | 0.43 / 0.60, 00-04 |
+| Σ spectral norm | 0.54 / 0.31, 05-09 | 0.60 / 0.83, 00-04 |
+| Measured | top 10-14 (swap) / 15-19 (leave) | top 00-04 (swap and leave) |
+
+- No predictor works for both LoRAs, and none finds dungeon's strongest group. Niji's weight energy is spread evenly over blocks
+  00-19 (05-09 has 98% of the peak) while 05-09 carries the least visual change; its color peak in 20-23 (0.88) sits in a low-energy group.
+- The one thing every predictor gets right, blocks 24-27 being weakest, is already true for every LoRA and merge measured.
+- No LoRA Inspector node: a per-block readout from the weights would show confident numbers that do not match the images.
+  Rendering through `--mode lora` stays the way to find where a LoRA acts.
+
 ## Regional prompts
 
 Base model, 1344x768, 8 seeds, two girls: red hair / dress on the left, blue on the right. Score = red pixels left minus right
