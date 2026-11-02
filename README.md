@@ -4,6 +4,8 @@
 
 Claims about what block groups, presets and schedulers do are measured with [`tools/anima_ablation.py`](tools/anima_ablation.py); results are in [`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md).
 
+![Previews from the merge workflow](docs/images/merge_previews.webp)
+
 ---
 
 ## What the suite does
@@ -93,6 +95,8 @@ No group isolates one attribute: each moves composition, structure, texture and 
   - `BLOCKS_Layout_Geometry` .. `BLOCKS_Lighting_Sharpness` (`FLOAT`, default `0.50`).
   - `ADAPTER_Text_Alignment` (`FLOAT`, default `0.00`): keeps Model 1's `llm_adapter`.
   - `recipe_override` (`STRING`, optional): 34-float CSV or the JSON export of the Predictive Merger.
+
+<img src="docs/images/block_merger.webp" alt="Anima Model Block Merger" width="480">
 
 #### 2. `Anima Predictive Model Merger`
 - **Class:** `HaDeSAnimaPredictiveModelMerger`
@@ -257,6 +261,8 @@ No group isolates one attribute: each moves composition, structure, texture and 
 - **Purpose:** Three passes: composition at `1.0x`, an intermediate pass at ~`1.35x` (denoise ~0.38) and a low-denoise pass at ~`1.75x`–`2.0x` (denoise ~0.20), as an alternative to one large upscale step that must trade duplicated details (high denoise) against blur (low denoise). Optional `model_pass2` / `model_pass3`.
 - **Real noise depends on the shift:** a partial denoise is cut from the shifted schedule, so the same denoise starts at more noise with a higher shift. Denoise 0.48 at shift 3.5 on `beta` already starts at ~0.76 sigma and repaints the background. The defaults and the `Background-Safe` preset (pixel-space bridge, `euler` + `anima_beta57`, shift 3.0) keep Stage 2 at ~0.48 and Stage 3 at ~0.17; lower `denoise_stage2` toward 0.30 if a finetune still changes the background.
 
+<img src="docs/images/triple_pass.webp" alt="Anima Triple-Pass KSampler with the Background-Safe preset" width="494">
+
 #### 24. `Anima Sampler Metadata`
 - **Class:** `HaDeSAnimaSamplerMetadata`
 - **Purpose:** Connect a KSampler's `info` output; it outputs `seed`, `steps`, `cfg`, `sampler_name`, `scheduler` (strings) and `denoise` for image-saver metadata nodes (e.g. Image Saver Metadata). The values are the ones actually sampled with, after the profile / preset is applied, so the metadata cannot drift from a separate settings node. Dual / Triple-Pass report pass 1, the pass that generates the image. Any other `info` string raises an error instead of saving made-up values.
@@ -297,6 +303,8 @@ ComfyUI's stock `ConditioningSetArea` / `ConditioningSetMask` work on Anima. In 
 ## HaDeS Node UI vs. Standard ComfyUI Widgets
 
 The suite draws its own canvas widgets (`web/hades_widgets.js`): a neutral dark palette with one accent color (green / amber / red only signal state), quiet uppercase row labels, preset buttons that highlight the active preset, and a compact status panel per node. Every node enforces a minimum width so nothing clips or overlaps, and hover tooltips explain each control.
+
+![Anima KSampler with the HaDeS widgets (left) and the standard ComfyUI widgets (right)](docs/images/ui_hades_vs_standard.webp)
 
 To use the plain ComfyUI inputs instead, open **Settings → HaDeS Anima Suite → Appearance** and enable `Use standard ComfyUI widgets on HaDeS nodes` (setting id `HaDeS.ClassicUI`). It applies immediately to all 25 nodes; a single node can also be switched from its right-click menu (**HaDeS Suite → Use standard ComfyUI widgets**).
 
@@ -349,6 +357,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 │   ├── hades_ksampler_ui.js  # Sampler node UIs
 │   └── hades_loaders_ui.js   # Loader and VAE Decode node UIs
 ├── examples/                 # Example workflows
+├── docs/images/              # README screenshots (not in the Registry package)
 ├── tools/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
 │   └── ABLATION_RESULTS.md   # Measured results

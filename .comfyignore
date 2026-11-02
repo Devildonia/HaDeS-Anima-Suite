@@ -2,5 +2,6 @@
 tests/
 .github/
 tools/*
+docs/
 # Measurements cited by the README and the node tooltips
 !tools/ABLATION_RESULTS.md

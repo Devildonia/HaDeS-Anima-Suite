@@ -5,6 +5,11 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **README screenshots:** merge previews, the Block Merger, the Triple-Pass KSampler with the `Background-Safe` preset, and the HaDeS widgets next to the standard ones. They live in `docs/images/`, which is left out of the Registry package.
+
 ## [0.4.5] - 2026-11-02
 
 ### Added
