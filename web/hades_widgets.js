@@ -864,6 +864,7 @@ export function createSpectralBannerWidget(node, config) {
                         else if (lbl === "Painterly") lbl = "Paint";
                         else if (lbl === "Base→Turbo") lbl = "B→T";
                         else if (lbl === "1.0x Polish") lbl = "1.0x";
+                        else if (lbl === "Safe 1.75x") lbl = "Safe";
                         else if (lbl === "1.35→1.75x") lbl = "1.75x";
                         else if (lbl === "1.5→2.0x") lbl = "2.0x";
                         else if (lbl === "1.5x Lock") lbl = "Lock";

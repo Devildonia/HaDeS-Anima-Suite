@@ -254,7 +254,8 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 #### 13. `Anima Triple-Pass KSampler`
 - **Class:** `HaDeSAnimaTriplePassKSampler`
-- **Purpose:** Three passes: composition at `1.0x`, an intermediate pass at ~`1.35x` (denoise ~0.48) and a low-denoise pass at ~`1.75x`–`2.0x` (denoise ~0.26), as an alternative to one large upscale step that must trade duplicated details (high denoise) against blur (low denoise). Optional `model_pass2` / `model_pass3`.
+- **Purpose:** Three passes: composition at `1.0x`, an intermediate pass at ~`1.35x` (denoise ~0.38) and a low-denoise pass at ~`1.75x`–`2.0x` (denoise ~0.20), as an alternative to one large upscale step that must trade duplicated details (high denoise) against blur (low denoise). Optional `model_pass2` / `model_pass3`.
+- **Real noise depends on the shift:** a partial denoise is cut from the shifted schedule, so the same denoise starts at more noise with a higher shift. Denoise 0.48 at shift 3.5 on `beta` already starts at ~0.76 sigma and repaints the background. The defaults and the `Background-Safe` preset (pixel-space bridge, `euler` + `anima_beta57`, shift 3.0) keep Stage 2 at ~0.48 and Stage 3 at ~0.17; lower `denoise_stage2` toward 0.30 if a finetune still changes the background.
 
 #### 24. `Anima Sampler Metadata`
 - **Class:** `HaDeSAnimaSamplerMetadata`

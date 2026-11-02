@@ -1180,6 +1180,20 @@ def test_13_anima_triple_pass_progressive_ksampler():
         assert tuple(final_lat["samples"].shape) == (1, 16, 1792 // 8, 1792 // 8)
         assert tuple(dec_img.shape) == (1, 1792, 1792, 3)
 
+        # Background-Safe preset overrides the widget values passed in
+        _, _, _, _, info_safe = triple.sample_triple_pass(
+            m, [], [], base_lat,
+            "Background-Safe 1.0x -> 1.35x -> 1.75x (Pixel Bridge, Low-Noise Refine)",
+            777, "Latent 16ch Variance-Preserving Bicubic",
+            28, 4.5, "er_sde", "normal", 1.0, 3.0,
+            1.35, 16, 4.0, "er_sde", "beta", 0.48, 3.5,
+            1.75, 12, 3.4, "euler", "anima_beta57", 0.26, 4.0,
+            vae=DummyVAE(16),
+        )
+        assert "Bridge: Pixel-Space VAE Round-Trip" in info_safe
+        assert "euler/anima_beta57, 16s, CFG 4.0, Denoise 0.38, Shift 3.00" in info_safe
+        assert "euler/anima_beta57, 12s, CFG 3.2, Denoise 0.20, Shift 3.00" in info_safe
+
         # Verify zero cumulative 32px rounding drift on 1152x896 with scale_stage2=1.35, scale_stage3=2.00
         # Stage 1: 1152x896 -> Stage 2: 1568x1216 -> Stage 3 must be exact 2.0x of Stage 1 (2304x1792, NOT 2336x1792)
         lat_1152x896 = {"samples": torch.randn(1, 16, 896 // 8, 1152 // 8)}

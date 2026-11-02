@@ -58,6 +58,12 @@ const DUAL_PROFILES = {
 };
 
 const TRIPLE_PROFILES = {
+    "Background-Safe 1.0x -> 1.35x -> 1.75x (Pixel Bridge, Low-Noise Refine)": [
+        "Pixel-Space VAE Round-Trip (Lanczos 32px)",
+        28, 4.5, "er_sde", "normal", 1.0, 0.0,
+        1.35, 16, 4.0, "euler", "anima_beta57", 0.38, 3.0,
+        1.75, 12, 3.2, "euler", "anima_beta57", 0.2, 3.0,
+    ],
     "Progressive Staircase 1.0x -> 1.35x -> 1.75x (Ultra-Res Poster Pipeline)": [
         "Latent 16ch Variance-Preserving Bicubic",
         28, 4.5, "er_sde", "normal", 1.0, 0.0,
@@ -931,8 +937,8 @@ export function setupAnimaTriplePassKSamplerUI(node) {
                 const sc2 = Number(wScale2?.value ?? 1.35);
                 const sc3 = Number(wScale3?.value ?? 1.75);
                 const d1 = Number(wDen1?.value ?? 1.0);
-                const d2 = Number(wDen2?.value ?? 0.48);
-                const d3 = Number(wDen3?.value ?? 0.26);
+                const d2 = Number(wDen2?.value ?? 0.38);
+                const d3 = Number(wDen3?.value ?? 0.2);
                 const s1 = Number(wSteps1?.value ?? 28);
                 const s2 = Number(wSteps2?.value ?? 16);
                 const s3 = Number(wSteps3?.value ?? 12);
@@ -985,6 +991,13 @@ export function setupAnimaTriplePassKSamplerUI(node) {
             },
             actions: [
                 {
+                    label: "Safe 1.75x",
+                    tooltip: `<strong>Background-Safe (1.0x -> 1.35x -> 1.75x)</strong><br>Pixel-space bridge, euler + anima_beta57 at shift 3.0, Stage 2 denoise 0.38 and Stage 3 0.20. Refines backgrounds instead of repainting them; a good starting point for any Anima finetune.`,
+                    onClick: () =>
+                        applyPreset("Background-Safe 1.0x -> 1.35x -> 1.75x (Pixel Bridge, Low-Noise Refine)"),
+                    isActive: () => wPreset?.value === "Background-Safe 1.0x -> 1.35x -> 1.75x (Pixel Bridge, Low-Noise Refine)",
+                },
+                {
                     label: "1.35→1.75x",
                     tooltip: `<strong>Progressive Staircase (1.0x -> 1.35x -> 1.75x)</strong><br>Curated 3-stage poster pipeline: 28-step draft, 1.35x bridge at 0.48 denoise, and 1.75x final surface polish.`,
                     onClick: () =>
@@ -1027,7 +1040,7 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         createStyledComboWidget(node, wMethod, {
             tag: "BRIDGE",
             tagColor: HADES_THEME.amber,
-            tooltip: `<strong>Progressive Latent Bridge</strong><br>16-channel variance-preserving bicubic interpolation snapped to the 32px grid across all progressive stages.`,
+            tooltip: `<strong>Progressive Bridge</strong><br>How the image is upscaled between stages, snapped to the 32px grid. The pixel-space VAE round-trip keeps flat backgrounds cleanest; without a VAE connected it falls back to the 16-channel latent bicubic.`,
         })
     );
 
@@ -1094,7 +1107,7 @@ export function setupAnimaTriplePassKSamplerUI(node) {
         createStyledComboWidget(node, wSched2, {
             tag: "STAGE 2", label: "Scheduler",
             tagColor: HADES_THEME.cyan,
-            tooltip: `<strong>Stage 2 Bridge Scheduler</strong><br>Scheduler for intermediate bridge pass (beta recommended).`,
+            tooltip: `<strong>Stage 2 Bridge Scheduler</strong><br>Scheduler for intermediate bridge pass. anima_beta57 starts a partial denoise at lower real noise than beta or normal.`,
         })
     );
     const steps2Widget = node.addCustomWidget(
@@ -1114,15 +1127,15 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     const den2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen2, {
             tag: "STAGE 2", label: "Stage 2 Bridge Denoise",
-            color: HADES_THEME.cyan, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.8, step: 0.01, defaultVal: 0.48,
-            tooltip: `<strong>Stage 2 Bridge Denoise</strong><br>Denoise strength for Stage 2 (0.42–0.50).`,
+            color: HADES_THEME.cyan, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.8, step: 0.01, defaultVal: 0.38,
+            tooltip: `<strong>Stage 2 Bridge Denoise</strong><br>Denoise strength for Stage 2 (0.30–0.42). The real starting noise also grows with the shift: 0.48 at shift 3.5 on beta already starts at ~0.76 and repaints the background.`,
         })
     );
     const shift2Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift2, {
             tag: "STAGE 2", label: "Stage 2 Flow Shift",
-            color: HADES_THEME.cyan, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.5, zeroLabel: "INHERIT",
-            tooltip: `<strong>Stage 2 Flow Shift</strong><br>Rectified Flow shift for intermediate resolution (3.40–3.60).`,
+            color: HADES_THEME.cyan, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.0, zeroLabel: "INHERIT",
+            tooltip: `<strong>Stage 2 Flow Shift</strong><br>Rectified Flow shift for intermediate resolution. Higher shift raises the real starting noise of a partial denoise; 3.0 keeps the composition.`,
         })
     );
 
@@ -1158,22 +1171,22 @@ export function setupAnimaTriplePassKSamplerUI(node) {
     const cfg3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wCfg3, {
             tag: "STAGE 3", label: "Stage 3 Polish CFG",
-            color: HADES_THEME.purple, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 3.4,
+            color: HADES_THEME.purple, min: 1.0, max: 20.0, visMin: 1.0, visMax: 8.0, step: 0.1, defaultVal: 3.2,
             tooltip: `<strong>Stage 3 Polish CFG</strong><br>Final polish guidance scale (3.0–3.5 to avoid over-saturation).`,
         })
     );
     const den3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wDen3, {
             tag: "STAGE 3", label: "Stage 3 Polish Denoise",
-            color: HADES_THEME.purple, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.6, step: 0.01, defaultVal: 0.26,
-            tooltip: `<strong>Stage 3 Polish Denoise</strong><br>Gentle denoise (0.22–0.28) preserving structure while adding micro-acuity.`,
+            color: HADES_THEME.purple, min: 0.05, max: 1.0, visMin: 0.1, visMax: 0.6, step: 0.01, defaultVal: 0.2,
+            tooltip: `<strong>Stage 3 Polish Denoise</strong><br>Gentle denoise (0.18–0.26) preserving structure while adding micro-acuity.`,
         })
     );
     const shift3Widget = node.addCustomWidget(
         createSpectralSliderWidget(node, wShift3, {
             tag: "STAGE 3", label: "Stage 3 Flow Shift",
-            color: HADES_THEME.purple, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 4.0, zeroLabel: "INHERIT",
-            tooltip: `<strong>Stage 3 Flow Shift</strong><br>Flow shift for high resolution (3.80–4.20).`,
+            color: HADES_THEME.purple, min: 0.0, max: 10.0, visMin: 0.0, visMax: 6.0, step: 0.05, defaultVal: 3.0, zeroLabel: "INHERIT",
+            tooltip: `<strong>Stage 3 Flow Shift</strong><br>Flow shift for the final polish. Higher shift raises the real starting noise; 3.0 keeps the polish gentle.`,
         })
     );
 

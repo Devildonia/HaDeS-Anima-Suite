@@ -670,6 +670,13 @@ class HaDeSAnimaTriplePassKSampler:
 
     TRIPLE_PRESETS = {
         "Manual (Use Widget Settings)": None,
+        # Stage 2 starts at ~0.48 real sigma and Stage 3 at ~0.17 (shift 3.0), so backgrounds are refined, not repainted
+        "Background-Safe 1.0x -> 1.35x -> 1.75x (Pixel Bridge, Low-Noise Refine)": (
+            "Pixel-Space VAE Round-Trip (Lanczos 32px)",
+            28, 4.5, "er_sde", "normal", 1.00, 0.0,
+            1.35, 16, 4.0, "euler", "anima_beta57", 0.38, 3.00,
+            1.75, 12, 3.2, "euler", "anima_beta57", 0.20, 3.00,
+        ),
         "Progressive Staircase 1.0x -> 1.35x -> 1.75x (Ultra-Res Poster Pipeline)": (
             "Latent 16ch Variance-Preserving Bicubic",
             28, 4.5, "er_sde", "normal", 1.00, 0.0,
@@ -709,7 +716,7 @@ class HaDeSAnimaTriplePassKSampler:
                 }),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
                 "upscale_method": (ANIMA_UPSCALE_METHODS, {
-                    "default": "Latent 16ch Variance-Preserving Bicubic"
+                    "default": "Pixel-Space VAE Round-Trip (Lanczos 32px)"
                 }),
                 # Stage 1: Anatomy & Layout Lock (1.0x)
                 "steps_stage1": ("INT", {"default": 28, "min": 1, "max": 200, "step": 1}),
@@ -722,18 +729,18 @@ class HaDeSAnimaTriplePassKSampler:
                 "scale_stage2": ("FLOAT", {"default": 1.35, "min": 1.0, "max": 2.5, "step": 0.05}),
                 "steps_stage2": ("INT", {"default": 16, "min": 1, "max": 200, "step": 1}),
                 "cfg_stage2": ("FLOAT", {"default": 4.0, "min": 1.0, "max": 20.0, "step": 0.1}),
-                "sampler_stage2": (ANIMA_SAMPLER_LIST, {"default": "er_sde"}),
-                "scheduler_stage2": (ANIMA_SCHEDULER_LIST, {"default": "beta"}),
-                "denoise_stage2": ("FLOAT", {"default": 0.48, "min": 0.05, "max": 1.0, "step": 0.01}),
-                "shift_stage2": ("FLOAT", {"default": 3.5, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
+                "sampler_stage2": (ANIMA_SAMPLER_LIST, {"default": "euler"}),
+                "scheduler_stage2": (ANIMA_SCHEDULER_LIST, {"default": "anima_beta57"}),
+                "denoise_stage2": ("FLOAT", {"default": 0.38, "min": 0.05, "max": 1.0, "step": 0.01}),
+                "shift_stage2": ("FLOAT", {"default": 3.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
                 # Stage 3: Micro-Lineart & Surface Polish (scale_stage3 is relative to Stage 1 base)
                 "scale_stage3": ("FLOAT", {"default": 1.75, "min": 1.0, "max": 3.0, "step": 0.05}),
                 "steps_stage3": ("INT", {"default": 12, "min": 1, "max": 200, "step": 1}),
-                "cfg_stage3": ("FLOAT", {"default": 3.4, "min": 1.0, "max": 20.0, "step": 0.1}),
+                "cfg_stage3": ("FLOAT", {"default": 3.2, "min": 1.0, "max": 20.0, "step": 0.1}),
                 "sampler_stage3": (ANIMA_SAMPLER_LIST, {"default": "euler"}),
                 "scheduler_stage3": (ANIMA_SCHEDULER_LIST, {"default": "anima_beta57"}),
-                "denoise_stage3": ("FLOAT", {"default": 0.26, "min": 0.05, "max": 1.0, "step": 0.01}),
-                "shift_stage3": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
+                "denoise_stage3": ("FLOAT", {"default": 0.20, "min": 0.05, "max": 1.0, "step": 0.01}),
+                "shift_stage3": ("FLOAT", {"default": 3.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
             },
             "optional": {
                 "model_pass2": ("MODEL",),

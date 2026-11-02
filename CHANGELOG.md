@@ -7,7 +7,11 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Triple-Pass `Background-Safe` preset:** pixel-space bridge, `euler` + `anima_beta57` at shift 3.0, Stage 2 denoise 0.38 and Stage 3 0.20. Tested on Anima base and several finetunes.
+
 ### Changed
+- **Triple-Pass defaults no longer repaint the background:** denoise is cut from a schedule that the shift bends, so the old Stage 2 (`er_sde` / `beta`, denoise 0.48, shift 3.5) actually started at ~0.76 sigma and regenerated backgrounds on every pass. New nodes now default to the `Background-Safe` values (Stage 2 starts at ~0.48, Stage 3 at ~0.17) and the example workflow uses them. Saved workflows keep their own values, and the existing presets are unchanged.
 - **Registry package no longer ships tests, tools and CI:** `comfy node publish` packs every git-tracked file, so `tests/`, `tools/anima_ablation.py` and `.github/` went to every Comfy Registry install. A `.comfyignore` now leaves them out (they stay on GitHub); `tools/ABLATION_RESULTS.md` stays in the package because the README and node tooltips cite it.
 
 ---
