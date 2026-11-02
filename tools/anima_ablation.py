@@ -18,6 +18,9 @@ Modes:
   lora_presets  Predictive Multi-LoRA presets with --lora as PRI and --lora-b as S2, plus both stacked at 1.0,
               placed between "--lora only" (0) and "--lora-b only" (1).
   clip        Like groups, for the Anima CLIP Block Merger bands: A = --clip, B = --clip-b, on --model-a.
+  shift       --model-a at several sizes and flow shifts (SHIFT_GRID). Reports the low-frequency spectral slope
+              (composition scale, compared with 1024 at shift 3.0), native-resolution detail and the layout change
+              against shift 3.0 at the same size.
 
 Example:
   python tools/anima_ablation.py --mode groups --model-a anima-base-v1.0.safetensors \
@@ -53,6 +56,7 @@ CLIP_BANDS = {
     "style_abstraction": "L20-27",
     "final_projections": "norm",
 }
+SHIFT_GRID = {768: (2.25, 3.0), 1024: (3.0,), 1536: (3.0, 4.5, 6.0), 2048: (3.0, 4.5, 6.0, 9.0)}
 LORA_GROUPS = ["blocks_00_04", "blocks_05_09", "blocks_10_14", "blocks_15_19", "blocks_20_23", "blocks_24_27", "other_layers"]
 LORA_PRESETS = [
     "Character + Style Fusion (A identity, B style)",
@@ -103,7 +107,7 @@ def build_loader_inputs(args, unet_name):
     return {"unet_name": unet_name, "weight_dtype": "default", "flow_shift": 3.0, "auto_remap_diffusers": True, "external_llm_adapter": "None"}
 
 
-def build_graph(args, prompt, seed, model_node, steps=None, sampler=None, scheduler=None):
+def build_graph(args, prompt, seed, model_node, steps=None, sampler=None, scheduler=None, size=None, flow_shift=0.0):
     """API graph: HaDeS loaders -> model_node (dict of extra nodes ending in id "model", optionally a merged CLIP "te") -> KSampler -> preview."""
     te = "te" if "te" in model_node else "clip"
     g = {
@@ -112,11 +116,11 @@ def build_graph(args, prompt, seed, model_node, steps=None, sampler=None, schedu
         "vae": {"class_type": "HaDeSAnimaVAELoader", "inputs": {"vae_name": args.vae, "vae_precision": "bfloat16 (Recommended Wan21)"}},
         "pos": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": [te, 0]}},
         "neg": {"class_type": "CLIPTextEncode", "inputs": {"text": NEGATIVE, "clip": [te, 0]}},
-        "latent": {"class_type": "HaDeSAnimaLatentPipelineGuard", "inputs": {"resolution_preset": "Custom (Auto-Snap to 32px Grid)", "custom_width": args.size, "custom_height": args.size, "batch_size": 1, "prevent_29b_white_bg_bias": True}},
+        "latent": {"class_type": "HaDeSAnimaLatentPipelineGuard", "inputs": {"resolution_preset": "Custom (Auto-Snap to 32px Grid)", "custom_width": size or args.size, "custom_height": size or args.size, "batch_size": 1, "prevent_29b_white_bg_bias": True}},
         "ks": {"class_type": "HaDeSAnimaKSampler", "inputs": {
             "model": ["model", 0], "positive": ["pos", 0], "negative": ["neg", 0], "latent_image": ["latent", 0],
             "variant_profile": "Manual", "seed": seed, "steps": steps or args.steps, "cfg": args.cfg,
-            "sampler_name": sampler or args.sampler, "scheduler": scheduler or args.scheduler, "denoise": 1.0, "flow_shift": 0.0, "vae": ["vae", 0],
+            "sampler_name": sampler or args.sampler, "scheduler": scheduler or args.scheduler, "denoise": 1.0, "flow_shift": flow_shift, "vae": ["vae", 0],
         }},
         "out": {"class_type": "PreviewImage", "inputs": {"images": ["ks", 1]}},
     }
@@ -202,6 +206,8 @@ def configs_for(args):
             }}}, {})
         return cfg
     model_a = {"model": {"class_type": "HaDeSAnimaModelLoader", "inputs": build_loader_inputs(args, args.model_a)}}
+    if args.mode == "shift":
+        return {f"{size}_s{sh:g}": (model_a, {"size": size, "flow_shift": sh}) for size, shifts in SHIFT_GRID.items() for sh in shifts}
     cfg = {"ref": (model_a, {"steps": 80, "sampler": "euler", "scheduler": "normal"})}
     for sch in ("normal", "beta", "anima_beta57"):
         for st in (8, 14, 24):
@@ -240,7 +246,18 @@ def features(img):
     texture = np.log10(np.array([radial[b].mean() for b in bands]) + 1e-9)
 
     color = np.concatenate([lab.reshape(-1, 3).mean(0), lab.reshape(-1, 3).std(0)])
-    return {"layout": thumb, "edges": edges, "texture": texture, "color": color}
+
+    # Slope of log power over 2-32 cycles per image: steeper = larger masses, flatter = busier / repeated layout
+    r_lo = np.arange(2, 33)
+    slope = np.polyfit(np.log(r_lo), np.log(radial[r_lo] + 1e-9), 1)[0]
+
+    # Upper-half log power of a native-resolution 512 px center crop: fine detail per pixel, comparable at one size only
+    gray = np.asarray(img.convert("L"), dtype=np.float64)
+    cy, cx = gray.shape[0] // 2, gray.shape[1] // 2
+    crop = gray[cy - 256:cy + 256, cx - 256:cx + 256]
+    cspec = np.abs(np.fft.fftshift(np.fft.fft2(crop - crop.mean()))) ** 2
+    detail = np.log10(cspec[(r >= 128) & (r < 256)].mean() + 1e-9)
+    return {"layout": thumb, "edges": edges, "texture": texture, "color": color, "slope": slope, "detail": detail}
 
 
 def distance(fa, fb):
@@ -263,6 +280,19 @@ def _sum(dists):
 def analyze(args, feats, samples):
     report = {"mode": args.mode, "model_a": args.model_a, "model_b": args.model_b, "lora": args.lora, "lora_b": args.lora_b, "clip_b": args.clip_b,
               "samples": len(samples), "steps": args.steps}
+    if args.mode == "shift":
+        rows = {}
+        for name in feats:
+            size = name.split("_")[0]
+            ref = f"{size}_s3"
+            rows[name] = {
+                "slope": round(float(np.mean([feats[name][s]["slope"] for s in samples])), 3),
+                "slope_vs_1024": round(float(np.mean([feats[name][s]["slope"] - feats["1024_s3"][s]["slope"] for s in samples])), 3),
+                "detail_vs_shift3": round(float(np.mean([feats[name][s]["detail"] - feats[ref][s]["detail"] for s in samples])), 3),
+                "layout_vs_shift3": round(float(np.mean([distance(feats[name][s], feats[ref][s])["layout"] for s in samples])), 2),
+            }
+        report["by_size_and_shift"] = rows
+        return report
     if args.mode == "schedulers":
         rows = {}
         for name in feats:
@@ -310,7 +340,7 @@ def contact_sheet(out_dir, mode, names, samples):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--mode", choices=("groups", "presets", "schedulers", "lora", "lora_presets", "clip"), default="groups")
+    p.add_argument("--mode", choices=("groups", "presets", "schedulers", "lora", "lora_presets", "clip", "shift"), default="groups")
     p.add_argument("--server", default="http://127.0.0.1:8188")
     p.add_argument("--model-a", required=True, help="diffusion_models file name of Model 1 / A")
     p.add_argument("--model-b", help="diffusion_models file name of Model 2 / B (groups and presets modes)")

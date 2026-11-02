@@ -90,6 +90,28 @@ Base model, stock `EmptySD3LatentImage` at exact sizes (no snapping), 8 samples 
 - The native grid is **16 px** (VAE 8x * patch 2). Sizes off that grid tend to get a band on the padded bottom edge.
 - Nothing separates 16-aligned from 32-aligned sizes; the "32 px macroblock" rule is not supported.
 
+## Flow shift by resolution (`--mode shift`, 2026-11-02)
+
+Base model, square sizes, er_sde / normal / 28 steps / CFG 4.5, 4 prompts x 3 seeds per cell. Shift 3.0 at 1024 (4096 tokens)
+already matches Flux's resolution formula (exp(1.15) = 3.16); SD3's rule scales the shift with the side length (3 * side / 1024).
+"Framed" = the picture collapses into a small panel inside a near-black frame (checked on the contact sheets).
+
+| Size | Shift | Framed | Mean lightness (0-255) | Layout change vs shift 3.0 |
+|---|---|---|---|---|
+| 768 | 2.25 (SD3 rule) / 3.0 | 0 / 0 | 101 / 106 | 10.4 |
+| 1024 | 3.0 | 0 | 111 | - |
+| 1536 | 3.0 / 4.5 (SD3 rule) / 6.0 | 0 / 0 / 0 | 96 / 104 / 107 | - / 14.8 / 17.9 |
+| 2048 | 3.0 / 4.5 / 6.0 (SD3 rule) / 9.0 | **4** / 1 / 0 / 0 | 73 / 89 / 98 / 98 | - / 13.0 / 18.8 / 21.1 |
+
+- At 2048 a fixed shift 3.0 breaks a third of the images (the knight and the night street, 2 seeds each) and darkens the rest;
+  the SD3 rule (6.0) fixes all of them, 9.0 changes nothing more visible. 4.5 still framed one street.
+- At 1536 every shift gives usable images; 3.0 only renders darker (96 vs 111 at 1024), 4.5 and 6.0 look alike.
+- Below 1024 the rule buys nothing: 768 at 2.25 and at 3.0 give the same images.
+- The low-frequency spectral slope and the native-resolution detail reported by the tool barely move (|Δslope| < 0.1);
+  the failure is visible only on the sheets and in the lightness / dark-frame counts.
+- Only full-denoise txt2img was tested. The second / third passes of Dual- and Triple-Pass sample at partial denoise from an
+  upscaled image, where this does not apply directly.
+
 ## Can style be separated from structure? (in-process probe)
 
 Same prompts, seeds and metrics; position between A (0) and B (1). Run in-process with ComfyUI's own `KSampler`
