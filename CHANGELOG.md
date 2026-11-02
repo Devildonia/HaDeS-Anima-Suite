@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.5] - 2026-11-02
 
 ### Added
 - **Triple-Pass `Background-Safe` preset:** pixel-space bridge, `euler` + `anima_beta57` at shift 3.0, Stage 2 denoise 0.38 and Stage 3 0.20. Tested on Anima base and several finetunes.
