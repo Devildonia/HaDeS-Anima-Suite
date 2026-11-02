@@ -2112,9 +2112,9 @@ class HaDeSAnimaCLIPBlockMerger:
                 "clip2": ("CLIP",),
                 "base_ratio": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "0.0 = CLIP 1, 1.0 = CLIP 2"}),
                 "vocab_embeddings": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Lexical token embeddings (embed_tokens)"}),
-                "syntax_rigidity": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Early transformer layers (~0-35% depth): Syntax and Booru tag binding"}),
-                "semantic_focus": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Middle transformer layers (~35-72% depth): Concepts and entity relations"}),
-                "style_abstraction": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Deep transformer layers (~72-100% depth): Aesthetic nuance and mood"}),
+                "syntax_rigidity": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Early layers (~0-35% depth, 0-9 on Qwen3-0.6B)"}),
+                "semantic_focus": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Middle layers (~35-72% depth, 10-19 on Qwen3-0.6B)"}),
+                "style_abstraction": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Late layers (~72-100% depth, 20-27 on Qwen3-0.6B). Measured: carries almost all of a text encoder's effect"}),
                 "final_projections": ("FLOAT", {"default": 0.5, "min": -10.0, "max": 10.0, "step": 0.01, "tooltip": "Final normalization layer (norm.weight / final_layer_norm)"}),
             }
         }

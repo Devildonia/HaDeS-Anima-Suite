@@ -191,6 +191,34 @@ Base model, 4 seeds, `best quality, safe, 1girl, solo, <tag>, upper body, simple
   `(sunset beach)` as a weighted concept and beach / swimsuit content leaks in; escaped, the artist's style is consistent.
   Prompt Studio now escapes literal parentheses in artist names too (it already did for characters), and the picker outputs escaped tags.
 
+## CLIP Block Merger bands (`--mode clip`, 2026-11-02)
+
+Model `anima-base-v1.0`, CLIP 1 = `qwen_3_06b_base`, CLIP 2 = `qwen_3_06b_abliterated` (same Qwen3-0.6B layout; weights differ by
+2-12% per layer, most in layers 8-16, least in 24-27). Same 4 prompts x 2 seeds and metrics as the block groups. Bands on 28 layers:
+early 0-9, middle 10-19, late 20-27.
+
+`share` per metric (layout / edges / texture / color):
+
+| Band | swap-in (CLIP 1 + band from 2) | leave-out (CLIP 2 + band from 1) | conditioning change, band alone |
+|---|---|---|---|
+| Token embeddings | 0.32 / 0.25 / 0.26 / 0.13 | 0.26 / 0.19 / 0.19 / 0.20 | 8% |
+| Early layers | 0.46 / 0.39 / 0.51 / 0.27 | 0.57 / 0.52 / 0.62 / 0.37 | 22% |
+| Middle layers | 0.49 / 0.43 / 0.53 / 0.30 | 0.67 / 0.61 / 0.51 / 0.53 | 17% |
+| **Late layers** | **0.90 / 0.95 / 1.05 / 0.79** | **0.97 / 0.98 / 1.18 / 0.90** | **55%** |
+| Final norm | 0 / 0 / 0 / 0 | 0 / 0 / 0 / 0 | 0.3% |
+
+Conditioning change = relative L2 distance of the encoded prompt to CLIP 1's; CLIP 2 itself is at 53%.
+
+- The late layers carry almost all of the difference, although their weights differ least: the output is read right after them,
+  while changes in earlier layers are partly washed out on the way. All other bands together move the conditioning 29%.
+- The bands are not additive at the image level (swap-in and leave-out of the small bands both land around 0.3-0.6): any change to
+  the conditioning re-rolls composition and pose like a different seed.
+- On the contact sheet every band changes layout, pose, texture and color together, with the same subject and drawing style.
+  None isolates syntax, concepts or style / mood, so the UI now shows neutral depth names (Early / Middle / Late Layers).
+- The old "A-Synt / B-Styl" button (0.15 early, 0.85 late) is close to CLIP 2; it is now labelled "Late B".
+- The two final norms differ by at most 0.03, which does not change a single pixel; the band may matter more for other pairs.
+- One encoder pair only.
+
 ## Corner Shield (`tools/corner_shield_measure.py`, 2026-11-02)
 
 968 renders from the runs above (no real corner marks found in them; the negative prompt includes `watermark`). Clean corners:

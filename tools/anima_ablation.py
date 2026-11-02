@@ -17,6 +17,7 @@ Modes:
               B = model with the full LoRA.
   lora_presets  Predictive Multi-LoRA presets with --lora as PRI and --lora-b as S2, plus both stacked at 1.0,
               placed between "--lora only" (0) and "--lora-b only" (1).
+  clip        Like groups, for the Anima CLIP Block Merger bands: A = --clip, B = --clip-b, on --model-a.
 
 Example:
   python tools/anima_ablation.py --mode groups --model-a anima-base-v1.0.safetensors \
@@ -44,6 +45,13 @@ GROUPS = {
     "BLOCKS_Art_Style_Medium": "B20-23",
     "BLOCKS_Lighting_Sharpness": "B24-27",
     "ADAPTER_Text_Alignment": "B28-33",
+}
+CLIP_BANDS = {
+    "vocab_embeddings": "embed_tokens",
+    "syntax_rigidity": "L00-09",
+    "semantic_focus": "L10-19",
+    "style_abstraction": "L20-27",
+    "final_projections": "norm",
 }
 LORA_GROUPS = ["blocks_00_04", "blocks_05_09", "blocks_10_14", "blocks_15_19", "blocks_20_23", "blocks_24_27", "other_layers"]
 LORA_PRESETS = [
@@ -96,13 +104,14 @@ def build_loader_inputs(args, unet_name):
 
 
 def build_graph(args, prompt, seed, model_node, steps=None, sampler=None, scheduler=None):
-    """API graph: HaDeS loaders -> model_node (dict of extra nodes ending in id "model") -> KSampler -> preview."""
+    """API graph: HaDeS loaders -> model_node (dict of extra nodes ending in id "model", optionally a merged CLIP "te") -> KSampler -> preview."""
+    te = "te" if "te" in model_node else "clip"
     g = {
         "a": {"class_type": "HaDeSAnimaModelLoader", "inputs": build_loader_inputs(args, args.model_a)},
         "clip": {"class_type": "HaDeSAnimaCLIPLoader", "inputs": {"clip_name": args.clip, "device_mode": "default (GPU Dynamic)", "precision": "auto", "strict_qwen3_guard": True}},
         "vae": {"class_type": "HaDeSAnimaVAELoader", "inputs": {"vae_name": args.vae, "vae_precision": "bfloat16 (Recommended Wan21)"}},
-        "pos": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["clip", 0]}},
-        "neg": {"class_type": "CLIPTextEncode", "inputs": {"text": NEGATIVE, "clip": ["clip", 0]}},
+        "pos": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": [te, 0]}},
+        "neg": {"class_type": "CLIPTextEncode", "inputs": {"text": NEGATIVE, "clip": [te, 0]}},
         "latent": {"class_type": "HaDeSAnimaLatentPipelineGuard", "inputs": {"resolution_preset": "Custom (Auto-Snap to 32px Grid)", "custom_width": args.size, "custom_height": args.size, "batch_size": 1, "prevent_29b_white_bg_bias": True}},
         "ks": {"class_type": "HaDeSAnimaKSampler", "inputs": {
             "model": ["model", 0], "positive": ["pos", 0], "negative": ["neg", 0], "latent_image": ["latent", 0],
@@ -113,6 +122,8 @@ def build_graph(args, prompt, seed, model_node, steps=None, sampler=None, schedu
     }
     if args.model_b:
         g["b"] = {**g["a"], "inputs": {**g["a"]["inputs"], "unet_name": args.model_b}}
+    if args.clip_b:
+        g["clip_b"] = {**g["clip"], "inputs": {**g["clip"]["inputs"], "clip_name": args.clip_b}}
     g.update(model_node)
     return g
 
@@ -129,6 +140,13 @@ def lora_weight(lora, weights, src="a", node_id="model"):
     }}}
 
 
+def clip_merge(args, ratios, base_ratio):
+    return {
+        "model": {"class_type": "HaDeSAnimaModelLoader", "inputs": build_loader_inputs(args, args.model_a)},
+        "te": {"class_type": "HaDeSAnimaCLIPBlockMerger", "inputs": {"clip1": ["clip", 0], "clip2": ["clip_b", 0], "base_ratio": base_ratio, **ratios}},
+    }
+
+
 def configs_for(args):
     """name -> (model_node, sampling overrides)"""
     if args.mode == "groups":
@@ -139,6 +157,15 @@ def configs_for(args):
         for g in GROUPS:
             cfg[f"in_{g}"] = (block_merge({k: float(k == g) for k in GROUPS}, 0.0), {})
             cfg[f"out_{g}"] = (block_merge({k: float(k != g) for k in GROUPS}, 1.0), {})
+        return cfg
+    if args.mode == "clip":
+        cfg = {
+            "A": (clip_merge(args, {b: 0.0 for b in CLIP_BANDS}, 0.0), {}),
+            "B": (clip_merge(args, {b: 1.0 for b in CLIP_BANDS}, 1.0), {}),
+        }
+        for b in CLIP_BANDS:
+            cfg[f"in_{b}"] = (clip_merge(args, {k: float(k == b) for k in CLIP_BANDS}, 0.0), {})
+            cfg[f"out_{b}"] = (clip_merge(args, {k: float(k != b) for k in CLIP_BANDS}, 1.0), {})
         return cfg
     if args.mode == "lora":
         full = dict.fromkeys(LORA_GROUPS, 1.0)
@@ -234,7 +261,7 @@ def _sum(dists):
 
 
 def analyze(args, feats, samples):
-    report = {"mode": args.mode, "model_a": args.model_a, "model_b": args.model_b, "lora": args.lora, "lora_b": args.lora_b,
+    report = {"mode": args.mode, "model_a": args.model_a, "model_b": args.model_b, "lora": args.lora, "lora_b": args.lora_b, "clip_b": args.clip_b,
               "samples": len(samples), "steps": args.steps}
     if args.mode == "schedulers":
         rows = {}
@@ -246,8 +273,8 @@ def analyze(args, feats, samples):
 
     ab = _sum([distance(feats["A"][s], feats["B"][s]) for s in samples])
     report["A_to_B_mean_distance"] = {m: v / len(samples) for m, v in ab.items()}
-    if args.mode in ("groups", "lora"):
-        names = GROUPS if args.mode == "groups" else {g: g for g in LORA_GROUPS}
+    if args.mode in ("groups", "lora", "clip"):
+        names = {"groups": GROUPS, "lora": {g: g for g in LORA_GROUPS}, "clip": CLIP_BANDS}[args.mode]
         for kind, prefix, ref in (("swap_in", "in", "A"), ("leave_out", "out", "B")):
             report[kind] = {
                 label: {m: round(v / ab[m], 3) for m, v in _sum([distance(feats[f"{prefix}_{g}"][s], feats[ref][s]) for s in samples]).items()}
@@ -283,13 +310,14 @@ def contact_sheet(out_dir, mode, names, samples):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--mode", choices=("groups", "presets", "schedulers", "lora", "lora_presets"), default="groups")
+    p.add_argument("--mode", choices=("groups", "presets", "schedulers", "lora", "lora_presets", "clip"), default="groups")
     p.add_argument("--server", default="http://127.0.0.1:8188")
     p.add_argument("--model-a", required=True, help="diffusion_models file name of Model 1 / A")
     p.add_argument("--model-b", help="diffusion_models file name of Model 2 / B (groups and presets modes)")
     p.add_argument("--lora", help="models/loras name of the LoRA (lora mode) or PRI LoRA (lora_presets mode)")
     p.add_argument("--lora-b", help="models/loras name of the S2 LoRA (lora_presets mode)")
     p.add_argument("--clip", default="qwen_3_06b_base.safetensors")
+    p.add_argument("--clip-b", help="text_encoders name of CLIP 2 / B (clip mode)")
     p.add_argument("--vae", default="qwen_image_vae.safetensors")
     p.add_argument("--out", required=True)
     p.add_argument("--seeds", type=int, nargs="+", default=[1234, 98765])
@@ -305,6 +333,8 @@ def main():
         p.error("--model-b is required for groups and presets modes")
     if args.mode in ("lora", "lora_presets") and not args.lora:
         p.error("--lora is required for lora modes")
+    if args.mode == "clip" and not args.clip_b:
+        p.error("--clip-b is required for clip mode")
     if args.mode == "lora_presets" and not args.lora_b:
         p.error("--lora-b is required for lora_presets mode")
 

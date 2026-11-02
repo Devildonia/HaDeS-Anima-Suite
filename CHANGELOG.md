@@ -12,6 +12,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 - **Corner Shield Smart heal left a ghost of thin strokes:** the mask is dilated and only feathered outwards; the corner error after healing drops 38% (was 2.5%). Results and method in `tools/ABLATION_RESULTS.md`, script in `tools/corner_shield_measure.py`.
 
 ### Changed
+- **CLIP Block Merger bands measured and renamed:** with `qwen_3_06b_base` vs `qwen_3_06b_abliterated`, the late layers alone reproduce 79–105% of the image change and every band changes composition, texture and color together. The UI now shows Token Embeddings / Early / Middle / Late Layers (strongest) / Final Norm instead of syntax, semantic and style names, and the "A-Synt/B-Styl" button is "Late B" (same values; measured, it is close to CLIP 2). Input names are unchanged, so saved workflows load as before. `tools/anima_ablation.py` gained a `clip` mode.
 - **README screenshots:** merge previews, the Block Merger, the Triple-Pass KSampler with the `Background-Safe` preset, and the HaDeS widgets next to the standard ones. They live in `docs/images/`, which is left out of the Registry package.
 
 ## [0.4.5] - 2026-11-02

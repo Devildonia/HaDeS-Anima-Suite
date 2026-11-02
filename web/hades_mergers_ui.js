@@ -968,11 +968,11 @@ export function setupCLIPBlockMergerUI(node) {
 
     const clipTooltips = {
         base_ratio: `<strong>Global Base Fallback Ratio</strong><br>Interpolation ratio applied to non-block and root text encoder tensors.`,
-        vocab_embeddings: `<strong>Vocab & Token Embeddings</strong><br>Blend ratio for word embedding lookups and initial token projections.`,
-        syntax_rigidity: `<strong>Syntax & Tag Rigidity</strong><br>Low-level grammar, token positioning, and punctuation sensitivity layers (0–35% depth).`,
-        semantic_focus: `<strong>Semantic & Concept Focus</strong><br>Mid-depth layers governing conceptual understanding and subject semantics (35–72% depth).`,
-        style_abstraction: `<strong>Style & Mood Abstraction</strong><br>High-depth layers governing artistic atmosphere and aesthetic interpretation (72%+ depth).`,
-        final_projections: `<strong>Final Norm Projections</strong><br>Output layernorm and final conditioning projection layers.`,
+        vocab_embeddings: `<strong>Token Embeddings</strong><br>Blend ratio for the token embedding table (embed_tokens).`,
+        syntax_rigidity: `<strong>Early Layers</strong><br>Layers 0–35% of depth (0–9 on Qwen3-0.6B). Measured: moves the conditioning less than the late layers and changes composition, not style alone.`,
+        semantic_focus: `<strong>Middle Layers</strong><br>Layers 35–72% of depth (10–19 on Qwen3-0.6B). Measured: similar effect to the early layers.`,
+        style_abstraction: `<strong>Late Layers</strong><br>Layers 72%+ of depth (20–27 on Qwen3-0.6B). Measured: carries almost all of a text encoder's effect on its own; changes composition and pose like the other bands, not style alone.`,
+        final_projections: `<strong>Final Norm</strong><br>Output RMSNorm weight. Small effect when the two encoders' norms are close.`,
     };
 
     node.addCustomWidget(
@@ -1004,8 +1004,8 @@ export function setupCLIPBlockMergerUI(node) {
                     onClick: () => setAll(Object.fromEntries(clipKeys.map((k) => [k, 0.5]))),
                 },
                 {
-                    label: "A-Synt/B-Styl",
-                    tooltip: `<strong>Syntax A / Style B</strong><br>Prioritizes CLIP 1 for syntax/structure and CLIP 2 for aesthetic/style abstraction.`,
+                    label: "Late B",
+                    tooltip: `<strong>CLIP 2 on the late layers</strong><br>0.15 on embeddings and early layers, 0.85 on late layers. The late layers carry most of a text encoder's effect, so this is close to CLIP 2: measured, it does not split syntax from style.`,
                     onClick: () =>
                         setAll({
                             base_ratio: 0.5,

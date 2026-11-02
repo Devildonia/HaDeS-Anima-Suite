@@ -139,7 +139,8 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 #### 5. `Anima CLIP Block Merger`
 - **Class:** `HaDeSAnimaCLIPBlockMerger`
-- **Purpose:** Merges two Anima text encoders (`Qwen3-0.6B` 28 layers or `Qwen3.5-4B` 36 layers) across 5 depth bands (`vocab_embeddings`, `syntax_rigidity` `[0–35%]`, `semantic_focus` `[35–72%]`, `style_abstraction` `[72%+]`, `final_projections`). Band names are not measured.
+- **Purpose:** Merges two Anima text encoders (`Qwen3-0.6B` 28 layers or `Qwen3.5-4B` 36 layers) across 5 bands: token embeddings (`vocab_embeddings`), early `[0–35%]` (`syntax_rigidity`), middle `[35–72%]` (`semantic_focus`) and late `[72%+]` (`style_abstraction`) layers, and the final norm (`final_projections`); the input names are kept for saved workflows.
+- **Measured** (`qwen_3_06b_base` vs `qwen_3_06b_abliterated` on `anima-base-v1.0`, [`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md)): the late layers carry almost all of the difference. Taking only them from CLIP 2 gives 79–105% of the full image change (per metric), while the early, middle and embedding bands give 13–53% each. Every band changes composition, pose, texture and color together, like a different seed; none isolates syntax or style. The `Late B` button is therefore close to CLIP 2.
 
 #### 19. `Anima Model Saver`
 - **Class:** `HaDeSAnimaModelSaver`
@@ -329,7 +330,7 @@ All examples use only HaDeS and core ComfyUI nodes.
 
 ## Measuring Block Groups, Presets and Schedulers
 
-[`tools/anima_ablation.py`](tools/anima_ablation.py) queues fixed prompt × seed grids on a running local ComfyUI (HTTP API only) and compares the results with numpy + Pillow image statistics (layout, edges, texture, color). Modes: `groups`, `presets`, `schedulers`, `lora` (one LoRA per block group, through LoRA Block Weight) and `lora_presets` (Multi-LoRA presets).
+[`tools/anima_ablation.py`](tools/anima_ablation.py) queues fixed prompt × seed grids on a running local ComfyUI (HTTP API only) and compares the results with numpy + Pillow image statistics (layout, edges, texture, color). Modes: `groups`, `presets`, `schedulers`, `lora` (one LoRA per block group, through LoRA Block Weight), `lora_presets` (Multi-LoRA presets) and `clip` (CLIP Block Merger bands, `--clip` vs `--clip-b`).
 
 ```bash
 python tools/anima_ablation.py --mode groups --model-a anima-base-v1.0.safetensors --model-b <finetune>.safetensors --out <folder>

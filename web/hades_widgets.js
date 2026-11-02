@@ -49,11 +49,11 @@ export const GROUP_META = {
 
 export const CLIP_GROUP_META = {
     base_ratio:        { tag: "BASE", range: "GLOBAL", label: "Base Fallback Ratio", color: "#8b93a1" },
-    vocab_embeddings:  { tag: "TOKS", range: "EMBED",  label: "Vocab & Token Embeddings", color: "#6d8fd6" },
-    syntax_rigidity:   { tag: "SYNT", range: "0–35%",  label: "Syntax & Tag Rigidity", color: "#5fa3b5" },
-    semantic_focus:    { tag: "SEMA", range: "35–72%", label: "Semantic & Concept Focus", color: "#62a88a" },
-    style_abstraction: { tag: "STYL", range: "72%+",   label: "Style & Mood Abstraction", color: "#a786c4" },
-    final_projections: { tag: "NORM", range: "OUT",    label: "Final Norm Projections", color: "#c49a5a" },
+    vocab_embeddings:  { tag: "TOKS", range: "EMBED",  label: "Token Embeddings", color: "#6d8fd6" },
+    syntax_rigidity:   { tag: "EARL", range: "0–35%",  label: "Early Layers", color: "#5fa3b5" },
+    semantic_focus:    { tag: "MIDL", range: "35–72%", label: "Middle Layers", color: "#62a88a" },
+    style_abstraction: { tag: "LATE", range: "72%+",   label: "Late Layers (strongest)", color: "#a786c4" },
+    final_projections: { tag: "NORM", range: "OUT",    label: "Final Norm", color: "#c49a5a" },
 };
 
 // Shared row furniture: flat row surface + quiet uppercase label column (+ optional data-color marker).
