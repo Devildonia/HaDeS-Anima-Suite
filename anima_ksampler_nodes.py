@@ -423,7 +423,7 @@ class HaDeSAnimaKSampler:
                     "default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01,
                     "tooltip": "1.0 for txt2img. For img2img: 0.50–0.60 for minor detail refinement, 0.75–0.85 for creative compositional guidance."
                 }),
-                "flow_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes)."}),
+                "flow_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.05, "tooltip": "Rectified Flow shift for this pass. 0 = inherit the shift already set on the model (Model Loader flow_shift or ModelSampling nodes). 3.0 suits sizes up to 1536 px; at 2048² use ~6.0 (3 x side / 1024), or better generate at 1024-1536 and upscale with Dual / Triple-Pass."}),
             },
             "optional": {
                 "vae": ("VAE",),

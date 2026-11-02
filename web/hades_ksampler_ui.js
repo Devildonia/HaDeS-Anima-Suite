@@ -370,7 +370,7 @@ export function setupAnimaKSamplerUI(node) {
             step: 0.05,
             defaultVal: 0.0,
             zeroLabel: "INHERIT",
-            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br><span style="color:#8fb4f0">• 0 (INHERIT):</span> Keeps the shift set upstream (Model Loader flow_shift / ModelSampling nodes).<br>Time-step density warping for Anima's Rectified Flow architecture.<br><span style="color:#8fb4f0">• Calibrated default (3.0):</span> Native balance for optimal contrast & anatomy.<br><span style="color:#8fb4f0">• Higher (3.5–5.0):</span> Allocates more steps to early high-noise structural formation (ideal for high-res).<br><span style="color:#8fb4f0">• Lower (1.5–2.5):</span> Allocates more steps to late-stage fine detail refinement.`,
+            tooltip: `<strong>Anima Flow Shift (multiplier=1.0)</strong><br><span style="color:#8fb4f0">• 0 (INHERIT):</span> Keeps the shift set upstream (Model Loader flow_shift / ModelSampling nodes).<br><span style="color:#8fb4f0">• 3.0:</span> Right for sizes up to 1536 px; lowering it for smaller sizes changes nothing.<br><span style="color:#8fb4f0">• Above 1536 px:</span> Anima is trained up to 1536. At 2048² a shift of 3.0 often collapses the picture into a dark frame; ~6.0 (3 × side / 1024) keeps it whole, but detail stays at 1536 level. Generating at 1024–1536 and upscaling with Dual / Triple-Pass works better.`,
         })
     );
 

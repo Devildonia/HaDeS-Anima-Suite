@@ -5,6 +5,11 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **KSampler `flow_shift` tooltip follows a measurement:** 3.0 suits sizes up to 1536 px, and lowering it for smaller sizes changes nothing. At 2048² a shift of 3.0 collapsed 4 of 12 images into a dark frame, while ~6.0 (3 × side / 1024) kept them whole with detail still at 1536 level, so the tooltip points to generating at 1024–1536 and upscaling with Dual / Triple-Pass. This replaces the unmeasured "higher for high-res / lower for detail" advice. Results in `tools/ABLATION_RESULTS.md`; `tools/anima_ablation.py` gained a `shift` mode.
+
 ## [0.4.6] - 2026-11-02
 
 ### Fixed
