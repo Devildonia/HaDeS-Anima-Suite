@@ -95,6 +95,8 @@ const TRIPLE_PROFILES = {
 export function createSeedRows(node, wSeed, wControl) {
     const rows = [wSeed, wControl].filter(Boolean);
     rows.forEach(hideBackingWidget);
+    // A linked seed replaces the widget value, so control_after_generate has nothing to act on either
+    const seedLinked = () => Boolean(wSeed) && node.getSlotFromWidget(wSeed)?.link != null;
     if (wSeed) {
         const origOnConnectionsChange = node.onConnectionsChange;
         node.onConnectionsChange = function () {
@@ -105,7 +107,7 @@ export function createSeedRows(node, wSeed, wControl) {
             tag: "SEED",
             numeric: true,
             promptTitle: "Seed",
-            isDisabled: () => node.getSlotFromWidget(wSeed)?.link != null,
+            isDisabled: seedLinked,
             disabledText: "From the linked seed input",
             tooltip: "<strong>Seed</strong><br>Click to type a seed. Later passes use seed + 1 / seed + 2.",
         })));
@@ -113,7 +115,8 @@ export function createSeedRows(node, wSeed, wControl) {
     if (wControl) {
         rows.push(node.addCustomWidget(createStyledComboWidget(node, wControl, {
             tag: "AFTER RUN",
-            tooltip: "<strong>Control after generate</strong><br>fixed, increment, decrement or randomize the seed after each queued run.",
+            isDisabled: seedLinked,
+            tooltip: "<strong>Control after generate</strong><br>fixed, increment, decrement or randomize the seed after each queued run. Inactive while the seed input is linked.",
         })));
     }
     return rows;

@@ -985,6 +985,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
         marker = null,
         // stored value -> shown text; the backing widget keeps the stored value so workflows stay compatible
         displayNames = null,
+        isDisabled = null,
         tooltip = config.tooltip || backingWidget?.tooltip || backingWidget?.options?.tooltip || "",
     } = config;
 
@@ -1014,6 +1015,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             const rowY = y + 2;
 
             ctx.save();
+            if (isDisabled?.()) ctx.globalAlpha = 0.45;
             drawRowSurface(ctx, x, rowY, w, h, this._isHovered);
             ctx.font = HADES_FONT.label;
             const tagW = tagWidth || Math.max(52, Math.round(ctx.measureText(tag).width + 18));
@@ -1084,6 +1086,7 @@ export function createStyledComboWidget(node, backingWidget, config = {}) {
             if ((event.type === "pointerdown" || event.type === "mousedown") && isInside) {
                 hideHadesTooltip();
                 this._isHovered = false;
+                if (isDisabled?.()) return true;
                 const values = backingWidget.options?.values || [];
                 const entries = displayNames ? values.map((v) => ({ content: displayNames[v] ?? v, value: v })) : values;
                 new LiteGraph.ContextMenu(entries, {
