@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.6] - 2026-11-02
 
 ### Fixed
 - **Corner Shield missed most signatures and ignored the sensitivity:** its texture guard compared each corner with the peak of the image center, so in any detailed image a thin mark counted as texture. Detection now compares the corner with the ring around it: on 968 Anima renders with synthetic signatures it catches 87% of them at the default 0.75 (was 29%) while flagging 0.9% of clean corners, and `detection_sensitivity` now trades one against the other (0.5: 84% / 0.4%, 0.9: 90% / 1.7%).
