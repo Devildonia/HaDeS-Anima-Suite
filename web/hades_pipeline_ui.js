@@ -1039,7 +1039,7 @@ export function setupCornerScribbleShieldUI(node) {
                 },
                 {
                     label: "Auto-Heal",
-                    tooltip: `<strong>Smart Edge-Inward Blend</strong><br>Intelligently blends edge pixels inward across detected stroke areas to remove scribbles seamlessly.`,
+                    tooltip: `<strong>Smart Edge-Inward Blend</strong><br>Replaces the detected strokes with the clean edge just outside the box, continued inwards. Clean on flat backgrounds; on busy ones use Mask Only and inpaint.`,
                     onClick: () => setWidgetValue(wHeal, "Smart Edge-Inward Blend (Auto-Heal)", node),
                     isActive: () => wHeal?.value === "Smart Edge-Inward Blend (Auto-Heal)",
                 },
@@ -1103,7 +1103,7 @@ export function setupCornerScribbleShieldUI(node) {
             visMax: 1.0,
             step: 0.05,
             defaultVal: 0.75,
-            tooltip: `<strong>Scribble Detection Sensitivity</strong><br>Laplacian high-frequency threshold for identifying artificial strokes and watermarks.`,
+            tooltip: `<strong>Scribble Detection Sensitivity</strong><br>How far a corner's detail must stand out from its surroundings to count as a mark. 0.75 flags ~1% of clean corners; higher catches more marks and more false positives.`,
         })
     );
 

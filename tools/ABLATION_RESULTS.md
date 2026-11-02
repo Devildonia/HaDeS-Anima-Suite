@@ -190,3 +190,33 @@ Base model, 4 seeds, `best quality, safe, 1girl, solo, <tag>, upper body, simple
 - `@hammer \(sunset beach\)` vs. `@hammer (sunset beach)`: very different images (color distance 17.3). Unescaped, the tokenizer reads
   `(sunset beach)` as a weighted concept and beach / swimsuit content leaks in; escaped, the artist's style is consistent.
   Prompt Studio now escapes literal parentheses in artist names too (it already did for characters), and the picker outputs escaped tags.
+
+## Corner Shield (`tools/corner_shield_measure.py`, 2026-11-02)
+
+968 renders from the runs above (no real corner marks found in them; the negative prompt includes `watermark`). Clean corners:
+3,872. Synthetic signatures: a cursive stroke (2-4 px, dark on light or light on dark) drawn into 240 corners that are clean
+even at sensitivity 0.9. Corner error = mean abs difference to the clean original inside the 10% box.
+
+| | sensitivity 0.5 | 0.75 (default) | 0.9 |
+|---|---|---|---|
+| Clean corners flagged, before | 10 | 11 | 14 |
+| Signatures caught, before | 29% | 29% | 29% |
+| Clean corners flagged, now | 14 (0.4%) | 33 (0.9%) | 67 (1.7%) |
+| Signatures caught, now | 84% | 87% | 90% |
+
+| Corner error at 0.75 | before | now |
+|---|---|---|
+| Untouched | 0.038 | 0.037 |
+| Smart Edge-Inward Blend | 0.037 | **0.023** |
+| Soft Corner Blur | 0.038 | 0.038 |
+
+- Before, the anti-texture guard compared the corner's peak with the image center's peak. In any detailed image that peak is
+  ~0.55, so a thin signature was nearly always classed as texture and the sensitivity threshold was never reached.
+- Detection now compares the corner with the ring around it (99th vs 99.5th percentile of high-frequency energy). Of the
+  statistics tried (corner vs center, corner vs ring ratio or difference, ring 99 / 99.5 / 99.9 / max), the difference to
+  the ring's 99.5th percentile caught the most signatures at 1% false positives (88%; center-based guard: 59%).
+- The heal mask is dilated and feathered outwards only; the old blur-only feather left a half-healed ghost of thin strokes.
+- Remaining misses are signatures over busy backgrounds; false positives are hard edges at the corner (window frames
+  against a bright sky, pixel art). Smart heal removes marks cleanly on flat backgrounds and leaves a soft patch on busy
+  ones. Soft Corner Blur only softens marks.
+- Real Anima scribbles were not in the sample; the recall figures are for the synthetic strokes.

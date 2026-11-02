@@ -1027,7 +1027,20 @@ def test_10_corner_scribble_shield():
     stroke_healed_diff = (gs_healed[:, 118:122, 118:126, :] - base[:, 118:122, 118:126, :].repeat(1, 1, 1, 3)).abs().mean().item()
     assert stroke_healed_diff < stroke_orig_diff, f"Expected stroke to be healed towards baseline ({stroke_healed_diff} vs {stroke_orig_diff})"
 
-    print("[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, peak HF vs grain, Aggressive mode, clean-corner safety, large-logo auto-expansion, telemetry sync) verified")
+    # Hard line art in the center must not hide a thin corner signature (the old center-peak guard classed it as texture)
+    lined = base.repeat(1, 1, 1, 3).clone()
+    lined[:, 40:88, 62:64, :] = 0.0
+    lined[:, 62:64, 40:88, :] = 1.0
+    signed = lined.clone()
+    signed[:, 118:120, 112:124, :] = 0.05
+    signed[:, 114:120, 112:114, :] = 0.05
+    _, sig_mask, sig_info = shield.shield_corners(signed, 0.12, 0.75, "Bottom-Right Only", "Mask Only (No Pixel Modification)", 6)
+    assert "BR (" in sig_info, f"Corner signature next to central line art must be detected: {sig_info}"
+    assert sig_mask[:, 118:120, 112:124].min().item() > 0.99, "The whole stroke must be masked, not a feathered ghost"
+    _, _, lined_info = shield.shield_corners(lined, 0.12, 0.75, "All 4 Corners", "Mask Only (No Pixel Modification)", 6)
+    assert "Clean" in lined_info, f"Central line art alone must not flag any corner: {lined_info}"
+
+    print("[OK] Test 10: Corner Scribble Shield (realistic thin-stroke detection, peak HF vs grain, line art vs corner signature, Aggressive mode, clean-corner safety, large-logo auto-expansion, telemetry sync) verified")
 
 
 def test_11_anima_single_pass_ksampler_and_schedulers():

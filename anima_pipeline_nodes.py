@@ -1080,7 +1080,7 @@ class HaDeSAnimaCornerScribbleShield:
                 }),
                 "detection_sensitivity": ("FLOAT", {
                     "default": 0.75, "min": 0.0, "max": 1.0, "step": 0.05,
-                    "tooltip": "Sensitivity to high-frequency corner signature scribbles."
+                    "tooltip": "How far a corner's detail must stand out from its surroundings to count as a mark. 0.75 flags ~1% of clean corners; higher catches more marks and more false positives."
                 }),
                 "active_corners": ([
                     "All 4 Corners",
@@ -1129,15 +1129,31 @@ class HaDeSAnimaCornerScribbleShield:
         return (patch_chw - smooth_chw).abs().mean(dim=1)  # [B, y1-y0, x1-x0]
 
     def _ambient_hf(self, image):
-        """Measures ambient / background high-frequency energy (mean and peak) from the central core of the image
-        to distinguish global texture (grain, noise, canvas pattern) from localized corner watermarks."""
+        """Mean high-frequency energy of the central core of the image (global grain / canvas texture level)."""
         b, h, w, _ = image.shape
         cy0, cy1 = max(0, int(round(h * 0.35))), min(h, int(round(h * 0.65)))
         cx0, cx1 = max(0, int(round(w * 0.35))), min(w, int(round(w * 0.65)))
         amb_map = self._high_freq_map(image, cy0, cy1, cx0, cx1)
-        return float(amb_map.mean().item()), float(amb_map.max().item())
+        return float(amb_map.mean().item())
 
-    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, ambient_mean=0.0, ambient_max=0.0, max_iter=3):
+    @staticmethod
+    def _percentile(t, q):
+        # kthvalue instead of torch.quantile, which refuses more than 2^24 elements (8K images, expanded boxes)
+        flat = t.flatten()
+        return float(flat.kthvalue(max(1, int(round(q * flat.numel())))).values.item())
+
+    def _ring_peak(self, image, y0, y1, x0, x1):
+        """99.5th-percentile high-frequency energy of the ring (one box size wide) around a corner box.
+        A signature stands out from its own surroundings; line art or texture continues into the ring."""
+        _, h, w, _ = image.shape
+        ry0, ry1 = max(0, y0 - (y1 - y0)), min(h, y1 + (y1 - y0))
+        rx0, rx1 = max(0, x0 - (x1 - x0)), min(w, x1 + (x1 - x0))
+        ring = self._high_freq_map(image, ry0, ry1, rx0, rx1)
+        outside = torch.ones_like(ring, dtype=torch.bool)
+        outside[:, y0 - ry0:y1 - ry0, x0 - rx0:x1 - rx0] = False
+        return self._percentile(ring[outside], 0.995)
+
+    def _expand_corner_box(self, name, y0, y1, x0, x1, image, thresh, h, w, ambient_mean=0.0, max_iter=3):
         """Adaptive box expansion: if high-frequency (logo) content is still present
         at the box edge that faces the image center, the mark extends beyond the
         box — grow it (x1.5 per step) and re-measure, up to 3 times.
@@ -1190,22 +1206,24 @@ class HaDeSAnimaCornerScribbleShield:
         triggered_corners = []
         actually_expanded = []
 
-        # Threshold scales inversely with sensitivity (higher sensitivity -> lower threshold).
-        # Calibrated against real Anima watermark signatures (hf_score ~0.03-0.04).
+        # Expansion threshold (logo content still at the box edge).
         thresh = max(0.008, 0.06 - 0.05 * float(detection_sensitivity))
+        # Detection threshold on the corner vs ring contrast. Measured on 968 Anima renders with synthetic signatures
+        # (tools/ABLATION_RESULTS.md): 0.5 / 0.75 / 0.9 flag 0.4% / 0.9% / 1.7% of clean corners.
+        contrast_thresh = 0.14 - 0.10 * float(detection_sensitivity)
+        forced = heal_mode == "Aggressive Corner Fill (Forced)"
 
         # Process each image in batch independently to prevent cross-batch watermark bleeding
         for b in range(b_sz):
             img_b = image[b : b + 1]
-            ambient_mean_b, ambient_max_b = self._ambient_hf(img_b)
-            has_ambient_texture_b = (ambient_mean_b >= 0.005)
+            ambient_mean_b = self._ambient_hf(img_b)
 
             for corner_tuple in corners:
                 c_name, cy0, cy1, cx0, cx1 = corner_tuple
                 # Large-logo support: auto-grow the box while logo content is still
                 # detected at its inner edge (capped at 50%, no-op on clean/texture).
                 y0e, y1e, x0e, x1e = self._expand_corner_box(
-                    c_name, cy0, cy1, cx0, cx1, img_b, thresh, h, w, ambient_mean=ambient_mean_b, ambient_max=ambient_max_b
+                    c_name, cy0, cy1, cx0, cx1, img_b, thresh, h, w, ambient_mean=ambient_mean_b
                 )
                 was_expanded = (y0e, y1e, x0e, x1e) != (cy0, cy1, cx0, cx1)
                 y0, y1, x0, x1 = y0e, y1e, x0e, x1e
@@ -1221,40 +1239,28 @@ class HaDeSAnimaCornerScribbleShield:
                 vx = torch.linspace(1.0, 0.0, curr_bw, device=image.device, dtype=image.dtype) if x0 == 0 else torch.linspace(0.0, 1.0, curr_bw, device=image.device, dtype=image.dtype)
                 spatial_env = (vy.unsqueeze(1) * vx.unsqueeze(0)).unsqueeze(0)  # [1, curr_bh, curr_bw]
 
-                hf_score = float(high_freq.mean().item())
-                hf_max = float(high_freq.max().item())
+                ring_peak = self._ring_peak(img_b, y0, y1, x0, x1)
+                contrast = self._percentile(high_freq, 0.99) - ring_peak
+                detected = contrast > contrast_thresh
 
-                # Anti-Texture Guard: If ambient texture is detected AND neither the mean nor the local peak
-                # exceeds the ambient texture level, this corner is uniform canvas/grain/hatching.
-                is_uniform_texture = (
-                    has_ambient_texture_b
-                    and (hf_score <= ambient_mean_b * 1.45 + 0.01)
-                    and (hf_max <= ambient_max_b * 1.40 + 0.02)
-                    and heal_mode != "Aggressive Corner Fill (Forced)"
-                )
-
-                if is_uniform_texture or (hf_max < thresh and heal_mode != "Aggressive Corner Fill (Forced)"):
+                if detected:
+                    stroke_mask = ((high_freq - ring_peak).clamp(min=0.0) / 0.04).clamp(max=1.0)
+                    # Dilate so the heal covers the whole stroke, anti-aliased rim included
+                    stroke_mask = F.max_pool2d(stroke_mask.unsqueeze(1), kernel_size=5, stride=1, padding=2).squeeze(1)
+                else:
                     stroke_mask = torch.zeros_like(high_freq)
-                    full_fill = False
-                else:
-                    eff_thresh = max(thresh, ambient_max_b * 0.85) if has_ambient_texture_b else thresh
-                    stroke_mask = ((high_freq - eff_thresh).clamp(min=0.0) / 0.04).clamp(max=1.0)
-                    full_fill = (hf_score >= eff_thresh * 0.8)
-
-                if heal_mode == "Aggressive Corner Fill (Forced)":
-                    corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env)
-                else:
-                    corner_mask = torch.maximum(stroke_mask * spatial_env.sqrt(), spatial_env * (1.0 if full_fill else 0.0))
+                corner_mask = torch.maximum(stroke_mask, spatial_env) if forced else stroke_mask
 
                 if int(feather_radius) > 1:
                     k_sz = max(3, (int(feather_radius) // 2) * 2 + 1)
                     pad_sz = k_sz // 2
-                    corner_mask = F.avg_pool2d(corner_mask.unsqueeze(1), kernel_size=k_sz, stride=1, padding=pad_sz).squeeze(1)
+                    # Feather outwards only: blurring alone would leave a half-healed ghost of thin strokes
+                    corner_mask = torch.maximum(corner_mask, F.avg_pool2d(corner_mask.unsqueeze(1), kernel_size=k_sz, stride=1, padding=pad_sz).squeeze(1))
 
-                is_active_corner = (full_fill or float(corner_mask.max().item()) > 0.05) and not is_uniform_texture
+                is_active_corner = detected or forced
                 if is_active_corner:
                     item_note = f"#{b}:{c_name}" if b_sz > 1 else c_name
-                    triggered_corners.append(f"{item_note} (HF={hf_score:.3f})")
+                    triggered_corners.append(f"{item_note} (HF={contrast:.3f})")
                     if was_expanded and c_name not in actually_expanded:
                         actually_expanded.append(c_name)
 
@@ -1293,8 +1299,6 @@ class HaDeSAnimaCornerScribbleShield:
                         alpha = alpha.clamp(min=0.0, max=1.0)
                     else:
                         alpha = corner_mask.unsqueeze(-1)
-                        if not full_fill and float(corner_mask.max().item()) < 0.05:
-                            alpha = torch.zeros_like(alpha)  # nothing detected: leave pixels untouched
 
                     out_img[b : b + 1, y0:y1, x0:x1, :3] = patch * (1.0 - alpha) + clean_fill * alpha
                 elif heal_mode == "Soft Corner Blur":

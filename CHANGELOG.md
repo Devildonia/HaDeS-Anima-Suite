@@ -7,6 +7,10 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Corner Shield missed most signatures and ignored the sensitivity:** its texture guard compared each corner with the peak of the image center, so in any detailed image a thin mark counted as texture. Detection now compares the corner with the ring around it: on 968 Anima renders with synthetic signatures it catches 87% of them at the default 0.75 (was 29%) while flagging 0.9% of clean corners, and `detection_sensitivity` now trades one against the other (0.5: 84% / 0.4%, 0.9: 90% / 1.7%).
+- **Corner Shield Smart heal left a ghost of thin strokes:** the mask is dilated and only feathered outwards; the corner error after healing drops 38% (was 2.5%). Results and method in `tools/ABLATION_RESULTS.md`, script in `tools/corner_shield_measure.py`.
+
 ### Changed
 - **README screenshots:** merge previews, the Block Merger, the Triple-Pass KSampler with the `Background-Safe` preset, and the HaDeS widgets next to the standard ones. They live in `docs/images/`, which is left out of the Registry package.
 

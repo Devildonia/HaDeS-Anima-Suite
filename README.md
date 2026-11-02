@@ -230,12 +230,13 @@ No group isolates one attribute: each moves composition, structure, texture and 
 #### 10. `Anima Corner Shield`
 - **Class:** `HaDeSAnimaCornerScribbleShield`
 - **Purpose:** Handles the signature-like scribbles Anima sometimes draws in corners (learned from signed training art; negative prompts only reduce them).
-- **Tuning:** `corner_sensitivity` (default `0.75`) sets the detection threshold; the inspection box defaults to `10%` of the shorter side (`0.03`–`0.50`), with expansion for large marks capped at 50%. Clean corners are left untouched in Smart mode.
+- **Detection:** a corner is flagged when its high-frequency energy (99th percentile) exceeds that of the ring around it (99.5th percentile, one box size wide) by `0.14 - 0.10 × detection_sensitivity`. A mark on a flat background stands out from its surroundings; line art, texture or grain that continues into the ring does not. The box defaults to `10%` of the image (`0.03`–`0.50`), with expansion for large marks capped at 50%.
+- **Measured** ([`tools/ABLATION_RESULTS.md`](tools/ABLATION_RESULTS.md), 968 Anima renders and 240 synthetic signatures): `detection_sensitivity` 0.5 / 0.75 (default) / 0.9 flags 0.4% / 0.9% / 1.7% of clean corners and catches 84% / 87% / 90% of the signatures. Misses are mostly signatures over busy backgrounds; false positives are mostly hard edges (window frames, pixel art) at the corner.
 - **Modes:**
-  - `Mask Only (No Pixel Modification)`: feathered `[B, H, W]` mask of flagged corners for a second inpainting pass.
-  - `Smart Edge-Inward Blend (Auto-Heal)`: heals flagged corners by extending the clean edge ring (8–16 px outside the box) inwards; a texture guard avoids flagging uniform grain or hatching. Default.
+  - `Mask Only (No Pixel Modification)`: feathered `[B, H, W]` mask of the detected strokes for a second inpainting pass. Best on busy backgrounds.
+  - `Smart Edge-Inward Blend (Auto-Heal)`: replaces the detected strokes (dilated, feathered outwards) with the clean edge ring (8–16 px outside the box) continued inwards. Removes marks cleanly on flat backgrounds and leaves a soft patch on busy ones; measured corner error drops 38%. Default.
   - `Aggressive Corner Fill (Forced)`: skips detection and always fills the corner boxes.
-  - `Soft Corner Blur`: feathered local blur, no reconstruction.
+  - `Soft Corner Blur`: feathered local blur of the detected strokes. Softens marks but does not remove them (corner error unchanged).
 
 ---
 
@@ -285,7 +286,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 #### 17. `Anima VAE Decode`
 - **Class:** `HaDeSAnimaVAEDecode`
-- **Purpose:** Decodes 16-channel latents, switching to tiled decode above `auto_tile_mp_threshold` (default `1.35 MP`) or when free VRAM is low, with an optional Corner Shield pass (`corner_box_percent`, `corner_sensitivity`, `shield_heal_mode`, `shield_feather_radius`).
+- **Purpose:** Decodes 16-channel latents, switching to tiled decode above `auto_tile_mp_threshold` (default `1.35 MP`) or when free VRAM is low. Use `Anima Corner Shield` after it to handle corner marks.
 
 #### 18. `Anima Suite Telemetry`
 - **Class:** `HaDeSAnimaSuiteTelemetry`
@@ -336,6 +337,12 @@ python tools/anima_ablation.py --mode groups --model-a anima-base-v1.0.safetenso
 
 Re-running with the same `--out` resumes. Check the contact sheets as well as the numbers: noise artifacts can score as texture change.
 
+[`tools/corner_shield_measure.py`](tools/corner_shield_measure.py) measures the Corner Shield in-process (no server): flagged clean corners per sensitivity on a folder of renders, then recall and heal error on synthetic signatures drawn into clean corners.
+
+```bash
+python tools/corner_shield_measure.py --images "<renders>/**/*.png" --out <folder>
+```
+
 ---
 
 ## Project Structure
@@ -360,6 +367,7 @@ Comfyui-HaDeS-Anima-BlockMerger/
 ├── docs/images/              # README screenshots (not in the Registry package)
 ├── tools/
 │   ├── anima_ablation.py     # Measurement script (dev tool, not a node)
+│   ├── corner_shield_measure.py  # Corner Shield detection / heal measurement (dev tool)
 │   └── ABLATION_RESULTS.md   # Measured results
 ├── tests/
 │   ├── test_hades_suite.py   # 31 test suites (standalone stubs or real ComfyUI)

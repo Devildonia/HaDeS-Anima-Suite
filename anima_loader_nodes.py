@@ -517,13 +517,13 @@ class HaDeSAnimaVAELoader:
 
 
 # ==============================================================================
-# NODE 17: HaDeS Anima Smart Tiled VAE Decode & Scribble Shield
+# NODE 17: HaDeS Anima Smart Tiled VAE Decode
 # ==============================================================================
 class HaDeSAnimaVAEDecode:
     """
     Smart Anima 16-channel VAE Decoder with proactive resolution/VRAM-aware tiling (preventing
-    untiled WanVAE OOM spikes on 6GB-12GB GPUs during 1.5x-2.0x HiRes passes), 5D->4D single-frame
-    normalization, and integrated post-decode Corner Signature Scribble healing.
+    untiled WanVAE OOM spikes on 6GB-12GB GPUs during 1.5x-2.0x HiRes passes) and 5D->4D single-frame
+    normalization.
     """
 
     DECODE_MODES = [
