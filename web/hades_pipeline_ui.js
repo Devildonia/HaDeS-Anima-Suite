@@ -765,7 +765,7 @@ export function setupLatentPipelineGuardUI(node) {
                   label: "",
                   onText: "GUARD ON",
                   offText: "BYPASSED",
-                  tooltip: `<strong>Anima 2.9B White-BG Guard</strong><br>Prevents the known Anima-2.9B (Preview 3) dataset artifact where 1280×1280 causes a blank white background or loss of contrast.<br><span style="color:#8fb4f0">When active, 1280×1280 automatically shifts to 1216×1216 (32px-grid aligned).</span>`,
+                  tooltip: `<strong>Anima 2.9B White-BG Guard</strong><br>Only for Anima-2.9B (Preview 3), reported (not measured) to give white backgrounds at 1280×1280.<br><span style="color:#8fb4f0">When on, 1280×1280 shifts to 1216×1216. Off by default: every size stays as chosen.</span>`,
               })
           )
         : null;

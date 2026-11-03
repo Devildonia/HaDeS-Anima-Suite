@@ -283,7 +283,7 @@ def upscale_anima_latent_32px(
         up_mean = up_f32.mean(dim=spatial_dims, keepdim=True)
         up_std = up_f32.std(dim=spatial_dims, keepdim=True, unbiased=False).clamp(min=1e-6)
 
-        # Restore 92% of original per-channel variance to eliminate bicubic high-frequency damping
+        # Bicubic interpolation lowers the per-channel spread; pull it 92% of the way back to the original std
         tau = 0.92
         scale_gain = tau * (orig_std / up_std) + (1.0 - tau)
         restored = orig_mean + (up_f32 - up_mean) * scale_gain
@@ -659,9 +659,8 @@ class HaDeSAnimaDualPassKSampler:
 # ==============================================================================
 class HaDeSAnimaTriplePassKSampler:
     """
-    Three-Stage Progressive Studio Pipeline (Draft/Anatomy Lock -> Structural/Aesthetic Bridge ->
-    Micro-Lineart & Surface Polish). Prevents patch-hallucination and anatomy distortion when
-    pushing Anima to 1.75x - 2.0x ultra-high resolutions.
+    Three-stage pipeline: a base-resolution pass, then two upscale + partial-denoise refinement passes
+    (up to 3x the base size), each with its own sampler settings and optional model.
     """
 
     TRIPLE_PRESETS = {

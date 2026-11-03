@@ -351,13 +351,7 @@ export function hideHadesTooltip() {
 // =============================================================================
 // CLASSIC COMFYUI THEME / VANILLA TOGGLE ENGINE
 // =============================================================================
-try {
-    const saved = localStorage.getItem("Comfy.Settings.HaDeS.ClassicUI");
-    if (saved === "true") {
-        window._hadesGlobalClassicUI = true;
-    }
-} catch {}
-
+// The HaDeS.ClassicUI setting calls setGlobalClassicUI with its stored value when it is registered, before any node exists
 export function isNodeClassicUI(node) {
     if (window._hadesGlobalClassicUI) return true;
     return Boolean(node?.flags?.classic_ui);
@@ -442,9 +436,6 @@ export function setNodeClassicUI(node, enableClassic, skipResize = false, isUser
 
 export function setGlobalClassicUI(enableGlobalClassic) {
     window._hadesGlobalClassicUI = Boolean(enableGlobalClassic);
-    try {
-        localStorage.setItem("Comfy.Settings.HaDeS.ClassicUI", String(Boolean(enableGlobalClassic)));
-    } catch {}
 
     const graph = app?.graph || window?.app?.graph;
     if (graph?._nodes) {

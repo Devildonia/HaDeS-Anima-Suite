@@ -338,7 +338,7 @@ class HaDeSAnimaModelLoader:
         info = format_info(
             info, "model_loader", flow_shift=float(flow_shift), n_dit=n_dit, n_adapter=n_adapter, has_adapter=has_adapter,
         )
-        logger.info(info)
+        logger.debug(info)
         return (model, info)
 
 
@@ -433,7 +433,7 @@ class HaDeSAnimaCLIPLoader:
             f"Device: {device_mode} | Precision: {precision}"
         )
         info = format_info(info, "clip_loader", arch=arch_label, hidden_dim=hidden_dim, n_layers=n_layers)
-        logger.info(info)
+        logger.debug(info)
         return (clip, info)
 
 
@@ -451,7 +451,7 @@ class HaDeSAnimaVAELoader:
     """
     Dedicated Anima 16-Channel Wan 2.1 VAE Loader (AutoencoderKLQwenImage) that inspects the
     state_dict header BEFORE instantiation to block the 64-channel Qwen-Image 2.1 VAE trap
-    and enforces bfloat16 precision for Wan21 RMSNorm stability.
+    and defaults to bfloat16 precision.
     """
 
     VAE_PRECISIONS = [
@@ -507,7 +507,7 @@ class HaDeSAnimaVAELoader:
         info = format_info(
             info, "vae_loader", latent_channels=diag["latent_channels"], spatial_compression=diag["spatial_compression"],
         )
-        logger.info(info)
+        logger.debug(info)
         return (vae, info)
 
 

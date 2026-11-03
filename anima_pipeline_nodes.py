@@ -16,10 +16,11 @@ import comfy.patcher_extension
 
 from . import (
     _convert_lora_fn,
-    _SAFE_FILENAME_RE,
     canonicalize_anima_lora_sd,
+    default_lora_dir,
     detect_anima_topology,
     format_info,
+    lora_output_path,
     parse_info_meta,
     strip_info_meta,
 )
@@ -884,8 +885,8 @@ class HaDeSAnimaLatentPipelineGuard:
                 "custom_height": ("INT", {"default": 1024, "min": 256, "max": 4096, "step": 32}),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max": 64}),
                 "prevent_29b_white_bg_bias": ("BOOLEAN", {
-                    "default": True,
-                    "tooltip": "Shifts 1280x1280 to 1216x1216 to avoid the Anima-2.9B (Preview 3) white-background dataset bucket bias."
+                    "default": False,
+                    "tooltip": "Anima-2.9B (Preview 3) only: shifts 1280x1280 to 1216x1216 to avoid its reported white-background bias (not measured). Off leaves every size as chosen."
                 }),
             },
             "optional": {
@@ -900,7 +901,7 @@ class HaDeSAnimaLatentPipelineGuard:
     CATEGORY = "HaDeS/Anima Pipeline"
 
     def generate_latent(self, resolution_preset, custom_width, custom_height, batch_size,
-                        prevent_29b_white_bg_bias=True, model=None, vae=None):
+                        prevent_29b_white_bg_bias=False, model=None, vae=None):
         if vae is not None:
             ch = getattr(vae, "latent_channels", None)
             if ch is None and hasattr(vae, "first_stage_model"):
@@ -960,8 +961,7 @@ class HaDeSAnimaLatentPipelineGuard:
 # ==============================================================================
 class HaDeSAnimaUniversalLoraLoader:
     def __init__(self):
-        lora_dirs = folder_paths.get_folder_paths("loras") if hasattr(folder_paths, "get_folder_paths") else []
-        self.output_dir = lora_dirs[0] if lora_dirs else os.path.join(folder_paths.models_dir, "loras")
+        self.output_dir = default_lora_dir()
 
     @classmethod
     def INPUT_TYPES(s):
@@ -996,27 +996,6 @@ class HaDeSAnimaUniversalLoraLoader:
     FUNCTION = "remap_and_load"
     CATEGORY = "HaDeS/Anima Pipeline"
 
-    def _safe_export_path(self, filename, source_path):
-        os.makedirs(self.output_dir, exist_ok=True)
-        raw_name = os.path.basename(str(filename or "").strip())
-        if raw_name.lower().endswith(".safetensors"):
-            raw_name = raw_name[:-len(".safetensors")]
-        clean_name = _SAFE_FILENAME_RE.sub("_", raw_name).strip(" .") or "Anima_ComfyNative_LoRA"
-        base_dir = os.path.abspath(self.output_dir)
-        candidate = os.path.abspath(os.path.join(base_dir, f"{clean_name}.safetensors"))
-        if os.path.commonpath([base_dir, candidate]) != base_dir:
-            raise ValueError("Invalid output filename path.")
-        src_abs = os.path.abspath(source_path) if source_path else ""
-        if candidate == src_abs or os.path.exists(candidate):
-            counter = 1
-            while True:
-                alt = os.path.abspath(os.path.join(base_dir, f"{clean_name}_{counter:03d}.safetensors"))
-                if alt != src_abs and not os.path.exists(alt):
-                    candidate = alt
-                    break
-                counter += 1
-        return candidate
-
     def remap_and_load(self, model, lora_name, strength_model, strip_llm_adapter,
                        clamp_spectral_outliers, save_converted_copy, output_filename,
                        clip=None, strength_clip=0.5):
@@ -1030,7 +1009,7 @@ class HaDeSAnimaUniversalLoraLoader:
 
         saved_msg = "Not exported"
         if save_converted_copy and canon_sd:
-            out_path = self._safe_export_path(output_filename, lora_path)
+            out_path = lora_output_path(self.output_dir, output_filename, "Anima_ComfyNative_LoRA", donor_paths=(lora_path,))
             safetensors.torch.save_file(
                 canon_sd,
                 out_path,
@@ -1267,7 +1246,7 @@ class HaDeSAnimaCornerScribbleShield:
                 mask_out[b : b + 1, y0:y1, x0:x1] = torch.maximum(mask_out[b : b + 1, y0:y1, x0:x1], corner_mask)
 
                 if heal_mode in ("Smart Edge-Inward Blend (Auto-Heal)", "Aggressive Corner Fill (Forced)"):
-                    # Robust reference: sample the guaranteed-clean outer ring (8-16px)
+                    # Reference: sample the outer ring (8-16px)
                     # just OUTSIDE the corner box and continue its content inward
                     # (edge continuation), instead of the old 2px inner strips.
                     # Mirror the clean ring across the seam: the box row/col touching the seam takes the nearest

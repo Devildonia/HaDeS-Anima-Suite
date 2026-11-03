@@ -15,6 +15,10 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - **KSampler `flow_shift` tooltip follows a measurement:** 3.0 suits sizes up to 1536 px, and lowering it for smaller sizes changes nothing. At 2048² a shift of 3.0 collapsed 4 of 12 images into a dark frame, while ~6.0 (3 × side / 1024) kept them whole with detail still at 1536 level, so the tooltip points to generating at 1024–1536 and upscaling with Dual / Triple-Pass. This replaces the unmeasured "higher for high-res / lower for detail" advice. Results in `tools/ABLATION_RESULTS.md`; `tools/anima_ablation.py` gained a `shift` mode.
+- **Anima Latent no longer changes 1280×1280 by default:** `prevent_29b_white_bg_bias` targets an unmeasured report about Anima-2.9B (Preview 3) only, so new nodes start with it off. Saved workflows keep their value.
+- **Loaders log at debug level:** the Model, Text Encoder and VAE loaders no longer print their info line (with its `HADES_META` JSON) to the console on every load.
+- **Classic UI setting lives only in ComfyUI's settings:** the copy in `localStorage` is gone; the setting applies its stored value when it is registered, before any node is created.
+- **Docs:** README node categories match the real `HaDeS/Anima Loaders` / `HaDeS/Anima Samplers`, the `pyproject` description is factual, and unmeasured claims were removed from the Triple-Pass and VAE Loader docstrings.
 
 ## [0.4.6] - 2026-11-02
 

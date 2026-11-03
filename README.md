@@ -31,7 +31,7 @@ Claims about what block groups, presets and schedulers do are measured with [`to
 
 ```
 HaDeS Anima Suite v0.4.6
-├── HaDeS_Anima_Suite/Loaders (4 Nodes)
+├── HaDeS/Anima Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader
 │   ├── 16. Anima VAE Loader
@@ -55,7 +55,7 @@ HaDeS Anima Suite v0.4.6
 │   ├── 9. Anima Universal LoRA Remapper
 │   ├── 10. Anima Corner Shield
 │   └── 18. Anima Suite Telemetry
-└── HaDeS_Anima_Suite/Samplers (4 Nodes)
+└── HaDeS/Anima Samplers (4 Nodes)
     ├── 11. Anima KSampler
     ├── 12. Anima Dual-Pass KSampler
     ├── 13. Anima Triple-Pass KSampler
@@ -221,7 +221,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 - **Purpose:** 16-channel latents (`[B, 16, H // 8, W // 8]`) with optional `model` / `vae` validation.
 - **Checks:**
   - **64-channel VAE:** raises a clear error if the 64-channel Qwen-Image 2.1 VAE is connected instead of the 16-channel `qwen_image_vae.safetensors`.
-  - **Anima-2.9B `1280×1280`:** with `prevent_29b_white_bg_bias`, shifts `1280×1280` to `1216×1216`, following the community report that this size biases 2.9B towards white backgrounds (not measured here).
+  - **Anima-2.9B `1280×1280`:** with `prevent_29b_white_bg_bias` (off by default), shifts `1280×1280` to `1216×1216`, following the community report that this size biases 2.9B towards white backgrounds (not measured here).
   - **Sizes:** 11 aspect presets (including `1:4` and `4:1`); custom sizes snap to 32 px, which also satisfies Anima's 16 px grid.
 
 #### 9. `Anima Universal LoRA Remapper`
@@ -241,7 +241,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 ---
 
-### Part C — Samplers (`HaDeS_Anima_Suite/Samplers`)
+### Part C — Samplers (`HaDeS/Anima Samplers`)
 
 #### 11. `Anima KSampler`
 - **Class:** `HaDeSAnimaKSampler`
@@ -271,7 +271,7 @@ No group isolates one attribute: each moves composition, structure, texture and 
 
 ---
 
-### Part D — Loaders & VAE Decode (`HaDeS_Anima_Suite/Loaders`)
+### Part D — Loaders & VAE Decode (`HaDeS/Anima Loaders`)
 
 #### 14. `Anima Diffusion Model Loader`
 - **Class:** `HaDeSAnimaModelLoader`

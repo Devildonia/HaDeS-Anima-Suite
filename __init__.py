@@ -1458,8 +1458,7 @@ def lora_output_path(output_dir, export_filename, default_name, donor_paths=(), 
 
 
 def default_lora_dir():
-    lora_dirs = folder_paths.get_folder_paths("loras") if hasattr(folder_paths, "get_folder_paths") else []
-    return lora_dirs[0] if lora_dirs else os.path.join(folder_paths.models_dir, "loras")
+    return folder_paths.get_folder_paths("loras")[0]
 
 
 class HaDeSAnimaStandaloneLoraMerger:

@@ -70,7 +70,7 @@ euler, model A, mean distance to an 80-step euler / normal reference (lower = cl
 | 24 | 12.6 / 9.4 | **7.1 / 2.9** | 8.3 / 3.5 |
 
 - `anima_beta57` (Beta 0.5 / 0.7) converges faster than `normal`, but slower than ComfyUI's stock `beta` at every step count.
-  Its schedule does put more steps at low noise (8 of 28 below sigma 0.3, vs 5 for `beta`, 3 for `normal`); its scipy-free fallback is within 0.0008 of `scipy.stats.beta.ppf`.
+  Its schedule does put more steps at low noise (8 of 28 below sigma 0.3, vs 5 for `beta`, 3 for `normal`).
 - Convergence is not aesthetics; this only says beta57 reaches the same image later, not that it looks worse.
 - `anima_lightning_tdm`: the 4-step schedule reproduces the documented [1.0, 0.9, 0.75, 0.5, 0.0] at shift 3. Not tested on images (no TDM-distilled model available); other step counts use an improvised spacing.
 
