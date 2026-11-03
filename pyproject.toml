@@ -1,7 +1,7 @@
 [project]
 name = "hades-anima-suite"
 description = "25 ComfyUI nodes for the Anima model family: loaders, block / multi-model (TIES, DARE, Model Stock, SLERP) / CLIP / LoRA mergers, LoRA extractor, resizer and block weight, a model saver (bf16, fp8, ConvRot INT8 / INT4, Diffusers), prompt helpers with a local artist / character catalog, NAG, single / dual / triple-pass samplers, corner-mark removal and a telemetry node."
-version = "0.4.6"
+version = "0.4.7"
 authors = [
     { name = "Devildonia" }
 ]

@@ -1,4 +1,4 @@
-# HaDeS Anima Suite v0.4.6
+# HaDeS Anima Suite v0.4.7
 
 25 ComfyUI nodes for the **Anima** model family (CircleStone Labs / Comfy Org: `MiniTrainDIT` DiT + `Qwen3-0.6B` text encoder + 6-layer `llm_adapter` + 16-channel Wan 2.1 VAE): loaders, block, multi-model (TIES / DARE / Model Stock / SLERP) and LoRA mergers, a LoRA extractor and resizer, per-block LoRA strength, a model saver, prompt and pipeline helpers (including a local artist / character catalog), three samplers with a metadata reader for image savers and a telemetry node, with a shared canvas UI.
 
@@ -30,7 +30,7 @@ Claims about what block groups, presets and schedulers do are measured with [`to
 ## Nodes
 
 ```
-HaDeS Anima Suite v0.4.6
+HaDeS Anima Suite v0.4.7
 ├── HaDeS/Anima Loaders (4 Nodes)
 │   ├── 14. Anima Diffusion Model Loader
 │   ├── 15. Anima Text Encoder Loader

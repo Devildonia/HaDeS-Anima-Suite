@@ -5,7 +5,7 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.4.7] - 2026-11-03
 
 ### Fixed
 - **Prompt Studio kept underscores in every tag ending in `_up`:** the sanitizer's whitelist meant for `score_8_up` also matched `arms_up`, `looking_up`, `hands_up`… so they reached the model with underscores while every other tag got spaces. Only `score_*_up` keeps them now.
