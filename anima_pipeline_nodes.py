@@ -27,7 +27,7 @@ from . import (
 # ==============================================================================
 # 6. HADES ANIMA PROMPT STUDIO & AESTHETIC GUARD
 # ==============================================================================
-_SCORE_WHITELIST_RE = re.compile(r"^(?:score_\d+|.*_up|safe_for_work)$", re.IGNORECASE)
+_SCORE_WHITELIST_RE = re.compile(r"^(?:score_\d+(?:_up)?|safe_for_work)$", re.IGNORECASE)
 _SCORE_TAG_RE = re.compile(r"^score_\d+(?:_up)?$", re.IGNORECASE)
 _UNESCAPED_PAREN_RE = re.compile(r"(?<!\\)([()])")
 _KAOMOJI_SET = {
@@ -521,7 +521,7 @@ class HaDeSAnimaPromptStudio:
                 ],),
                 "booru_sanitizer": ("BOOLEAN", {
                     "default": True,
-                    "tooltip": "Normalize Booru tags to lowercase, replace underscores with spaces (except score_*, *_up, safe_for_work, kaomojis), escape literal parens, order into canonical buckets, and preserve natural language capitalization."
+                    "tooltip": "Normalize Booru tags to lowercase, replace underscores with spaces (except score_* / score_*_up, safe_for_work, kaomojis), escape literal parens, order into canonical buckets, and preserve natural language capitalization."
                 }),
                 "t5_weight_multiplier": ("FLOAT", {
                     "default": 1.00, "min": 0.0, "max": 2.5, "step": 0.05,
@@ -1581,7 +1581,7 @@ class HaDeSAnimaSuiteTelemetry:
 
         if corner_status is not None:
             if "CLEAN" in corner_status.upper():
-                checks.append("Corner Scribble Shield: Perimeter clean (zero false positives).")
+                checks.append("Corner Scribble Shield: no corner flagged.")
             else:
                 checks.append(f"Corner Scribble Shield: Detected signature artifacts mitigated ({corner_status}).")
 

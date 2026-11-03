@@ -716,6 +716,9 @@ def test_7_prompt_studio_and_aesthetic_slop_guard():
     _, _, fmt_w, _, _ = studio.process_prompt("Anima Base 2B (Keep Quality Tags)", "Standard Anime / Illustration", True, 1.0,
                                               "frieren", "@zocehuy", "1girl", "", character="")
     assert "frieren" not in fmt_w and "@zocehuy" in fmt_w, fmt_w
+    # Only score_*_up keeps its underscores; ordinary *_up tags are converted like any other tag
+    up_tags = hades.format_anima_prompt_text("arms_up, looking_up, score_8_up", "Anima Base 2B (Keep Quality Tags)", "Standard Anime / Illustration")[0]
+    assert "arms up" in up_tags and "looking up" in up_tags and "score_8_up" in up_tags, up_tags
     assert "score_9" not in fmt_pos and "score_7_up" not in fmt_pos and "masterpiece" not in fmt_pos
     assert "score_1" not in fmt_neg and "worst quality" in fmt_neg, f"Expected score_* stripped from Aesthetic negative prompt, got: {fmt_neg}"
     assert r"hatsune miku \(vocaloid\)" in fmt_pos, f"Expected unescaped Booru parens to be escaped, got: {fmt_pos}"
@@ -1320,6 +1323,24 @@ def test_15_anima_clip_loader_qwen3_validation():
     except ValueError as e:
         q7b_blocked = "3584" in str(e)
     assert q7b_blocked, "Expected 3584-dim Qwen2.5-7B encoder to be blocked by HaDeSAnimaCLIPLoader!"
+
+    # 4. Block Qwen3.5-0.8B (1024d, loaded by ComfyUI as Qwen3.5) and Qwen3-4B (2560d, loaded as the Z-Image encoder)
+    for name, sd in (
+        ("qwen3.5_0.8b.safetensors", {
+            "model.language_model.layers.0.input_layernorm.weight": torch.ones(1024),
+            "model.language_model.layers.0.linear_attn.A_log": torch.ones(16),
+        }),
+        ("qwen_3_4b.safetensors", {
+            "model.layers.0.post_attention_layernorm.weight": torch.ones(2560),
+            "model.layers.0.input_layernorm.weight": torch.ones(2560),
+            "model.layers.0.self_attn.q_norm.weight": torch.ones(128),
+        }),
+    ):
+        try:
+            hades.validate_anima_te_state_dict(sd, name)
+            raise AssertionError(f"Expected '{name}' to be blocked by HaDeSAnimaCLIPLoader!")
+        except ValueError as e:
+            assert "qwen_3_06b_base" in str(e)
     assert hades.HaDeSAnimaCLIPLoader.RETURN_NAMES == ("clip", "info")
     print("[OK] Test 15: HaDeSAnimaCLIPLoader (Qwen3-0.6B 1024d validation & T5/Qwen2.5-7B block) verified")
 
@@ -1383,7 +1404,7 @@ def test_17_anima_smart_vae_decode_and_scribble_shield():
     assert tuple(img_3d.shape) == (2, 512, 512, 3)
 
     rt_lat, (w0, h0), (w1, h1) = hades.upscale_anima_latent_32px(
-        {"samples": torch.zeros(2, 16, 1, 64, 64)},
+        {"samples": torch.zeros(2, 16, 1, 64, 64), "noise_mask": torch.ones(2, 64, 64)},
         1.5,
         "Pixel-Space VAE Round-Trip (Lanczos 32px)",
         vae=wan3d_vae,
@@ -1392,6 +1413,7 @@ def test_17_anima_smart_vae_decode_and_scribble_shield():
     assert tuple(rt_lat["samples"].shape) == (2, 16, 1, 768 // 8, 768 // 8), (
         f"Expected batch_size=2 to be preserved on 3D WanVAE round-trip, got {rt_lat['samples'].shape}"
     )
+    assert tuple(rt_lat["noise_mask"].shape[-2:]) == (96, 96), "The pixel bridge must keep an inpainting mask, resized like the latent"
     print("[OK] Test 17: HaDeSAnimaVAEDecode (Proactive HiRes Auto-Tile, 3D WanVAE 4D/5D & batch=2 round-trip) verified")
 
 

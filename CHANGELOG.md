@@ -7,6 +7,12 @@ The project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- **Prompt Studio kept underscores in every tag ending in `_up`:** the sanitizer's whitelist meant for `score_8_up` also matched `arms_up`, `looking_up`, `hands_up`… so they reached the model with underscores while every other tag got spaces. Only `score_*_up` keeps them now.
+- **Text Encoder Loader guard let two wrong encoders through:** Qwen3.5-0.8B passed as "Qwen3-0.6B Base" and Qwen3-4B as an "Anima-3.8B secondary" encoder, but ComfyUI loads them with the Qwen3.5 and Z-Image pipelines, so the conditioning was wrong without any error. Both are now rejected with a clear message.
+- **Dual / Triple-Pass pixel bridge dropped the inpainting mask:** with `Pixel-Space VAE Round-Trip` (the Triple-Pass default) a masked latent was repainted in full from pass 2 on. The mask is now resized with the latent, as the latent bridges already did.
+- **Telemetry overstated a clean Corner Shield** as "zero false positives"; it now says no corner was flagged.
+
 ### Changed
 - **KSampler `flow_shift` tooltip follows a measurement:** 3.0 suits sizes up to 1536 px, and lowering it for smaller sizes changes nothing. At 2048² a shift of 3.0 collapsed 4 of 12 images into a dark frame, while ~6.0 (3 × side / 1024) kept them whole with detail still at 1536 level, so the tooltip points to generating at 1024–1536 and upscaling with Dual / Triple-Pass. This replaces the unmeasured "higher for high-res / lower for detail" advice. Results in `tools/ABLATION_RESULTS.md`; `tools/anima_ablation.py` gained a `shift` mode.
 

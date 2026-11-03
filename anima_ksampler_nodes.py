@@ -262,12 +262,8 @@ def upscale_anima_latent_32px(
             encoded = encoded.unsqueeze(2)
         elif orig_ndim == 4 and encoded.ndim == 5 and encoded.shape[2] == 1 and getattr(vae, "latent_dim", None) != 3:
             encoded = encoded.squeeze(2)
-        out_dict = latent_dict.copy()
-        out_dict["samples"] = encoded
-        out_dict.pop("noise_mask", None)
-        return out_dict, (orig_w_px, orig_h_px), (target_w_px, target_h_px)
-
-    if upscale_method == "Latent 16ch Sharp Bislerp":
+        up_samples = encoded
+    elif upscale_method == "Latent 16ch Sharp Bislerp":
         up_samples = _bislerp_latent_2d(samples, target_h_lat, target_w_lat)
     else:
         # Latent 16ch Variance-Preserving Bicubic

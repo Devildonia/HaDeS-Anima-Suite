@@ -128,10 +128,9 @@ def inject_external_llm_adapter_sd(base_sd: dict, adapter_sd: dict) -> tuple[dic
 
 def validate_anima_te_state_dict(sd: dict, clip_name: str = "") -> tuple[str, int, int]:
     """
-    Validate that a text encoder state_dict is compatible with Anima:
-    - Primary: Qwen3-0.6B (hidden_size=1024, 28 layers, q_norm/k_norm present)
-    - Secondary (Anima-3.8B Dual TE): Qwen3.5-4B / Qwen3-4B (hidden_size=2560) or Qwen3.5-0.8B (1024)
-    Raises a clear ValueError if an incompatible encoder (CLIP-L, CLIP-G, T5-XXL, Qwen2.5-7B) is supplied.
+    Validate that a text encoder state_dict is Anima's Qwen3-0.6B (hidden_size=1024, q_norm/k_norm present), the only
+    Qwen encoder ComfyUI loads with the Anima tokenizer and pipeline.
+    Raises a clear ValueError if an incompatible encoder (CLIP-L, CLIP-G, T5-XXL, Qwen3.5, Qwen3-4B, Qwen2.5-7B) is supplied.
     Returns: (detected_arch_label, hidden_dim, num_layers)
     """
     keys = list(sd.keys())
@@ -147,30 +146,26 @@ def validate_anima_te_state_dict(sd: dict, clip_name: str = "") -> tuple[str, in
             "Although Cosmos-Predict2 used T5, Anima replaced T5 with 'qwen_3_06b_base.safetensors' (Qwen3-0.6B Base) + internal llm_adapter."
         )
 
-    # Check Qwen3 / Qwen3.5 layer norms
+    if "model.language_model.layers.0.linear_attn.A_log" in sd:
+        raise ValueError(
+            f"[HaDeS Anima CLIP Loader] Qwen3.5 text encoder ('{clip_name}') detected. ComfyUI loads it with the Qwen3.5 "
+            "pipeline, not Anima's; select 'qwen_3_06b_base.safetensors' (Qwen3-0.6B Base, 1024d)."
+        )
+
     norm_w = sd.get("model.layers.0.post_attention_layernorm.weight", None)
-    if norm_w is None:
-        norm_w = sd.get("model.language_model.layers.0.input_layernorm.weight", None)
     if norm_w is None:
         norm_w = sd.get("layers.0.post_attention_layernorm.weight", None)
 
-    has_q_norm = (
-        "model.layers.0.self_attn.q_norm.weight" in sd
-        or "layers.0.self_attn.q_norm.weight" in sd
-        or "model.language_model.layers.0.linear_attn.A_log" in sd
-    )
+    has_q_norm = "model.layers.0.self_attn.q_norm.weight" in sd or "layers.0.self_attn.q_norm.weight" in sd
 
     if norm_w is not None:
         hidden_dim = int(norm_w.shape[0])
         n_layers = sum(
             1 for k in keys
-            if (k.startswith("model.layers.") or k.startswith("model.language_model.layers.") or k.startswith("layers."))
-            and k.endswith(".input_layernorm.weight")
+            if (k.startswith("model.layers.") or k.startswith("layers.")) and k.endswith(".input_layernorm.weight")
         )
         if hidden_dim == 1024 and has_q_norm:
             return ("Qwen3-0.6B Base (Native Anima 1024d)", hidden_dim, max(1, n_layers))
-        if hidden_dim == 2560 and has_q_norm:
-            return ("Qwen3/3.5-4B (Anima-3.8B Secondary 2560d)", hidden_dim, max(1, n_layers))
         if hidden_dim == 3584:
             raise ValueError(
                 f"[HaDeS Anima CLIP Loader] Incompatible 3584-dim Qwen2.5-7B encoder ('{clip_name}') detected. "
